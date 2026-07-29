@@ -14,7 +14,7 @@ they are absent, the model falls back on its generic Swiss German prior.
 
 **The rulebook works with any AI.** `rules/schrybwys.md` is a plain markdown file
 with no tool-specific syntax, and `rules/schrybwys-compact.md` holds the same
-rules in a 1712-character block for instruction boxes that impose a limit. Drop
+rules in a 1776-character block for instruction boxes that impose a limit. Drop
 either into a system prompt, custom instructions, `AGENTS.md`,
 `.github/copilot-instructions.md` or `.cursor/rules/` and you are done.
 
@@ -34,7 +34,7 @@ claude:  answers in Bärndütsch, with nid instead of nöd
 | | |
 |---|---|
 | `rules/schrybwys.md` | The rulebook. The codified *schriftsprach-nah* system after Marti and Bietenhard: vowels, consonants, `ds`/`z`, grammar, and what separates Bernese from its neighbours. Tool-agnostic. |
-| `rules/schrybwys-compact.md` | The same rules in 1712 characters, with attribution inside the block. |
+| `rules/schrybwys-compact.md` | The same rules in 1776 characters, with attribution and licence inside the block. |
 | `hooks/berndeutsch_gate.py` | The detector and injector, for Claude Code. |
 | `scripts/bdw` | Dictionary lookup against berndeutsch.ch. Answers the question the model cannot answer honestly by itself: is this actually a word? |
 | `scripts/bd-corpus` | Fetches a small corpus of genuinely Bernese text, for feel rather than rules. |
@@ -131,7 +131,7 @@ something else.
 Look a word up before you use it:
 
 ```
-$ bdw suber
+$ ~/.claude/scripts/bdw suber
 EXACT    suber  [Adj./Adv.]
       Schreibweisen: sufer (alt)
       1. sauber, rein, z. B. "suberi Chleider", 2. ei...
@@ -140,14 +140,16 @@ verwandt suber u glatt
       klar, tatsächlich.
       https://www.berndeutsch.ch/words/14701
 
-$ bdw -n 0 nöd; echo $?
+$ ~/.claude/scripts/bdw -n 0 nöd; echo $?
 KEIN EXAKTER EINTRAG für «nöd» (1 Seite(n) durchsucht).
         Nicht als Stichwort oder Schreibvariante geführt. Ein hochdeutsches
         Lehnwort ist ehrlicher als eine erfundene Dialektform.
 1
 ```
 
-`-n 0` suppresses the related hits; without it both commands also list the
+`install.py` symlinks `bdw` into your Claude config directory rather than onto
+`PATH`, so either use the full path as above or add that directory to `PATH`
+yourself. `-n 0` suppresses the related hits; without it both commands also list the
 entries that merely mention the word. Exit 0 means an exact entry was found,
 1 means the result set was searched to the end and there is none, and 2 means
 the answer is unknown rather than negative: a transport failure, or a search
@@ -230,7 +232,12 @@ precisely which part comes from whom and under which licence; the short version:
 
 ## Licence
 
-MIT for the code in `hooks/`, `scripts/` and the packaging files. The material
-in `rules/` and `corpus/` summarises other people's scholarship and carries its
-own attribution requirements; `NOTICE` spells out which, and is the file to read
-before vendoring any of it.
+MIT for the code in `hooks/`, `scripts/` and the packaging files.
+
+**`rules/` is CC BY-SA 4.0** (see `rules/LICENSE`). That is deliberate: this
+README tells you to paste those files into a system prompt or an instructions
+file, which is redistribution, so they need a licence that permits it. Attribute
+as "Bärndütschi Schrybwys, github.com/sapn95/berndeutsch-for-ai, CC BY-SA 4.0".
+
+`corpus/` describes material belonging to others. `NOTICE` records the
+provenance of everything and is the file to read before vendoring any of it.

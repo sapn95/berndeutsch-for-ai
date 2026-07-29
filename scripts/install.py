@@ -11,6 +11,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -41,9 +42,14 @@ def probe(hook, prompt):
     # BERNDEUTSCH_RULES set in your shell makes the installer fail.
     env = {k: v for k, v in os.environ.items()
            if k not in ("BERNDEUTSCH_RULES", "BERNDEUTSCH_IDIOLECT")}
-    return subprocess.run(
-        [sys.executable, str(hook)], input=payload, capture_output=True, text=True, env=env
-    )
+    # Point the config dir at an empty directory as well, so an existing
+    # personal memory overlay cannot satisfy the assertion on the BUNDLED
+    # rulebook and turn a broken install into a passing self-test.
+    with tempfile.TemporaryDirectory() as sandbox:
+        env["CLAUDE_CONFIG_DIR"] = sandbox
+        return subprocess.run(
+            [sys.executable, str(hook)], input=payload, capture_output=True, text=True, env=env
+        )
 
 
 def main():

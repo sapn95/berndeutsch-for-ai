@@ -1,6 +1,9 @@
 This licence covers the code in this repository: hooks/, scripts/ and the
-packaging files. The material in rules/ and corpus/ summarises other people's
-scholarship and carries its own attribution requirements. See NOTICE.
+packaging files.
+
+rules/ is licensed separately, under CC BY-SA 4.0; see rules/LICENSE. corpus/
+describes material belonging to others and carries its own attribution
+requirements. NOTICE records the provenance of both.
 
 MIT License
 

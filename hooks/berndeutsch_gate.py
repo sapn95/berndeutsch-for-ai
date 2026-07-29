@@ -20,6 +20,7 @@ import os
 import re
 import sys
 import time
+import unicodedata
 from pathlib import Path
 
 # Scoring looks at a bounded window, never the whole prompt: a pasted file can
@@ -47,8 +48,8 @@ verstahsch chöisch dörfsch söttisch wirsch wohnsch schaffsch schrybsch
 redsch chouffsch heissisch wosch chunsch
 öppis öpper öppe mängisch itz sött söu söue wöu gäu gäud
 chli chunt chume chumme chöi göh göi
-machemer hämmer gömer simer
-äbe grüessech vilmal gäng geng äuä äuwä nüt nüüt gits geits
+machemer gömer simer gmacht
+öbe äbe grüessech vilmal gäng äuä äuwä nüt nüüt geits geit gaht
 """.split())
 
 # SUPPORTING: genuinely Bernese, but each one collides with a real word or a
@@ -61,13 +62,19 @@ machemer hämmer gömer simer
 # and an HPC network identifier. Each of those fired on ordinary prompts while
 # it was treated as decisive.
 #
-# Deliberately absent: halt, grad, wäge, sowieso, merci, säge, mer, het, hoi.
-# They are ordinary German or English words or, in the case of mer and het,
-# fall out of a URL path once tokens are split on non-letters. Any two of them
-# reached the bar on prompts containing no dialect at all.
+# Also demoted rather than dropped: hämmer is the German plural of Hammer,
+# geng is a common Chinese surname, gits is an English plural. Each is real
+# Bernese, and none of them should decide a prompt on its own.
+#
+# Deliberately absent from both tiers: halt, grad, wäge, sowieso, merci, säge,
+# mer, het, hoi, and bare git. They are ordinary German or English words or, in
+# the case of mer and het, fall out of a URL path once tokens are split on
+# non-letters. Any two of them reached the bar on prompts with no dialect at
+# all, and git reached it twice in one shell command.
 SUPPORTING = frozenset("""
-nid nit gsi kei chum witt
+nid nit gsi kei ke chum witt geng gits hämmer
 hei cha wott mues gah luege scho guet öi aui nöime hüt zäme churz dänk
+ig wei söll
 """.split())
 
 # One decisive marker fires. Otherwise two DISTINCT supporting markers are
@@ -78,10 +85,25 @@ TOKEN_RE = re.compile(r"[^\W\d_]+", re.UNICODE)
 
 
 def scan_window(text):
-    """The head and tail of the prompt, without scanning the middle of a paste."""
+    """The head and tail of the prompt, without scanning the middle of a paste.
+
+    NFC first, because a decomposed umlaut would shatter every marker that
+    contains one. Both cuts land on whitespace: slicing mid-word leaves a
+    fragment, and a fragment can be a marker that the real text never
+    contained, e.g. German "Verzeichnisch..." cut after "...isch".
+    """
+    text = unicodedata.normalize("NFC", text)
     if len(text) <= SCAN_HEAD + SCAN_TAIL:
         return text
-    return text[:SCAN_HEAD] + "\n" + text[-SCAN_TAIL:]
+    head = text[:SCAN_HEAD]
+    cut = head.rfind(" ")
+    if cut > 0:
+        head = head[:cut]
+    tail = text[-SCAN_TAIL:]
+    cut = tail.find(" ")
+    if cut >= 0:
+        tail = tail[cut + 1:]
+    return head + "\n" + tail
 
 
 def is_dialect(text):
@@ -101,7 +123,11 @@ def config_dir():
 
 
 def rulebooks(here):
-    """Resolve the rulebook files, most specific first, de-duplicated.
+    """Return (primary, overlays).
+
+    Split on purpose: an overlay alone is not a rulebook. If the primary cannot
+    be read, the session must fall back to the checklist rather than shipping a
+    personal overlay with no rules around it, and must not be marked as served.
 
     BERNDEUTSCH_RULES *replaces* the bundled rulebook rather than stacking on
     top of it, because the two spelling systems contradict each other and
@@ -131,14 +157,17 @@ def rulebooks(here):
     else:
         add(here.parent / "rules" / "schrybwys.md")
         add(here.parent.parent / "rules" / "schrybwys.md")
+    primary = found[0] if found else None
 
+    found.clear()
+    seen.clear()
     add(os.environ.get("BERNDEUTSCH_IDIOLECT"))
     try:
         for overlay in sorted(config_dir().glob("projects/*/memory/berndeutsch-schrybwys.md")):
             add(overlay)
     except OSError:
         pass
-    return found
+    return primary, list(found)
 
 
 def lookup_tool(here):
@@ -179,13 +208,26 @@ def build_context(here, first_time):
 
     emitted = False
     if first_time:
-        for book in rulebooks(here):
+        primary, overlays = rulebooks(here)
+        if primary:
             try:
-                out.append(book.read_text(encoding="utf-8", errors="replace"))
-                emitted = True
+                body = primary.read_text(encoding="utf-8", errors="replace")
             except OSError:
-                continue
+                body = ""
+            # An empty or unreadable rulebook is not a rulebook. Treating it as
+            # one would mark the session served and leave the user with neither
+            # the rules nor the checklist for the rest of it.
+            if body.strip():
+                out.append(body)
+                emitted = True
         if emitted:
+            for overlay in overlays:
+                try:
+                    extra = overlay.read_text(encoding="utf-8", errors="replace")
+                except OSError:
+                    continue
+                if extra.strip():
+                    out.append(extra)
             out.append("")
     if not emitted:
         # Also the path taken when no rulebook file was found or none could be
@@ -233,7 +275,11 @@ def sweep(state_dir):
 
 def main():
     try:
-        payload = json.load(sys.stdin)
+        # Read bytes and decode explicitly: sys.stdin goes through the locale
+        # wrapper, and under a non-UTF-8 locale every umlaut in the prompt would
+        # arrive mangled or raise.
+        raw = sys.stdin.buffer.read()
+        payload = json.loads(raw.decode("utf-8", "replace"))
     except Exception:
         return 0
     if not isinstance(payload, dict):

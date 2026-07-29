@@ -69,9 +69,11 @@ def spellings(alt):
     """Parse a 'Schreibweisen: aafaa, aafo' line into a list of forms."""
     if not alt:
         return []
-    body = alt.split(":", 1)[-1]
-    # Variants carry annotations like "sufer (alt)" — keep only the form.
-    return [re.sub(r"\(.*?\)", "", f).strip().lower() for f in re.split(r"[,;]", body) if f.strip()]
+    # Strip the annotations BEFORE splitting. "hindere (im Oberland, selten)"
+    # contains a comma, so splitting first tears the annotation in half and
+    # destroys the variant it was attached to.
+    body = re.sub(r"\([^)]*\)", "", alt.split(":", 1)[-1])
+    return [f.strip().lower() for f in re.split(r"[,;]", body) if f.strip()]
 
 
 def fetch(word, page=1):
@@ -184,7 +186,10 @@ def main():
             kind = type(exc).__name__
             print(f"{word}: LOOKUP FAILED ({kind}: {exc}) — unknown, not disproven",
                   file=sys.stderr)
-            return 2
+            # Keep going. Returning here would leave every later word on the
+            # command line silently unlooked-up with no mention in the output.
+            unknown = True
+            continue
 
         if not exact:
             if exhausted:

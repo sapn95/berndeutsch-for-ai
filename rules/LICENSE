@@ -1,0 +1,15 @@
+The files in this directory (rules/schrybwys.md and rules/schrybwys-compact.md)
+are licensed under the Creative Commons Attribution-ShareAlike 4.0
+International licence (CC BY-SA 4.0).
+
+    https://creativecommons.org/licenses/by-sa/4.0/
+
+CC BY-SA rather than the repository's MIT licence, for two reasons. The grammar
+section derives from the Alemannic Wikipedia article "Berndeutsch", which is
+CC BY-SA 4.0, and share-alike propagates. And the README instructs readers to
+paste these files into a system prompt or an instructions file, which is
+redistribution, so they need a licence that actually permits it.
+
+Attribute as: "Bärndütschi Schrybwys, github.com/sapn95/berndeutsch-for-ai,
+CC BY-SA 4.0". See NOTICE for the underlying sources, which have their own
+terms and are not relicensed by this file.

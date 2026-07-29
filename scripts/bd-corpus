@@ -95,11 +95,17 @@ def main():
     print(f"{len(titles)} articles in {CATEGORY}", file=sys.stderr)
 
     # prop=extracts serves one full article per request, so no batching.
-    scored = []
+    scored, failed = [], []
     for title in titles:
         time.sleep(DELAY)
-        page = next(iter(api(action="query", prop="extracts", explaintext=1,
-                             titles=title)["query"]["pages"].values()))
+        try:
+            page = next(iter(api(action="query", prop="extracts", explaintext=1,
+                                 titles=title)["query"]["pages"].values()))
+        except Exception as exc:
+            # One unreachable article must not throw away the whole run, but it
+            # must not vanish silently either.
+            failed.append(f"{title} ({type(exc).__name__})")
+            continue
         text = page.get("extract") or ""
         if len(text) < 800:
             continue
@@ -126,8 +132,9 @@ def main():
         if slug in used:
             used[slug] += 1
             slug = f"{slug}-{used[slug]}"
-        else:
-            used[slug] = 1
+        # Register the derived name too, otherwise a later title that slugs to
+        # exactly "<slug>-2" silently overwrites this file.
+        used.setdefault(slug, 1)
         header = (
             f"# {title}\n"
             f"# Source: https://als.wikipedia.org/wiki/{urllib.parse.quote(title.replace(' ', '_'))}\n"
@@ -137,6 +144,8 @@ def main():
         written += 1
 
     print(f"\nwrote {written} texts to {out}/", file=sys.stderr)
+    if failed:
+        print(f"could not fetch {len(failed)}: {', '.join(failed)}", file=sys.stderr)
     return 0
 
 
