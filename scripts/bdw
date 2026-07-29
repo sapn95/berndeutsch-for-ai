@@ -1,0 +1,211 @@
+#!/usr/bin/env python3
+"""bdw — Bärndütsch dictionary lookup against berndeutsch.ch.
+
+Verifies word CHOICE before writing dialect. If a word is not in the
+dictionary, prefer a High-German loanword over an invented pseudo-dialect
+form. berndeutsch.ch is a free, 100% volunteer-run Bernese dictionary by
+Stephan Burkard, online since 2000. Look words up there, and support it.
+
+The site's search is a substring search across headwords, alternative
+spellings AND the German glosses. Querying "jetz" therefore returns every
+entry whose translation contains "jetzt", none of which is the word itself.
+So this tool separates two very different answers:
+
+    EXACT     the query is a headword or a listed alternative spelling
+    verwandt  the query only appears inside other entries
+
+    bdw suber              # look one word up
+    bdw suber chlepfe      # several at once
+    bdw -n 10 louf         # more related hits per word
+    bdw -q suber           # quiet: exit code only, for scripting
+
+Exit codes: 0 = every word had an EXACT entry, 1 = at least one word had no
+exact entry, 2 = network/HTTP failure (unknown, NOT disproven).
+"""
+
+import argparse
+import html
+import http.client
+import re
+import sys
+import time
+import unicodedata
+import urllib.error
+import urllib.parse
+import urllib.request
+
+SEARCH_URL = "https://www.berndeutsch.ch/search?q={}"
+TIMEOUT = 15
+POLITE_DELAY = 0.5  # seconds between requests; the site is volunteer-run
+# Results are paginated 10 per page and sorted alphabetically, so an exact
+# headword routinely sits past page 1: "gäng" is a core Bernese word and lands
+# on page 2 of its own query. Stopping at page 1 would report a real word as
+# nonexistent, which is worse than not looking it up at all. The cap keeps the
+# load on a volunteer-run site bounded; when it is hit, say so instead of
+# claiming the word does not exist.
+MAX_PAGES = 15
+UA = "bdw/1.0 (+https://github.com/sapn95/berndeutsch-for-ai) courtesy lookup client"
+
+# One search hit: <h3><a href=".../words/44197?q=..">suber</a> <small>[Adj.]</small></h3>
+# optionally followed by <h5>Schreibweisen: ..</h5> and <p class="hidden-xs">gloss</p>.
+ENTRY_RE = re.compile(
+    r'<h3>\s*<a href="[^"]*?/words/(?P<id>\d+)[^"]*">(?P<word>.*?)</a>\s*'
+    r'(?:<small>\s*(?P<pos>.*?)\s*</small>)?\s*</h3>'
+    r'(?:\s*<h5>\s*(?P<alt>.*?)\s*</h5>)?'
+    r'(?:\s*<p[^>]*>\s*(?P<gloss>.*?)\s*</p>)?',
+    re.S,
+)
+
+
+def clean(raw):
+    """Strip tags, unescape entities, collapse whitespace."""
+    if not raw:
+        return ""
+    return " ".join(html.unescape(re.sub(r"<[^>]+>", "", raw)).split())
+
+
+def spellings(alt):
+    """Parse a 'Schreibweisen: aafaa, aafo' line into a list of forms."""
+    if not alt:
+        return []
+    body = alt.split(":", 1)[-1]
+    # Variants carry annotations like "sufer (alt)" — keep only the form.
+    return [re.sub(r"\(.*?\)", "", f).strip().lower() for f in re.split(r"[,;]", body) if f.strip()]
+
+
+def fetch(word, page=1):
+    # NFC before quoting: a decomposed umlaut from a macOS path or paste would
+    # be sent as "ga%CC%88ng" and the site's substring search matches nothing,
+    # so a real word would come back as "no entry".
+    url = SEARCH_URL.format(urllib.parse.quote(unicodedata.normalize("NFC", word)))
+    if page > 1:
+        url += "&page=%d" % page
+    req = urllib.request.Request(url, headers={"User-Agent": UA})
+    with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+        body = resp.read().decode("utf-8", "replace")
+    return body.split("<footer", 1)[0]  # results live above the footer
+
+
+def last_page(page_html):
+    """Highest page number offered by the pagination widget.
+
+    The separator is matched loosely on purpose: the site emits its query
+    strings HTML-escaped, so the link reads `?q=x&amp;page=2` and the character
+    in front of `page=` is a semicolon, not an ampersand.
+    """
+    pages = [int(n) for n in re.findall(r"page=(\d+)", page_html)]
+    return max(pages) if pages else 1
+
+
+def norm(text):
+    """NFC-normalise and casefold, so a decomposed umlaut still matches."""
+    return unicodedata.normalize("NFC", text).casefold().strip()
+
+
+def entries(page_html):
+    for m in ENTRY_RE.finditer(page_html):
+        yield {
+            "word": clean(m.group("word")),
+            "pos": clean(m.group("pos")),
+            "alt": clean(m.group("alt")),
+            "gloss": clean(m.group("gloss")),
+            "url": "https://www.berndeutsch.ch/words/" + m.group("id"),
+        }
+
+
+def heads_of(entry):
+    """Every form under which this entry counts as an exact match."""
+    forms = [entry["word"]] + spellings(entry["alt"])
+    # A headword may itself be a list: "gä, Gas gä".
+    forms += [part for part in entry["word"].split(",")]
+    return {norm(f) for f in forms if f.strip()}
+
+
+def lookup(word):
+    """Return (exact_entries, related_entries, pages_read, exhausted).
+
+    Walks the result pages until an exact headword turns up or the cap is hit.
+    `exhausted` is False when the cap stopped the walk early, so the caller can
+    avoid asserting that a word does not exist when it simply was not reached.
+    """
+    needle = norm(word)
+    exact, related = [], []
+    total, page = 1, 1
+    while page <= min(total, MAX_PAGES):
+        if page > 1:
+            time.sleep(POLITE_DELAY)
+        body = fetch(word, page)
+        if page == 1:
+            total = last_page(body)
+        for entry in entries(body):
+            (exact if needle in heads_of(entry) else related).append(entry)
+        if exact:
+            return exact, related, page, True
+        page += 1
+    return exact, related, page - 1, total <= MAX_PAGES
+
+
+def show(entry, marker):
+    head = f"{marker} {entry['word']}"
+    if entry["pos"]:
+        head += f"  {entry['pos']}"
+    print(head)
+    for line in (entry["alt"], entry["gloss"]):
+        if line:
+            print(f"      {line}")
+    print(f"      {entry['url']}")
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        prog="bdw", description="Look Bärndütsch words up on berndeutsch.ch"
+    )
+    ap.add_argument("words", nargs="+", help="word(s) to look up")
+    ap.add_argument("-n", "--limit", type=int, default=5, help="related hits shown (default 5)")
+    ap.add_argument("-q", "--quiet", action="store_true", help="exit code only, no output")
+    args = ap.parse_args()
+
+    missing = False
+    for i, word in enumerate(args.words):
+        if i:
+            time.sleep(POLITE_DELAY)
+        try:
+            exact, related, pages, exhausted = lookup(word)
+        except Exception as exc:
+            # Anything that is not a successfully parsed page is "unknown", never
+            # "disproven". http.client raises IncompleteRead / BadStatusLine on a
+            # truncated response and those are not OSError subclasses, so an
+            # explicit narrow tuple would let a transport failure masquerade as a
+            # confident "this word does not exist".
+            kind = type(exc).__name__
+            print(f"{word}: LOOKUP FAILED ({kind}: {exc}) — unknown, not disproven",
+                  file=sys.stderr)
+            return 2
+
+        if not exact:
+            missing = True
+
+        if args.quiet:
+            continue
+
+        if exact:
+            for entry in exact:
+                show(entry, "EXACT   ")
+        elif exhausted:
+            print(f"KEIN EXAKTER EINTRAG für «{word}» ({pages} Seite(n) durchsucht).")
+            print("        Nicht als Stichwort oder Schreibvariante geführt. Ein hochdeutsches")
+            print("        Lehnwort ist ehrlicher als eine erfundene Dialektform.")
+        else:
+            print(f"NICHT GEFUNDEN in den ersten {pages} Seiten für «{word}».")
+            print("        Die Trefferliste ist länger als das Seitenlimit, es wurde also")
+            print("        nicht widerlegt. Auf berndeutsch.ch von Hand nachsehen.")
+
+        for entry in related[: args.limit]:
+            show(entry, "verwandt")
+        print()
+
+    return 1 if missing else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

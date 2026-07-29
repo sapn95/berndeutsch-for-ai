@@ -1,0 +1,73 @@
+NOTICE — what in this repository derives from whose work
+========================================================
+
+The MIT licence in LICENSE covers the code in this repository: hooks/,
+scripts/, and the packaging files. It does not, and cannot, grant rights over
+the underlying descriptions of Bernese German spelling, which are other
+people's scholarship. This file records where each part comes from so that
+anyone reusing the repository knows exactly what they are handling.
+
+rules/schrybwys.md and rules/schrybwys-compact.md
+-------------------------------------------------
+These describe the codified "schriftsprach-nah" spelling system for Bernese
+German. That system is not ours. It was established by:
+
+  Werner Marti, "Bärndütschi Schrybwys" (Francke, Bern, 1978) and
+  "Berndeutsch-Grammatik" (Francke, Bern, 1985)
+
+  Otto von Greyerz / Ruth Bietenhard, "Berndeutsches Wörterbuch"
+  (10th edition, Cosmos, 2017)
+
+and is summarised for the public by berndeutsch.ch, notably in:
+
+  Ursula Pinheiro-Weber, "Bärndütsch schrybe: schriftsprach-nach" (2021),
+  licensed CC BY-ND 4.0
+  https://www.berndeutsch.ch/doc/berndeutsch-schreiben-schriftsprach-nah-v1.pdf
+
+  Hans Jürg Zingg, "Bärndütsch schrybe: uussprach-nach" (2021), the
+  aussprach-nah counterpart, same licence
+  https://www.berndeutsch.ch/doc/berndeutsch-schreiben-aussprach-nah-v1.pdf
+
+  https://www.berndeutsch.ch/pages/schrybe (the free summary page)
+
+The rules a spelling system prescribes are facts about that system and are
+stated here in our own words and our own arrangement. The illustrative examples
+are our own, chosen and verified against berndeutsch.ch dictionary entries with
+scripts/bdw, rather than taken from the CC BY-ND documents. Neither CC BY-ND
+document is reproduced here in whole or in part, and neither is distributed
+with this repository. Read the originals: they are five pages each, they are
+free, and they are better than any summary of them.
+
+If Ursula Pinheiro-Weber, Hans Jürg Zingg or berndeutsch.ch consider any part
+of rules/ to encroach on their work, open an issue and it will be rewritten or
+removed. That is a standing offer, not a formality.
+
+The grammar section
+-------------------
+The description of Bernese grammar (absence of a preterite, the double perfect,
+the frequency of the subjunctive, the declension of zwe/zwo/zwöi and drei/drü,
+politeness as the second person plural) follows the Alemannic Wikipedia article
+"Berndeutsch", licensed CC BY-SA 4.0:
+
+  https://als.wikipedia.org/wiki/Berndeutsch
+  Authors: see the article's history page.
+
+corpus/
+-------
+corpus/sources.md is ours. corpus/texts/ is not committed to this repository;
+it is produced locally by scripts/bd-corpus, which downloads Alemannic
+Wikipedia articles licensed CC BY-SA 4.0 and writes the attribution into the
+header of every file it creates. If you redistribute those texts, CC BY-SA 4.0
+applies to them, not MIT.
+
+berndeutsch.ch
+--------------
+scripts/bdw queries https://www.berndeutsch.ch, a free Bernese-German
+dictionary online since 2000 and run as 100% volunteer work by Stephan Burkard.
+The site has no API. bdw therefore behaves like a courteous human reader: one
+request per page, a delay between requests, a bounded page walk, a User-Agent
+that names this repository, and a link back to every entry instead of a copy of
+the dictionary. No dictionary content is stored in this repository.
+
+If you find this useful, the dictionary is the reason. Add the words it is
+missing: https://www.berndeutsch.ch/pages/wordaddinfo

@@ -1,0 +1,15 @@
+{
+  "name": "berndeutsch-for-ai",
+  "owner": {
+    "name": "sapn95",
+    "url": "https://github.com/sapn95"
+  },
+  "plugins": [
+    {
+      "name": "berndeutsch-for-ai",
+      "source": "./",
+      "description": "Bärndütsch for AI assistants: injects the codified schriftsprach-nah spelling rules whenever your prompt is in Bernese German.",
+      "version": "0.1.0"
+    }
+  ]
+}

@@ -1,0 +1,128 @@
+#!/usr/bin/env python3
+"""bd-corpus — collect a small corpus of genuinely Bernese text for style feel.
+
+Rules tell you what is correct. They do not give you rhythm, idiom or word
+choice. For that you need to read the language.
+
+The Alemannic Wikipedia (als.wikipedia.org) is written by its authors in their
+own dialect, so a Bernese article and a Basel article sit side by side in the
+same category. This script fetches the articles in Kategorie:Bärndütsch and
+scores each one for Bernese markers, keeping only those that actually are
+Bernese. In a test run that correctly rejected the articles on Totemügerli,
+Rudolf von Tavel and Berner Troubadours, none of which is written in Bernese.
+
+Text is CC BY-SA 4.0 by the Wikipedia authors and is written to disk with that
+attribution in the header. It is not redistributed by this repository.
+
+    bd-corpus                    # fetch into ./corpus/texts/
+    bd-corpus --out ~/bd         # somewhere else
+    bd-corpus --list             # score and list, write nothing
+"""
+
+import argparse
+import json
+import pathlib
+import re
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+
+API = "https://als.wikipedia.org/w/api.php"
+CATEGORY = "Kategorie:Bärndütsch"
+UA = {
+    "User-Agent": "bd-corpus/1.0 (+https://github.com/sapn95/berndeutsch-for-ai) "
+    "dialect study; contact via GitHub issues"
+}
+DELAY = 1.2  # Wikipedia returns 429 quickly; stay well under the limit.
+
+# l-vocalisation and Bernese function words score up. Markers of the
+# neighbouring Alemannic variants score down, hard.
+L_VOC = re.compile(
+    r"\b(Mittuland|aut|Wäut|viu|wöu|Gäud|schnäu|Miuch|sou|wott|gäu|hauber|"
+    r"Bevöukerig|Vouk|säuber|äuwä|Merkmau|gäute|Gfüeu|Gieu)\b"
+)
+BERN = re.compile(r"\b(gsy|isch|nid|nüt|het|hei|chunt|geng|gäng|äbe|öppis)\b")
+OTHER = re.compile(r"\b(nöd|gsii|gsi|bikannt|deet|hän|sinn|Ziit|zwoi|nüüt)\b")
+
+# Markers per 1000 characters, so a short Bernese article is not beaten by a
+# long one. On the 22 articles in the category this separates cleanly: every
+# text with a Bernese majority lands above 1.0, and the ones written in another
+# Alemannic variant (Totemügerli, Rudolf von Tavel, Berner Troubadours,
+# Bernhard Stirnemann with its "hed", "Sebdämber", "gsii") all land below zero.
+# Note the score also rewards careful spelling, since "gsi" and "Ziit" count
+# against a text. That is intentional for a corpus meant to model style.
+KEEP_THRESHOLD = 1.0
+
+
+def api(**params):
+    params.setdefault("format", "json")
+    req = urllib.request.Request(API + "?" + urllib.parse.urlencode(params), headers=UA)
+    for attempt in range(4):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                return json.load(resp)
+        except urllib.error.HTTPError as exc:
+            if exc.code == 429 and attempt < 3:
+                time.sleep(6 * (attempt + 1))
+                continue
+            raise
+
+
+def score(text):
+    raw = len(BERN.findall(text)) + 4 * len(L_VOC.findall(text)) - 6 * len(OTHER.findall(text))
+    return raw / len(text) * 1000
+
+
+def main():
+    ap = argparse.ArgumentParser(prog="bd-corpus", description=__doc__.splitlines()[0])
+    ap.add_argument("--out", default="corpus/texts", help="output directory")
+    ap.add_argument("--list", action="store_true", help="score and list only")
+    args = ap.parse_args()
+
+    members = api(action="query", list="categorymembers", cmtitle=CATEGORY, cmlimit=50)
+    titles = [m["title"] for m in members["query"]["categorymembers"] if m["ns"] == 0]
+    print(f"{len(titles)} articles in {CATEGORY}", file=sys.stderr)
+
+    # prop=extracts serves one full article per request, so no batching.
+    scored = []
+    for title in titles:
+        time.sleep(DELAY)
+        page = next(iter(api(action="query", prop="extracts", explaintext=1,
+                             titles=title)["query"]["pages"].values()))
+        text = page.get("extract") or ""
+        if len(text) < 800:
+            continue
+        scored.append((score(text), title, text))
+
+    scored.sort(reverse=True)
+    print(f"\n{'per1k':>7} {'chars':>7}  title", file=sys.stderr)
+    for value, title, text in scored:
+        mark = "keep" if value >= KEEP_THRESHOLD else "skip"
+        print(f"{value:7.2f} {len(text):>7}  {title}  [{mark}]", file=sys.stderr)
+
+    if args.list:
+        return 0
+
+    out = pathlib.Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    written = 0
+    for value, title, text in scored:
+        if value < KEEP_THRESHOLD:
+            continue
+        slug = re.sub(r"[^\w-]+", "_", title)
+        header = (
+            f"# {title}\n"
+            f"# Source: https://als.wikipedia.org/wiki/{urllib.parse.quote(title.replace(' ', '_'))}\n"
+            f"# Alemannic Wikipedia authors, CC BY-SA 4.0\n\n"
+        )
+        (out / f"{slug}.txt").write_text(header + text + "\n", encoding="utf-8")
+        written += 1
+
+    print(f"\nwrote {written} texts to {out}/", file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/berndeutsch_gate.py"],
+            "timeout": 10,
+            "statusMessage": "Bärndütsch-Schrybwys lade…"
+          }
+        ]
+      }
+    ]
+  }
+}
