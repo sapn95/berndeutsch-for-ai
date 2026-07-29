@@ -52,8 +52,9 @@ do not vendor them into a repository.
 ## A note on the sources
 
 berndeutsch.ch is run as 100% volunteer work and has no API. `scripts/bdw`
-therefore behaves like a courteous human reader: one request per word, a delay
-between words, an honest User-Agent that names this repository, and links back
-to every entry instead of reproducing the dictionary. Please keep it that way,
+therefore behaves like a courteous human reader: one request per result page, a
+delay between requests, a page walk bounded at 15 pages per word, an honest
+User-Agent that names this repository, and links back to every entry instead of
+reproducing the dictionary. Please keep it that way,
 and if you find the dictionary useful,
 [add the words it is missing](https://www.berndeutsch.ch/pages/wordaddinfo).

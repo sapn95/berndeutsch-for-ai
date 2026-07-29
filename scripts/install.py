@@ -24,6 +24,8 @@ def config_dir():
 def link(src, dst):
     dst.parent.mkdir(parents=True, exist_ok=True)
     if dst.is_symlink() or dst.exists():
+        if dst.is_dir() and not dst.is_symlink():
+            raise SystemExit(f"refusing to replace the directory {dst}")
         dst.unlink()
     dst.symlink_to(src)
     return dst
@@ -34,10 +36,14 @@ def probe(hook, prompt):
     # session, so a fixed probe id would pass on a fresh machine and then fail
     # on every reinstall because the state file already exists.
     payload = json.dumps({"prompt": prompt})
-    result = subprocess.run(
-        [sys.executable, str(hook)], input=payload, capture_output=True, text=True
+    # The probe asserts on the BUNDLED rulebook, so it must not inherit an
+    # override that points somewhere else; otherwise merely having
+    # BERNDEUTSCH_RULES set in your shell makes the installer fail.
+    env = {k: v for k, v in os.environ.items()
+           if k not in ("BERNDEUTSCH_RULES", "BERNDEUTSCH_IDIOLECT")}
+    return subprocess.run(
+        [sys.executable, str(hook)], input=payload, capture_output=True, text=True, env=env
     )
-    return result
 
 
 def main():

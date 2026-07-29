@@ -30,13 +30,20 @@ and is summarised for the public by berndeutsch.ch, notably in:
 
   https://www.berndeutsch.ch/pages/schrybe (the free summary page)
 
-The rules a spelling system prescribes are facts about that system and are
-stated here in our own words and our own arrangement. The illustrative examples
-are our own, chosen and verified against berndeutsch.ch dictionary entries with
-scripts/bdw, rather than taken from the CC BY-ND documents. Neither CC BY-ND
-document is reproduced here in whole or in part, and neither is distributed
-with this repository. Read the originals: they are five pages each, they are
-free, and they are better than any summary of them.
+The rules a spelling system prescribes are facts about that system, and they
+are stated here in our own words and our own arrangement.
+
+About the examples, precisely, because the honest answer is not "all of them
+are ours". A description of this system cannot avoid the conventional
+illustrations: everyone who explains the unstressed e writes "Gipfeli", and
+everyone who explains word-internal sch writes "Poscht" and "Wäschpi". Those
+are used here because they are the conventional ones, not because they were
+copied from any one source. The remaining examples were chosen by us and
+verified against berndeutsch.ch dictionary entries with scripts/bdw.
+
+Neither CC BY-ND document is reproduced here in whole or in part, and neither
+is distributed with this repository. Read the originals: they are five pages
+each, they are free, and they are better than any summary of them.
 
 If Ursula Pinheiro-Weber, Hans Jürg Zingg or berndeutsch.ch consider any part
 of rules/ to encroach on their work, open an issue and it will be rewritten or

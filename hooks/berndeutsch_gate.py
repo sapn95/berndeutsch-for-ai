@@ -30,38 +30,50 @@ from pathlib import Path
 SCAN_HEAD = 3000
 SCAN_TAIL = 3000
 
-# Strong markers: words that essentially cannot occur in English or German
-# running text. Includes the 2nd-person-singular -sch verb forms, which are the
-# highest-frequency signal in real conversational Bernese. A blanket "-sch"
-# rule is not usable, because German is full of -isch adjectives (technisch,
-# logisch, praktisch), so the productive forms are listed explicitly.
-STRONG = frozenset("""
+# Two tiers, and both of them decide something.
+#
+# DECISIVE: a word that cannot plausibly appear in English or German running
+# text. One is enough. This is where the second-person -sch verb forms live,
+# because they carry most of the signal in real conversational Bernese. A
+# blanket "-sch" rule is not usable, since German is full of -isch adjectives
+# (technisch, logisch, praktisch), so the productive forms are listed.
+DECISIVE = frozenset("""
 bärndütsch berndütsch baernduetsch bärndütschi
 isch isches sisch
-gsy gsi gsii gseh gsehsch
+gsy gsii gseh gsehsch
 hesch heschs chasch machsch weisch bisch wottsch chunnsch gisch nimmsch
 seisch tuesch muesch gohsch blybsch luegsch sägsch findsch bruuchsch
-verstahsch chöisch dörfsch söttisch wirsch
-nid nit itz sött söu söue wöu gäu gäud öppis öpper öppe mängisch
-chli chunt chume chumme chöi
+verstahsch chöisch dörfsch söttisch wirsch wohnsch schaffsch schrybsch
+redsch chouffsch heissisch wosch chunsch
+öppis öpper öppe mängisch itz sött söu söue wöu gäu gäud
+chli chunt chume chumme chöi göh göi
 machemer hämmer gömer simer
-äbe grüessech vilmal geng gäng äuä äuwä
-gits geits nüt nüüt kei chum
+äbe grüessech vilmal gäng geng äuä äuwä nüt nüüt gits geits
 """.split())
 
-# Weak markers: dialect-leaning, but each is a plausible word elsewhere, so on
-# their own they never fire. Deliberately excluded: git, dr, ds, chan, u, we,
-# wi, no, si, di. Those turn ordinary English, German and source code into
-# false hits (two mentions of git, a Go `chan` signature, .DS_Store, Dr. Smith).
-WEAK = frozenset("""
-mer het hei cha wott mues gah luege scho dänk guet öi aui nöime hüt
-emu grad zäme wäge halt sowieso merci hoi zäme churz
+# SUPPORTING: genuinely Bernese, but each one collides with a real word or a
+# technical token somewhere, so on its own it decides nothing and two are
+# needed, and they must be two DIFFERENT words: "Configure the Lustre NID and
+# the nid mapping" is one word twice, not two markers.
+#
+# gsi is the DynamoDB Global Secondary Index. nit is the English noun in
+# "nit-picking". chum is an English word. kei is Dutch. nid is French for nest
+# and an HPC network identifier. Each of those fired on ordinary prompts while
+# it was treated as decisive.
+#
+# Deliberately absent: halt, grad, wäge, sowieso, merci, säge, mer, het, hoi.
+# They are ordinary German or English words or, in the case of mer and het,
+# fall out of a URL path once tokens are split on non-letters. Any two of them
+# reached the bar on prompts containing no dialect at all.
+SUPPORTING = frozenset("""
+nid nit gsi kei chum witt
+hei cha wott mues gah luege scho guet öi aui nöime hüt zäme churz dänk
 """.split())
 
-# One strong marker is decisive on its own. Weak markers only ever adjust the
-# score once a strong one is already present, so no combination of ordinary
-# English or German words can reach the threshold.
-THRESHOLD = 2
+# One decisive marker fires. Otherwise two DISTINCT supporting markers are
+# required, so neither a single ambiguous token nor one token repeated can
+# trigger on an English or German prompt.
+MIN_SUPPORTING = 2
 TOKEN_RE = re.compile(r"[^\W\d_]+", re.UNICODE)
 
 
@@ -72,14 +84,12 @@ def scan_window(text):
     return text[:SCAN_HEAD] + "\n" + text[-SCAN_TAIL:]
 
 
-def score(text):
-    """Return (score, strong_hits). Weak markers count only alongside a strong one."""
+def is_dialect(text):
+    """True when the text should be treated as Bärndütsch."""
     tokens = TOKEN_RE.findall(scan_window(text).lower())
-    strong = sum(1 for t in tokens if t in STRONG)
-    if not strong:
-        return 0, 0
-    weak = sum(1 for t in tokens if t in WEAK)
-    return strong * 2 + weak, strong
+    if any(t in DECISIVE for t in tokens):
+        return True
+    return len({t for t in tokens if t in SUPPORTING}) >= MIN_SUPPORTING
 
 
 def config_dir():
@@ -141,7 +151,7 @@ def lookup_tool(here):
     return None
 
 
-CHECKLIST = """Quick checklist (full rulebook already loaded earlier in this session):
+CHECKLIST = """Quick checklist:
 - closed i -> y (Zyt, schrybe, gsy, blybe, wyt); open i stays i (Schritt, lige);
   long open i is ii (viil, Riis)
 - Zwielaut ie/ue/üe, never iä/uä/üä (Bier, guet, wüescht, Bueb, müed)
@@ -167,19 +177,23 @@ def build_context(here, first_time):
         "",
     ]
 
-    books = rulebooks(here)
-    if first_time and books:
-        for book in books:
+    emitted = False
+    if first_time:
+        for book in rulebooks(here):
             try:
                 out.append(book.read_text(encoding="utf-8", errors="replace"))
+                emitted = True
             except OSError:
                 continue
-        out.append("")
-    else:
-        # Also the path taken when no rulebook file was found at all. Saying
-        # "already loaded" would be a lie in that case, so the wording is
-        # neutral and the rules still stand on their own.
+        if emitted:
+            out.append("")
+    if not emitted:
+        # Also the path taken when no rulebook file was found or none could be
+        # read. Claiming the full rulebook "was already loaded" would be a lie
+        # in that case, so the checklist stands on its own wording.
         out.append(CHECKLIST)
+        if not first_time:
+            out.append("(The full rulebook was loaded earlier in this session.)")
         out.append("")
 
     bdw = lookup_tool(here)
@@ -191,23 +205,23 @@ def build_context(here, first_time):
             "High-German loanword or a rephrase is more honest than an invented form.",
         ]
     out.append("</berndeutsch-schrybwys>")
-    return "\n".join(out)
+    return "\n".join(out), emitted
 
 
-def session_seen(session_id):
-    """True if this session already got the full rulebook. Marks it as seen."""
-    if not session_id:
-        return False
+def session_marker(session_id):
+    """Path of this session's state file, or None if state cannot be kept."""
+    if not isinstance(session_id, str) or not session_id:
+        return None
     safe = re.sub(r"[^A-Za-z0-9_-]", "_", session_id)[:128]
     state_dir = config_dir() / "cache" / "berndeutsch-gate"
-    marker = state_dir / safe
     try:
         state_dir.mkdir(parents=True, exist_ok=True)
-        if marker.exists():
-            return True
-        marker.touch()
     except OSError:
-        return False
+        return None
+    return state_dir / safe
+
+
+def sweep(state_dir):
     try:
         cutoff = time.time() - 14 * 86400
         for stale in state_dir.iterdir():
@@ -215,7 +229,6 @@ def session_seen(session_id):
                 stale.unlink()
     except OSError:
         pass
-    return False
 
 
 def main():
@@ -232,23 +245,50 @@ def main():
     if "[hd]" in prompt.lower():
         return 0
 
-    total, _ = score(prompt)
-    if total < THRESHOLD:
+    if not is_dialect(prompt):
         return 0
 
     here = Path(__file__).resolve().parent
-    context = build_context(here, first_time=not session_seen(payload.get("session_id")))
-    json.dump(
+    marker = session_marker(payload.get("session_id"))
+    first_time = not (marker and marker.exists())
+    context, emitted = build_context(here, first_time)
+
+    # Mark the session only once the rulebook has actually been emitted. An
+    # unreadable rulebook would otherwise burn the one full injection and leave
+    # every later prompt in the session with the short checklist alone.
+    if emitted and marker:
+        try:
+            marker.touch()
+            sweep(marker.parent)
+        except OSError:
+            pass
+
+    payload_out = json.dumps(
         {"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": context}},
-        sys.stdout,
         ensure_ascii=False,
     )
+    # Writing through a buffer that is not UTF-8 would truncate the JSON
+    # mid-string and hand the model a parse error instead of a rulebook.
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+    sys.stdout.write(payload_out)
     return 0
 
 
 if __name__ == "__main__":
+    code = 0
     try:
-        sys.exit(main())
+        code = main()
     except Exception:
         # A hook that crashes disrupts every prompt the user submits.
-        sys.exit(0)
+        code = 0
+    try:
+        sys.stdout.flush()
+    except Exception:
+        pass
+    # os._exit skips interpreter shutdown, which is where a closed stdout would
+    # otherwise print "Exception ignored in: <_io.TextIOWrapper>" to stderr and
+    # turn a harmless broken pipe into visible noise on every prompt.
+    os._exit(code)

@@ -19,8 +19,9 @@ So this tool separates two very different answers:
     bdw -n 10 louf         # more related hits per word
     bdw -q suber           # quiet: exit code only, for scripting
 
-Exit codes: 0 = every word had an EXACT entry, 1 = at least one word had no
-exact entry, 2 = network/HTTP failure (unknown, NOT disproven).
+Exit codes: 0 = every word had an EXACT entry, 1 = at least one word was
+searched exhaustively and has no exact entry, 2 = unknown rather than
+disproven, i.e. a transport failure or a search cut short by the page cap.
 """
 
 import argparse
@@ -116,8 +117,10 @@ def entries(page_html):
 def heads_of(entry):
     """Every form under which this entry counts as an exact match."""
     forms = [entry["word"]] + spellings(entry["alt"])
-    # A headword may itself be a list: "gä, Gas gä".
-    forms += [part for part in entry["word"].split(",")]
+    # A headword may itself be a list, and the site uses both separators:
+    # "gä, Gas gä" but also "yne ga; yche ga; yhe ga (Oberland)". Splitting on
+    # the comma alone reports the semicolon-separated forms as not headwords.
+    forms += [re.sub(r"\(.*?\)", "", part) for part in re.split(r"[,;]", entry["word"])]
     return {norm(f) for f in forms if f.strip()}
 
 
@@ -166,6 +169,7 @@ def main():
     args = ap.parse_args()
 
     missing = False
+    unknown = False
     for i, word in enumerate(args.words):
         if i:
             time.sleep(POLITE_DELAY)
@@ -183,7 +187,13 @@ def main():
             return 2
 
         if not exact:
-            missing = True
+            if exhausted:
+                missing = True
+            else:
+                # The walk was cut short by the page cap, so the word was not
+                # disproven, merely not reached. Reporting that as exit 1 would
+                # tell a scripted caller to drop a possibly real word.
+                unknown = True
 
         if args.quiet:
             continue
@@ -204,6 +214,8 @@ def main():
             show(entry, "verwandt")
         print()
 
+    if unknown:
+        return 2
     return 1 if missing else 0
 
 

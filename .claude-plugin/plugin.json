@@ -18,6 +18,5 @@
     "prompt",
     "hooks",
     "schweiz"
-  ],
-  "hooks": "./hooks/hooks.json"
+  ]
 }

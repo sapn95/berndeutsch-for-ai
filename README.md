@@ -14,7 +14,7 @@ they are absent, the model falls back on its generic Swiss German prior.
 
 **The rulebook works with any AI.** `rules/schrybwys.md` is a plain markdown file
 with no tool-specific syntax, and `rules/schrybwys-compact.md` holds the same
-rules in a 1635-character block for instruction boxes that impose a limit. Drop
+rules in a 1712-character block for instruction boxes that impose a limit. Drop
 either into a system prompt, custom instructions, `AGENTS.md`,
 `.github/copilot-instructions.md` or `.cursor/rules/` and you are done.
 
@@ -34,7 +34,7 @@ claude:  answers in Bärndütsch, with nid instead of nöd
 | | |
 |---|---|
 | `rules/schrybwys.md` | The rulebook. The codified *schriftsprach-nah* system after Marti and Bietenhard: vowels, consonants, `ds`/`z`, grammar, and what separates Bernese from its neighbours. Tool-agnostic. |
-| `rules/schrybwys-compact.md` | The same rules in 1635 characters, with attribution inside the block. |
+| `rules/schrybwys-compact.md` | The same rules in 1712 characters, with attribution inside the block. |
 | `hooks/berndeutsch_gate.py` | The detector and injector, for Claude Code. |
 | `scripts/bdw` | Dictionary lookup against berndeutsch.ch. Answers the question the model cannot answer honestly by itself: is this actually a word? |
 | `scripts/bd-corpus` | Fetches a small corpus of genuinely Bernese text, for feel rather than rules. |
@@ -94,7 +94,8 @@ shell re-interprets the path:
             "type": "command",
             "command": "python3",
             "args": ["/Users/you/.claude/hooks/berndeutsch_gate.py"],
-            "timeout": 10
+            "timeout": 10,
+            "statusMessage": "Bärndütsch-Schrybwys lade…"
           }
         ]
       }
@@ -139,12 +140,18 @@ verwandt suber u glatt
       klar, tatsächlich.
       https://www.berndeutsch.ch/words/14701
 
-$ bdw nöd; echo $?
+$ bdw -n 0 nöd; echo $?
 KEIN EXAKTER EINTRAG für «nöd» (1 Seite(n) durchsucht).
         Nicht als Stichwort oder Schreibvariante geführt. Ein hochdeutsches
         Lehnwort ist ehrlicher als eine erfundene Dialektform.
 1
 ```
+
+`-n 0` suppresses the related hits; without it both commands also list the
+entries that merely mention the word. Exit 0 means an exact entry was found,
+1 means the result set was searched to the end and there is none, and 2 means
+the answer is unknown rather than negative: a transport failure, or a search
+that hit the page cap.
 
 Two things make that answer trustworthy. The site's search also matches the
 German glosses, so querying `jetz` returns every entry whose translation
@@ -157,20 +164,27 @@ not exist.
 
 ## How the detection works
 
-A weighted marker count over the first and last 3000 characters of the prompt,
-so that a large paste neither hides the question nor costs anything to scan.
+Marker matching over the first and last 3000 characters of the prompt, so that
+a large paste neither hides the question nor costs anything to scan. A 1.4 MB
+paste takes 0.15 s.
 
-Strong markers are words that essentially cannot appear in English or German
-running text: `isch`, `nid`, `gsy`, `wöu`, `öppis`, `chli`, and the
-second-person `-sch` verb forms (`chasch`, `bisch`, `weisch`, `machsch`) which
-carry most of the signal in real conversational Bernese. Each scores 2, and one
-is enough to fire.
+Two tiers, and both of them decide something.
 
-Weak markers score 1 and **only count once a strong marker is already present**.
-That gate is the whole design. Without it, two mentions of `git`, a Go function
-signature with `chan`, `.DS_Store`, or a German sentence containing `halt` and
-`grad` all reach the threshold on their own, which is exactly what an earlier
-version of this hook did.
+**Decisive markers** cannot plausibly appear in English or German running text:
+`isch`, `gsy`, `öppis`, `chli`, `gäu`, and the second-person `-sch` verb forms
+(`chasch`, `bisch`, `weisch`, `machsch`, `wohnsch`) which carry most of the
+signal in real conversational Bernese. One is enough to fire.
+
+**Supporting markers** are genuinely Bernese but each collides with something
+else: `gsi` is a DynamoDB Global Secondary Index, `nit` is the English noun in
+"nit-picking", `chum` is an English word, `kei` is Dutch, `nid` is French for
+nest and an HPC network identifier. None of them decides anything alone. Two
+*different* ones are required, so neither a lone ambiguous token nor the same
+token twice ("the Lustre NID and the nid mapping") can fire.
+
+Ordinary German words like `halt`, `grad`, `wäge` and `sowieso` are in neither
+tier. An earlier version had them, and `Das ist halt so, das dauert grad noch
+ein bisschen` fired the hook on a sentence with no dialect in it at all.
 
 A false positive is still harmless by construction: the injected text says *if*
 this message is Bärndütsch, use these rules, so an English answer stays English.

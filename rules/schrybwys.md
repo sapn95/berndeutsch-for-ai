@@ -56,7 +56,7 @@ Loanwords are outside this rule: `lila`, `d Klinik`.
 
 **The swallowed `e`.** The nearly inaudible `e` is still written. Neither
 replacing it with `ä` nor dropping it belongs to this system: `vergässe`, not
-`värgässe` or `vrgässe`.
+`värgässe` or `vrgässe`; `Gufe`, not `Gufä`.
 
 **Doubled vowels** are kept where High German has them (`Saal`, `Boot`) and not
 introduced where it does not, except as a length mark: `Aabe`, `nüüt`.
@@ -155,7 +155,7 @@ sounding Bernese is a neighbouring form slipping in.
 - `gsy` for «gewesen»
 - vocabulary that is Bernese and not pan-Swiss: `gäng`/`geng` (always), `äuä`
   (presumably), `Modi` (girl), `Gieu` (boy), `Hegu` (knife), `öppis`, `öpper`,
-  `mängisch`, `chli`, `gäu`, `zwätschge`
+  `mängisch`, `chli`, `gäu`, `zwätschge`, `Chuchi`, `Rüebli`, `Bäse`
 
 Variation inside the canton is real and fine. The Seeland and the Oberaargou
 round the long /aː/ and say `wüu` and `Töu`; south of the city you hear `giit`

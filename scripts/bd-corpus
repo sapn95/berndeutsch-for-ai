@@ -81,8 +81,17 @@ def main():
     ap.add_argument("--list", action="store_true", help="score and list only")
     args = ap.parse_args()
 
-    members = api(action="query", list="categorymembers", cmtitle=CATEGORY, cmlimit=50)
-    titles = [m["title"] for m in members["query"]["categorymembers"] if m["ns"] == 0]
+    # Follow the continuation token: the category is under 50 members today, so
+    # a single page happens to be enough, and it will silently stop being enough.
+    titles, cont = [], {}
+    while True:
+        members = api(action="query", list="categorymembers", cmtitle=CATEGORY,
+                      cmlimit=500, **cont)
+        titles += [m["title"] for m in members["query"]["categorymembers"] if m["ns"] == 0]
+        if "continue" not in members:
+            break
+        cont = members["continue"]
+        time.sleep(DELAY)
     print(f"{len(titles)} articles in {CATEGORY}", file=sys.stderr)
 
     # prop=extracts serves one full article per request, so no batching.
@@ -107,11 +116,18 @@ def main():
 
     out = pathlib.Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    written = 0
+    written, used = 0, {}
     for value, title, text in scored:
         if value < KEEP_THRESHOLD:
             continue
-        slug = re.sub(r"[^\w-]+", "_", title)
+        # Two titles can collapse to the same slug ("Bern (Stadt)" and
+        # "Bern-Stadt"), so keep a counter rather than silently overwriting.
+        slug = re.sub(r"[^\w-]+", "_", title).strip("_") or "artikel"
+        if slug in used:
+            used[slug] += 1
+            slug = f"{slug}-{used[slug]}"
+        else:
+            used[slug] = 1
         header = (
             f"# {title}\n"
             f"# Source: https://als.wikipedia.org/wiki/{urllib.parse.quote(title.replace(' ', '_'))}\n"

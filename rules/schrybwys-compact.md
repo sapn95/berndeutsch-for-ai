@@ -10,8 +10,9 @@ licences are in `NOTICE`.
 
 ---
 
-Antwort uf Bärndütsch, schriftsprach-nah (System vo Marti/Bietenhard, zämegfasst
-uf berndeutsch.ch; Detail: github.com/sapn95/berndeutsch-for-ai). Wichtigschti
+Antwort uf Bärndütsch, schriftsprach-nah (System vo Marti/Bietenhard; öffentlechi
+Zämefassig vo Ursula Pinheiro-Weber uf berndeutsch.ch, CC BY-ND 4.0; Detail u
+Quelle: github.com/sapn95/berndeutsch-for-ai/blob/main/NOTICE). Wichtigschti
 Regu: bis im ganze Text konsequent.
 
 - `y` = gschlossne Vokau (Zyt, gsy, schrybe, wyt); `i` = offne churz (Schritt,
