@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+<!-- Bärndütschi Schrybwys, github.com/sapn95/berndeutsch-for-ai -->
+
 # Bärndütschi Schrybwys — the rulebook
 
 Write Bernese German in the codified **schriftsprach-nah** system: the one
@@ -46,7 +49,7 @@ with `Ritter` in armour, and `Bruuch` (a custom) with `Bruch` (a break).
 | closed, long | `y` | `schrybe`, `gsy`, `Zyt`, `mys` |
 | closed, short | `y` | `wyt`, `myni` |
 | open, long | `ii` | `viil`, `Riis` |
-| open, short | `i` | `Schritt`, `lige`, `Sitzig` |
+| open, short | `i` | `Sitzig`, `Schritt`, `lige` |
 
 `ie` is written only where both vowels are genuinely pronounced as a diphthong:
 `verschiebe`, `Bier`, `Lied`. Where High German `ie` gives a short open `i` in
@@ -84,8 +87,8 @@ mistakes happen. Three cases:
 
 1. A single `l` before a consonant or at the end of a word becomes `u`:
    `aut`, `Gäud`, `Chüngu`, `Löu`, `viu`, `schnäu`.
-2. A double `ll` becomes `u` as well, even between vowels: `alli` → `aui`,
-   `wölle` → `wöue`.
+2. A double `ll` becomes `u` as well, even between vowels: `wölle` gives
+   `wöue`, and `alli` gives `aui`.
 3. A single `l` between two vowels stays an `l`: `hole`, `Zahle`, `male`.
 
 The dictionary supplies the minimal pair itself: the verb is `hole` with the
@@ -105,8 +108,8 @@ is used throughout: `Wo ni das gseh ha`, `Won i das gseh ha`,
 
 **`sp` and `st`** are the one place where the spelling deliberately ignores the
 pronunciation. They are written as in High German at the start of a word, and
-also after a prefix or a verb particle: `spile`, `starch`, `Stei`,
-`umespringe`, `verstecke`. Inside and at the end of a word they follow the ear
+also after a prefix or a verb particle: `Stei`, `starch`, `verstecke`,
+`spile`, `umespringe`. Inside and at the end of a word they follow the ear
 instead: `luschtig`, `Wäschpi`, `Poscht`. Place names and family names keep
 `Sp` and `St` in every system: `Spiez`, never `Schpiez`.
 

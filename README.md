@@ -107,8 +107,10 @@ shell re-interprets the path:
 
 Then open `/hooks` once in Claude Code, or restart it, so the new config is read.
 
-The only requirement is `python3`. The hook and both scripts are standard
-library only, with no third-party packages and no shell.
+The only requirement is `python3`. The hook, `bdw`, `bd-corpus` and `install.py`
+are standard library only, with no third-party packages and no shell. The fourth
+script, `pdf-overlap`, additionally needs `pdftotext` (poppler), and it is a
+maintenance tool that nobody has to run in order to use the rulebook.
 
 ## Using it
 
@@ -235,8 +237,9 @@ precisely which part comes from whom and under which licence; the short version:
   CC BY-ND 4.0), the detailed public summary of the system.
   [Read the original](https://www.berndeutsch.ch/doc/berndeutsch-schreiben-schriftsprach-nah-v1.pdf),
   it is five pages and better than any summary of it. Neither that document is
-  redistributed here, and `NOTICE` states plainly which illustrative words this
-  rulebook shares with it and why.
+  redistributed here, and `NOTICE` reports, from a script you can re-run, how
+  much of this rulebook's illustrative vocabulary it shares with that document
+  and why.
 - **Hans Jürg Zingg** for the lautgetreu counterpart.
 - **Werner Marti**, *Bärndütschi Schrybwys* (1978), and **Ruth Bietenhard**,
   *Berndeutsches Wörterbuch* (10th ed. 2017), whose codification everything here

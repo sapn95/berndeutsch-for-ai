@@ -58,7 +58,7 @@ heit chömet chöit gö dihr
 öppis öpper öppe mängisch itz sött söu söue wöu gäud niemer
 chli chunt chunnt chume chumme chöme chömme chöi göh göi
 nüme nümme müed gärn üs üsi üse
-zyt schrybe schrybt blybe blybt gly zäme wyt myni mys gsäh
+zyt schrybe schrybt blybe blybt zäme wyt myni gsäh wotsch
 machemer gömer simer gmacht gseit gwüss mitenand sälber eifach gäbig
 öbe äbe grüessech vilmal gäng äuä äuwä nüt nüüt geits geit gaht
 znüni zmorge zobe zvieri zäme meitschi meiteli gieu hegu bueb
@@ -93,7 +93,9 @@ ahnig louf louft chlepfe chlepft poschte poschtet guete
 #
 # sy, si, het and ig are the copula and the pronoun, so they are everywhere in
 # real Bernese, but SI is a unit system, "si" is Italian and Spanish, and IG is
-# an acronym. Supporting, therefore, not decisive.
+# an acronym. Supporting, therefore, not decisive. Same for mys and gly: MYS is
+# the ISO 3166-1 code for Malaysia and Gly is the three-letter code for
+# glycine, and both are low-frequency next to myni, zyt and schrybe.
 #
 # Deliberately absent from both tiers: halt, grad, wäge, sowieso, merci, säge,
 # mer, hoi, and bare git. They are ordinary German or English words or, in
@@ -102,7 +104,7 @@ ahnig louf louft chlepfe chlepft poschte poschtet guete
 # all, and git reached it twice in one shell command.
 SUPPORTING = frozenset("""
 nid nit gsi gha kei chum witt geng gits hämmer gäu aut modi ching
-sy si het ig
+sy si het ig mys gly
 hei cha wott mues gah luege scho guet öi nöime hüt churz dänk söll
 """.split())
 
@@ -285,7 +287,16 @@ def build_context(here, first_time, served):
         # the first. Point at their own file instead.
         override = os.environ.get("BERNDEUTSCH_RULES")
         primary, _ = rulebooks(here)
-        if override and primary:
+        readable = False
+        if primary:
+            try:
+                readable = bool(primary.read_text(encoding="utf-8", errors="replace").strip())
+            except OSError:
+                readable = False
+        # Same test as the emit path. An existing but empty or unreadable file
+        # would otherwise produce an injection that names a rulebook and
+        # contains no rules.
+        if override and readable:
             out.append(f"Follow the rulebook at {primary}, which is in force for")
             out.append("this user and replaces any default Bernese spelling system.")
         else:

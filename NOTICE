@@ -40,31 +40,55 @@ had drifted after an edit, and it flatly claimed no phrase appeared in both
 while four did. So the claim is no longer hand-written.
 
 `scripts/pdf-overlap` fetches the PDF, extracts the illustrative words from
-rules/schrybwys.md and reports the overlap. Run it yourself. As of this
-writing it says:
+rules/schrybwys.md and reports the overlap, including every shared word
+sequence. Run it yourself. As of this writing, abridged only where marked:
 
     illustrative words in rules/schrybwys.md: 173
     also occurring in the PDF:                73 (42%)
 
+    shared 2-word sequences: 17
+    b d
+    berndeutsches wörterbuch
+    bietenhard berndeutsches
+    bärndütsch schrybe
+    bärndütschi schrybwys
+    cc by
+    eugen dieth
+    marti bärndütschi
+    n i
+    pinheiro weber
+    ruth bietenhard
+    schriftsprach nach
+    schrybe schriftsprach
+    u l
+    ursula pinheiro
+    werner marti
+    wi ne
+
     shared 3-word sequences: 6
-      bietenhard berndeutsches wörterbuch
-      bärndütsch schrybe schriftsprach
-      marti bärndütschi schrybwys
-      schrybe schriftsprach nach
-      ursula pinheiro weber
-      werner marti bärndütschi
+    bietenhard berndeutsches wörterbuch
+    bärndütsch schrybe schriftsprach
+    marti bärndütschi schrybwys
+    schrybe schriftsprach nach
+    ursula pinheiro weber
+    werner marti bärndütschi
 
 42% of the illustrative words are shared, and pretending otherwise would be
 silly. These are the standard illustrations for these rules, for several rules
 they are close to the only ones that exist, and we learned the rules from that
-document. Every remaining shared sequence of three or more words is a citation:
-an author's name or a book title.
+document.
 
-Getting there took work. Five example phrases once stood verbatim in both
-("wi ne Bär", the three spellings of "Wi ni gseit ha", "mir luege aa") and are
-replaced. Several example lists shared the PDF's ordering, which the script
-surfaced as shared 3-word sequences, and they have been reordered. One word,
-"schryne", was simply our typo for "schyne".
+Of the shared sequences, every one of three words or more is a citation: an
+author's name or a book title. Among the two-word ones, the remainder are
+single letters, and "wi ne" is the linking-n construction the rule is about
+rather than a chosen example.
+
+Getting there took work, and each step was found by measurement rather than by
+reading. Five example phrases once stood verbatim in both ("wi ne Bär", the
+three spellings of "Wi ni gseit ha", "mir luege aa") and are replaced. Several
+example lists carried the PDF's ordering, which showed up as shared sequences
+("lila d klinik", "stei spile starch", "umespringe verstecke") and are
+reordered. One word, "schryne", was simply our typo for "schyne".
 
 What is ours is the prose and the arrangement. The rulebook opens with a
 section that document does not have ("What gives a text away"), and the

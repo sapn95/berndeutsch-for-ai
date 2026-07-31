@@ -133,11 +133,13 @@ def main():
         slug = re.sub(r"[^\w-]+", "_", title).strip("_") or "artikel"
         # Loop rather than test once: the derived "<slug>-2" can itself already
         # be taken by a title that slugged to exactly that string.
+        # Case-insensitive: APFS and NTFS are, so two titles differing only in
+        # case would silently overwrite each other on the default macOS setup.
         base = slug
-        while slug in used:
-            used[base] = used.get(base, 1) + 1
-            slug = f"{base}-{used[base]}"
-        used[slug] = 1
+        while slug.lower() in used:
+            used[base.lower()] = used.get(base.lower(), 1) + 1
+            slug = f"{base}-{used[base.lower()]}"
+        used[slug.lower()] = 1
         header = (
             f"# {title}\n"
             f"# Source: https://als.wikipedia.org/wiki/{urllib.parse.quote(title.replace(' ', '_'))}\n"
