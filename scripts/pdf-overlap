@@ -59,11 +59,30 @@ def words(text):
     return [w.lower() for w in re.findall(r"[^\W\d_]+", text, re.UNICODE)]
 
 
+MIN_EXAMPLES = 20
+
+
 def examples(rulebook):
-    """The illustrative words: everything the rulebook puts in backticks."""
+    """The illustrative words.
+
+    Normally everything in backticks. But the compact rulebook and the hook's
+    embedded checklist barely use them, so on those files a backtick-only
+    extraction measured almost nothing and reported a reassuring number that
+    meant nothing. Below MIN_SPANS backticked spans, fall back to every word in
+    the file and say so.
+    """
     found = set()
     for span in re.findall(r"`([^`]+)`", rulebook):
         found.update(w for w in words(span) if len(w) >= MIN_WORD)
+    # The test is on the RESULT, not on the number of spans. The compact
+    # rulebook has plenty of backticks, but they wrap one- and two-letter
+    # markers (`y`, `ds`, `ng`) that carry no example at all, so a span count
+    # looked healthy while the extracted vocabulary was six words. Below
+    # MIN_EXAMPLES, measure every word in the file and say so.
+    if len(found) < MIN_EXAMPLES:
+        print(f"note: only {len(found)} words inside backticks; measuring every "
+              f"word in the file instead", file=sys.stderr)
+        return {w for w in words(rulebook) if len(w) >= MIN_WORD}
     return found
 
 

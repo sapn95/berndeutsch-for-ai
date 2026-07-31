@@ -39,66 +39,80 @@ named words as shared that are not in the PDF at all, it quoted a count that
 had drifted after an edit, and it flatly claimed no phrase appeared in both
 while four did. So the claim is no longer hand-written.
 
-`scripts/pdf-overlap` fetches the PDF, extracts the illustrative words from
-rules/schrybwys.md and reports the overlap, including every shared word
-sequence. It takes --file, so the compact rulebook and the checklist embedded
-in the hook, which are copies of the same content and drift apart, can be
-checked the same way. Run it yourself. Quoted below: the counts and the shared
-sequences in full; the list of the 73 individual shared words is omitted here
-because the script prints it and this file should not go stale again.
+`scripts/pdf-overlap` fetches the PDF, extracts the illustrative vocabulary and
+reports the overlap together with every shared word sequence. It takes --file,
+so the compact rulebook and the checklist embedded in the hook, which are
+copies of the same content and drift apart, are measured the same way. Run it
+yourself. Below is its current output for all three, complete except for the
+per-word lists, which the script prints and this file will not duplicate
+because a duplicated list is a list that goes stale.
 
-    illustrative words in rules/schrybwys.md: 173
-    also occurring in the PDF:                73 (42%)
+    rules/schrybwys.md: 173
+    also occurring in the PDF: 73 (42%)
 
     shared 2-word sequences: 17
-    b d
-    berndeutsches wörterbuch
-    bietenhard berndeutsches
-    bärndütsch schrybe
-    bärndütschi schrybwys
-    cc by
-    eugen dieth
-    marti bärndütschi
-    n i
-    pinheiro weber
-    ruth bietenhard
-    schriftsprach nach
-    schrybe schriftsprach
-    u l
-    ursula pinheiro
-    werner marti
-    wi ne
-
+      b d
+      berndeutsches wörterbuch
+      bietenhard berndeutsches
+      bärndütsch schrybe
+      bärndütschi schrybwys
+      cc by
+      eugen dieth
+      marti bärndütschi
+      n i
+      pinheiro weber
+      ruth bietenhard
+      schriftsprach nach
+      schrybe schriftsprach
+      u l
+      ursula pinheiro
+      werner marti
+      wi ne
     shared 3-word sequences: 6
-    bietenhard berndeutsches wörterbuch
-    bärndütsch schrybe schriftsprach
-    marti bärndütschi schrybwys
-    schrybe schriftsprach nach
-    ursula pinheiro weber
-    werner marti bärndütschi
+      bietenhard berndeutsches wörterbuch
+      bärndütsch schrybe schriftsprach
+      marti bärndütschi schrybwys
+      schrybe schriftsprach nach
+      ursula pinheiro weber
+      werner marti bärndütschi
+    shared 4-word sequences: 2
+      bärndütsch schrybe schriftsprach nach
+      werner marti bärndütschi schrybwys
 
-42% of the illustrative words are shared, and pretending otherwise would be
-silly. These are the standard illustrations for these rules, for several rules
-they are close to the only ones that exist, and we learned the rules from that
-document.
+    rules/schrybwys-compact.md: 213
+    also occurring in the PDF: 59 (28%)
 
-Of the shared sequences, every one of three words or more is a citation: an
-author's name or a book title. Among the two-word ones, the remainder are
-single letters, and "wi ne" is the linking-n construction the rule is about
-rather than a chosen example.
+    shared 2-word sequences: 5
+      by nd
+      cc by
+      nd wird
+      pinheiro weber
+      ursula pinheiro
+    shared 3-word sequences: 2
+      cc by nd
+      ursula pinheiro weber
 
-The compact rulebook and the hook's embedded checklist were carrying the PDF's
-example order long after the main rulebook had been reordered, which is exactly
-what a copy does. Both are reordered; the checklist now shares no sequence of
-two words or more, and the compact block shares only "CC BY-ND" and the German
-statement of the rule itself ("nd wird ng").
+    the hook's embedded checklist: 101
+    also occurring in the PDF: 25 (25%)
+    no shared word sequence of length 2 or more
 
-Getting there took work, and each step was found by measurement rather than by
-reading. Five example phrases once stood verbatim in both ("wi ne Bär", the
-three spellings of "Wi ni gseit ha", "mir luege aa") and are replaced. Several
-example lists carried the PDF's ordering, which showed up as shared sequences
-("lila d klinik", "stei spile starch", "umespringe verstecke") and are
-reordered. One word, "schryne", was simply our typo for "schyne".
+Between a quarter and a half of the illustrative vocabulary is shared, and
+pretending otherwise would be silly. These are the standard illustrations for
+these rules, for several rules they are close to the only ones that exist, and
+we learned the rules from that document.
+
+What is NOT shared is any sequence of words that is not a citation. Every
+remaining multi-word match names an author or a document: "Ursula Pinheiro
+Weber", "Werner Marti Bärndütschi Schrybwys", "CC BY-ND". The single exception
+is "wi ne", which is the linking-n construction the rule teaches rather than an
+example anyone chose.
+
+Getting there took work, and every step of it was found by measurement rather
+than by re-reading. Five example phrases once stood verbatim in both ("wi ne
+Bär", the three spellings of "Wi ni gseit ha", "mir luege aa") and are
+replaced. Several example lists carried the PDF's ordering, which surfaced as
+shared sequences ("lila d klinik", "stei spile starch", "umespringe
+verstecke") and are reordered. One word, "schryne", was our typo for "schyne".
 
 What is ours is the prose and the arrangement. The rulebook opens with a
 section that document does not have ("What gives a text away"), and the

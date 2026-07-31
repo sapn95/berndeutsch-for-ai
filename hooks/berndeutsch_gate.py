@@ -61,7 +61,7 @@ nüme nümme müed gärn üs üsi üse
 zyt schrybe schrybt blybe blybt zäme wyt myni gsäh wotsch
 gseht gschribe gange verstande chönnt chönnte tuet gnoh gläse
 machemer gömer simer gmacht gseit gwüss mitenand sälber eifach gäbig
-öbe äbe grüessech vilmal gäng äuä äuwä nüt nüüt geits geit gaht
+öbe äbe grüessech vilmal gäng äuä äuwä nüt nüüt geits geit gaht gahts goht gohts
 znüni zmorge zobe zvieri zäme meitschi meiteli gieu hegu bueb
 aues viu viumau viumou schnäu chüngu wüescht gnue luschtig
 ahnig louf louft chlepfe chlepft poschte poschtet guete

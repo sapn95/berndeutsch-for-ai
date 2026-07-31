@@ -40,11 +40,11 @@ DELAY = 1.2  # Wikipedia returns 429 quickly; stay well under the limit.
 # l-vocalisation and Bernese function words score up. Markers of the
 # neighbouring Alemannic variants score down, hard.
 L_VOC = re.compile(
-    r"\b(Mittuland|aut|Wäut|viu|wöu|Gäud|schnäu|Miuch|sou|wott|gäu|hauber|"
-    r"Bevöukerig|Vouk|säuber|äuwä|Merkmau|gäute|Gfüeu|Gieu)\b"
+    r"\b(mittuland|aut|Wäut|viu|wöu|Gäud|schnäu|Miuch|sou|wott|gäu|hauber|"
+    r"bevöukerig|vouk|säuber|äuwä|merkmau|gäute|gfüeu|gieu)\b"
 )
 BERN = re.compile(r"\b(gsy|isch|nid|nüt|het|hei|chunt|geng|gäng|äbe|öppis)\b")
-OTHER = re.compile(r"\b(nöd|gsii|gsi|bikannt|deet|hän|sinn|Ziit|zwoi|nüüt)\b")
+OTHER = re.compile(r"\b(nöd|gsii|gsi|bikannt|deet|hän|sinn|ziit|zwoi|nüüt)\b")
 
 # Markers per 1000 characters, so a short Bernese article is not beaten by a
 # long one. On the 22 articles in the category this separates cleanly: every
@@ -71,7 +71,13 @@ def api(**params):
 
 
 def score(text):
-    raw = len(BERN.findall(text)) + 4 * len(L_VOC.findall(text)) - 6 * len(OTHER.findall(text))
+    # Case-insensitive: the three lists are cased inconsistently (Mittuland vs
+    # aut), so a marker in sentence-initial position was scored differently
+    # from the same marker mid-sentence.
+    low = text.lower()
+    raw = (len(BERN.findall(low))
+           + 4 * len(L_VOC.findall(low))
+           - 6 * len(OTHER.findall(low)))
     return raw / len(text) * 1000
 
 

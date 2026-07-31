@@ -164,31 +164,40 @@ def strip_annotations(word):
 
 
 def heads_of(entry):
-    """Every form under which this entry counts as an exact match."""
-    forms = list(spellings(entry["alt"]))
-    # Strip the parentheses BEFORE splitting: an annotation containing a comma
-    # ("gä (im Oberland, selten)") would otherwise be torn in half and take the
-    # bare headword with it. The site uses both separators for lists:
-    # "gä, Gas gä" and "yne ga; yche ga; yhe ga (Oberland)".
+    """Every form under which this entry counts as an exact match.
+
+    Two tiers, and the distinction matters. A PRIMARY form is the headword
+    itself or a listed spelling variant, and it is never filtered: «öppis» and
+    «öpper» are real headwords that happen to look like grammatical markers,
+    and dropping them made bdw report two core Bernese words as nonexistent.
+    A DERIVED form is a fragment obtained by splitting a composite headword,
+    and there a bare reflexive or pronoun ("gfreue, sech") is not a form of the
+    word and must not become an exact head.
+    """
+    primary, derived = [], []
+
     for variant in strip_annotations(entry["word"]):
-        forms.append(variant)
-        for part in re.split(r"[,;]", variant):
-            forms.append(part)
-            # Composite headwords carry grammatical abbreviations on the
-            # fragments too ("dim. Beckli"), and without stripping them the
-            # listed form itself is unmatchable.
+        primary.append(variant)
+        parts = re.split(r"[,;]", variant)
+        if len(parts) > 1:
+            derived += parts
+        for part in parts:
             words_ = part.split()
             while len(words_) > 1 and words_[0].lower().strip(".,") in QUALIFIERS:
                 words_ = words_[1:]
-                forms.append(" ".join(words_))
-            # A fragment introduced by an unlisted qualifier still ends in the
-            # form itself, so register the trailing token when everything
-            # before it looks like an abbreviation or a lowercase qualifier.
-            if len(words_) > 1 and all(
-                w.endswith(".") or w.islower() for w in words_[:-1]
-            ):
-                forms.append(words_[-1])
-    return {norm(f) for f in forms if f.strip() and norm(f) not in NOT_A_FORM}
+                derived.append(" ".join(words_))
+            # Only when the dropped prefix really looks like an abbreviation.
+            # Requiring merely "lowercase" registered the last word of any
+            # multi-word idiom as a headword, which is the false EXACT this
+            # tool exists to prevent.
+            if len(words_) > 1 and all(w.endswith(".") for w in words_[:-1]):
+                derived.append(words_[-1])
+
+    primary += spellings(entry["alt"])
+
+    heads = {norm(f) for f in primary if f.strip()}
+    heads |= {norm(f) for f in derived if f.strip() and norm(f) not in NOT_A_FORM}
+    return heads
 
 
 def lookup(word):
