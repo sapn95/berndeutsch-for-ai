@@ -4,7 +4,7 @@ packaging files.
 rules/ is licensed separately, under CC BY-SA 4.0; see rules/LICENSE.
 
 README.md, NOTICE, corpus/sources.md and rules/LICENSE are documentation of
-this repository and are covered by the MIT grant above. corpus/texts/ is not
+this repository and are covered by the MIT licence set out below. corpus/texts/ is not
 part of this repository; it is downloaded locally and stays under the licence
 of its authors. NOTICE records the provenance of everything.
 

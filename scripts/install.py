@@ -20,10 +20,14 @@ REPO = Path(__file__).resolve().parent.parent
 
 def config_dir():
     explicit = os.environ.get("CLAUDE_CONFIG_DIR")
-    return Path(explicit) if explicit else Path.home() / ".claude"
+    # expanduser and resolve: a tilde or a relative value would otherwise
+    # produce a green self-test plus a settings block pointing nowhere useful.
+    return Path(explicit).expanduser().resolve() if explicit else Path.home() / ".claude"
 
 
 def link(src, dst):
+    if dst.parent.exists() and not dst.parent.is_dir():
+        raise SystemExit(f"{dst.parent} exists and is not a directory")
     dst.parent.mkdir(parents=True, exist_ok=True)
     if dst.is_symlink() or dst.exists():
         if dst.is_dir() and not dst.is_symlink():

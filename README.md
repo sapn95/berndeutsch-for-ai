@@ -172,15 +172,19 @@ paste takes 0.15 s.
 
 Two tiers, and both of them decide something.
 
-**Decisive markers** cannot plausibly appear in English or German running text:
-`isch`, `gsy`, `öppis`, `chli`, `gäu`, and the second-person `-sch` verb forms
-(`chasch`, `bisch`, `weisch`, `machsch`, `wohnsch`) which carry most of the
-signal in real conversational Bernese. One is enough to fire.
+**Decisive markers** cannot plausibly appear in English or German running text.
+They are the second-person `-sch` verb forms (`chasch`, `bisch`, `weisch`,
+`machsch`, `wohnsch`), plus everyday words that carry the dialect without a
+verb: `isch`, `gsy`, `öppis`, `chli`, `znüni`, `Meitschi`, and the l-vocalised
+spellings this repo's own rulebook prescribes (`aues`, `viu`, `schnäu`, `aut`).
+One is enough to fire. The verb forms alone were not enough: an imperative, a
+first-person statement or a bare greeting contains none of them.
 
 **Supporting markers** are genuinely Bernese but each collides with something
 else: `gsi` is a DynamoDB Global Secondary Index, `nit` is the English noun in
 "nit-picking", `chum` is an English word, `kei` is Dutch, `nid` is French for
-nest and an HPC network identifier. None of them decides anything alone. Two
+nest and an HPC network identifier, `gäu` is a German toponym (das Gäu, Bezirk
+Gäu SO). None of them decides anything alone. Two
 *different* ones are required, so neither a lone ambiguous token nor the same
 token twice ("the Lustre NID and the nid mapping") can fire.
 
@@ -188,11 +192,19 @@ Ordinary German words like `halt`, `grad`, `wäge` and `sowieso` are in neither
 tier. An earlier version had them, and `Das ist halt so, das dauert grad noch
 ein bisschen` fired the hook on a sentence with no dialect in it at all.
 
-A false positive is still harmless by construction: the injected text says *if*
-this message is Bärndütsch, use these rules, so an English answer stays English.
+A false positive is harmless by construction: the injected text says *if* this
+message is Bärndütsch, use these rules, so an English answer stays English.
 
-The full rulebook goes in once per session. Later dialect prompts in the same
-session get a short checklist instead, since the first injection is still in the
+It is also cheap by construction. The **full rulebook is sent only on a
+decisive marker**. A match carried by supporting markers alone gets the short
+checklist and does not consume the session's one full injection, so a residual
+collision costs 1.4 KB rather than 9 KB and the next genuinely Bernese prompt
+in that session still gets the whole rulebook. That cap is deliberate: no
+word list is ever going to be perfect, so the design limits what being wrong
+can cost instead of pretending the list is finished.
+
+After the full rulebook has gone in once, later dialect prompts in the same
+session get the short checklist, since the first injection is still in the
 transcript.
 
 ## Deliberately not solved
@@ -221,8 +233,9 @@ precisely which part comes from whom and under which licence; the short version:
 - **Ursula Pinheiro-Weber**, *Bärndütsch schrybe: schriftsprach-nach* (2021,
   CC BY-ND 4.0), the detailed public summary of the system.
   [Read the original](https://www.berndeutsch.ch/doc/berndeutsch-schreiben-schriftsprach-nah-v1.pdf),
-  it is five pages and better than any summary of it. Neither that document nor
-  its counterpart is reproduced or redistributed here; see `NOTICE`.
+  it is five pages and better than any summary of it. Neither that document is
+  redistributed here, and `NOTICE` states plainly which illustrative words this
+  rulebook shares with it and why.
 - **Hans Jürg Zingg** for the lautgetreu counterpart.
 - **Werner Marti**, *Bärndütschi Schrybwys* (1978), and **Ruth Bietenhard**,
   *Berndeutsches Wörterbuch* (10th ed. 2017), whose codification everything here

@@ -33,17 +33,22 @@ and is summarised for the public by berndeutsch.ch, notably in:
 The rules a spelling system prescribes are facts about that system, and they
 are stated here in our own words and our own arrangement.
 
-About the examples, precisely, because the honest answer is not "all of them
-are ours". A description of this system cannot avoid the conventional
-illustrations: everyone who explains the unstressed e writes "Gipfeli", and
-everyone who explains word-internal sch writes "Poscht" and "Wäschpi". Those
-are used here because they are the conventional ones, not because they were
-copied from any one source. The remaining examples were chosen by us and
-verified against berndeutsch.ch dictionary entries with scripts/bdw.
+About the examples, precisely and without flattering ourselves. Many of the
+illustrative words in rules/schrybwys.md are the same words the Pinheiro-Weber
+PDF uses: Gipfeli and Meiteli for the unstressed e, Poscht and Wäschpi for
+word-internal sch, ggange and ddänkt for the doubled soft consonant, Handy and
+Klinik for loanwords, Spiez for the place-name exception. That overlap is real
+and it is not coincidence: these are the standard illustrations for these
+rules, several of them are the only ones that exist, and we learned the rules
+from that document.
 
-Neither CC BY-ND document is reproduced here in whole or in part, and neither
-is distributed with this repository. Read the originals: they are five pages
-each, they are free, and they are better than any summary of them.
+What is ours is the prose, the arrangement, and the choices around those
+shared words. No sentence from either CC BY-ND document is copied, neither
+document is redistributed with this repository, and where an example could be
+chosen freely we chose our own and verified it against a berndeutsch.ch
+dictionary entry with scripts/bdw.
+
+If that distinction does not satisfy the rightsholder, the offer below stands.
 
 If Ursula Pinheiro-Weber, Hans Jürg Zingg or berndeutsch.ch consider any part
 of rules/ to encroach on their work, open an issue and it will be rewritten or

@@ -45,6 +45,11 @@ POLITE_DELAY = 0.5  # seconds between requests; the site is volunteer-run
 # load on a volunteer-run site bounded; when it is hit, say so instead of
 # claiming the word does not exist.
 MAX_PAGES = 15
+# Bare, unbracketed qualifiers the site prefixes to a spelling variant.
+QUALIFIERS = frozenset("""
+oberland emmental seeland oberaargau stadt auch selten veraltet alt neu
+landschaftlich mundartlich früher heute meist
+""".split())
 UA = "bdw/1.0 (+https://github.com/sapn95/berndeutsch-for-ai) courtesy lookup client"
 
 # One search hit: <h3><a href=".../words/44197?q=..">suber</a> <small>[Adj.]</small></h3>
@@ -80,11 +85,14 @@ def spellings(alt):
             continue
         forms.append(part.lower())
         # Not every qualifier is bracketed: the site also writes bare ones such
-        # as "Oberland yche gah" or "auch gschtabig". Keep the qualified form
-        # AND its last word, so the variant itself is still matchable.
+        # as "Oberland yche gah". Strip a known leading qualifier so the variant
+        # itself is matchable. Taking the LAST token instead would be wrong: it
+        # would report a mere fragment of a multi-word variant as an exact
+        # headword, which is precisely the answer this tool exists to prevent.
         words = part.split()
-        if len(words) > 1:
-            forms.append(words[-1].lower())
+        while len(words) > 1 and words[0].lower().strip(".,") in QUALIFIERS:
+            words = words[1:]
+            forms.append(" ".join(words).lower())
     return forms
 
 

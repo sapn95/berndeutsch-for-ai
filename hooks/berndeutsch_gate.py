@@ -38,6 +38,12 @@ SCAN_TAIL = 3000
 # because they carry most of the signal in real conversational Bernese. A
 # blanket "-sch" rule is not usable, since German is full of -isch adjectives
 # (technisch, logisch, praktisch), so the productive forms are listed.
+#
+# The -sch forms are not enough on their own, though: an imperative, a
+# first-person statement or a bare greeting contains none of them. So the list
+# also carries everyday nouns and adverbs, and the l-vocalised spellings this
+# repository's own rulebook prescribes (aues, viu, schnäu, aut, chüngu), which
+# were conspicuously missing while the non-vocalised vilmal was present.
 DECISIVE = frozenset("""
 bärndütsch berndütsch baernduetsch bärndütschi
 isch isches sisch
@@ -46,10 +52,12 @@ hesch heschs chasch machsch weisch bisch wottsch chunnsch gisch nimmsch
 seisch tuesch muesch gohsch blybsch luegsch sägsch findsch bruuchsch
 verstahsch chöisch dörfsch söttisch wirsch wohnsch schaffsch schrybsch
 redsch chouffsch heissisch wosch chunsch
-öppis öpper öppe mängisch itz sött söu söue wöu gäud
+öppis öpper öppe mängisch itz sött söu söue wöu gäud niemer
 chli chunt chume chumme chöi göh göi
-machemer gömer simer gmacht
+machemer gömer simer gmacht gseit gwüss mitenand sälber eifach gäbig
 öbe äbe grüessech vilmal gäng äuä äuwä nüt nüüt geits geit gaht
+znüni zmorge zobe zvieri zäme meitschi meiteli gieu hegu bueb
+aues viu viumau viumou schnäu chüngu wüescht gnue luschtig
 """.split())
 
 # SUPPORTING: genuinely Bernese, but each one collides with a real word or a
@@ -69,7 +77,13 @@ machemer gömer simer gmacht
 #
 # Removed outright from both tiers: ig, aui, ke, wei. IG, AUI and KE are
 # ordinary acronyms and Wei is a common Chinese given name, so two of them in
-# one English engineering prompt cleared the supporting bar between them.
+# one English engineering prompt cleared the supporting bar between them. aui
+# is the l-vocalised "alli" and belongs in the language, but AUI is an acronym
+# and aues covers the same ground without the collision.
+#
+# aut, modi and ching are supporting rather than decisive for the same reason:
+# AUT is "application under test", modi is Italian and a surname, Ching is a
+# Chinese surname.
 #
 # Deliberately absent from both tiers: halt, grad, wäge, sowieso, merci, säge,
 # mer, het, hoi, and bare git. They are ordinary German or English words or, in
@@ -77,8 +91,8 @@ machemer gömer simer gmacht
 # non-letters. Any two of them reached the bar on prompts with no dialect at
 # all, and git reached it twice in one shell command.
 SUPPORTING = frozenset("""
-nid nit gsi kei chum witt geng gits hämmer gäu
-hei cha wott mues gah luege scho guet öi nöime hüt zäme churz dänk söll
+nid nit gsi kei chum witt geng gits hämmer gäu aut modi ching
+hei cha wott mues gah luege scho guet öi nöime hüt churz dänk söll
 """.split())
 
 # One decisive marker fires. Otherwise two DISTINCT supporting markers are
@@ -99,29 +113,39 @@ def scan_window(text):
     text = unicodedata.normalize("NFC", text)
     if len(text) <= SCAN_HEAD + SCAN_TAIL:
         return text
-    head = text[:SCAN_HEAD]
-    cut = head.rfind(" ")
-    if cut > 0:
-        head = head[:cut]
-    tail = text[-SCAN_TAIL:]
-    cut = tail.find(" ")
-    if cut >= 0:
-        tail = tail[cut + 1:]
+    # Strip the partial token at each cut with the same character class the
+    # tokeniser uses, rather than hunting for a space. A minified file or a
+    # base64 blob can contain no space in the whole window, and then a
+    # space-based trim leaves the fragment in place.
+    head = re.sub(r"[^\W\d_]+$", "", text[:SCAN_HEAD], flags=re.UNICODE)
+    tail = re.sub(r"^[^\W\d_]+", "", text[-SCAN_TAIL:], flags=re.UNICODE)
     return head + "\n" + tail
 
 
 def is_dialect(text):
-    """True when the text should be treated as Bärndütsch."""
+    """Return (fire, certain).
+
+    `certain` is True only when a decisive marker was seen. A match carried by
+    supporting markers alone still injects, because the cost of being wrong is
+    a conditional instruction the model ignores, but it gets the short
+    checklist rather than the full rulebook and does not consume the session's
+    one full injection. That caps what any residual collision can cost: three
+    supporting markers in one English sentence ("run the AUT suite, check the
+    modi list with Ching") is 1.4 KB, not 9 KB, and the next genuinely Bernese
+    prompt in that session still gets the whole thing.
+    """
     tokens = TOKEN_RE.findall(scan_window(text).lower())
     if any(t in DECISIVE for t in tokens):
-        return True
-    return len({t for t in tokens if t in SUPPORTING}) >= MIN_SUPPORTING
+        return True, True
+    return len({t for t in tokens if t in SUPPORTING}) >= MIN_SUPPORTING, False
 
 
 def config_dir():
     explicit = os.environ.get("CLAUDE_CONFIG_DIR")
     if explicit:
-        return Path(explicit)
+        # expanduser: an unexpanded "~" would create a literal ~ directory
+        # wherever the hook happens to be running from.
+        return Path(explicit).expanduser()
     home = os.environ.get("HOME") or os.path.expanduser("~")
     return Path(home) / ".claude"
 
@@ -295,12 +319,13 @@ def main():
     if "[hd]" in prompt.lower():
         return 0
 
-    if not is_dialect(prompt):
+    fire, certain = is_dialect(prompt)
+    if not fire:
         return 0
 
     here = Path(__file__).resolve().parent
     marker = session_marker(payload.get("session_id"))
-    first_time = not (marker and marker.exists())
+    first_time = certain and not (marker and marker.exists())
     context, emitted = build_context(here, first_time)
 
     # Mark the session only once the rulebook has actually been emitted. An
