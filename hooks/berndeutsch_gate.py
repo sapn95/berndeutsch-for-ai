@@ -42,7 +42,7 @@ SCAN_TAIL = 3000
 # The -sch forms are not enough on their own, though: an imperative, a
 # first-person statement or a bare greeting contains none of them. So the list
 # also carries everyday nouns and adverbs, and the l-vocalised spellings this
-# repository's own rulebook prescribes (aues, viu, schnäu, aut, chüngu), which
+# repository's own rulebook prescribes (aues, viu, schnäu, chüngu), which
 # were conspicuously missing while the non-vocalised vilmal was present.
 DECISIVE = frozenset("""
 bärndütsch berndütsch baernduetsch bärndütschi
@@ -51,13 +51,14 @@ gsy gsii gseh gsehsch
 hesch heschs chasch machsch weisch bisch wottsch chunnsch gisch nimmsch
 seisch tuesch muesch gohsch blybsch luegsch sägsch findsch bruuchsch
 verstahsch chöisch dörfsch söttisch wirsch wohnsch schaffsch schrybsch
-redsch chouffsch heissisch wosch chunsch
+redsch chouffsch heissisch wosch chunsch meinsch gasch gahsch
 öppis öpper öppe mängisch itz sött söu söue wöu gäud niemer
 chli chunt chume chumme chöi göh göi
 machemer gömer simer gmacht gseit gwüss mitenand sälber eifach gäbig
 öbe äbe grüessech vilmal gäng äuä äuwä nüt nüüt geits geit gaht
 znüni zmorge zobe zvieri zäme meitschi meiteli gieu hegu bueb
 aues viu viumau viumou schnäu chüngu wüescht gnue luschtig
+ahnig louf louft chlepfe chlepft poschte poschtet guete
 """.split())
 
 # SUPPORTING: genuinely Bernese, but each one collides with a real word or a
@@ -225,7 +226,7 @@ CHECKLIST = """Quick checklist:
 - be CONSISTENT within one text, that is the golden rule"""
 
 
-def build_context(here, first_time):
+def build_context(here, first_time, served):
     out = [
         "<berndeutsch-schrybwys>",
         "The user's message appears to be Bärndütsch (Bernese German). If it is,",
@@ -262,7 +263,10 @@ def build_context(here, first_time):
         # read. Claiming the full rulebook "was already loaded" would be a lie
         # in that case, so the checklist stands on its own wording.
         out.append(CHECKLIST)
-        if not first_time:
+        if served:
+            # Only true when the full rulebook actually went out earlier. Since
+            # round 5 a supporting-only match also lands here with first_time
+            # False, and saying "loaded earlier" there would be a fresh lie.
             out.append("(The full rulebook was loaded earlier in this session.)")
         out.append("")
 
@@ -325,8 +329,9 @@ def main():
 
     here = Path(__file__).resolve().parent
     marker = session_marker(payload.get("session_id"))
-    first_time = certain and not (marker and marker.exists())
-    context, emitted = build_context(here, first_time)
+    served = bool(marker and marker.exists())
+    first_time = certain and not served
+    context, emitted = build_context(here, first_time, served)
 
     # Mark the session only once the rulebook has actually been emitted. An
     # unreadable rulebook would otherwise burn the one full injection and leave

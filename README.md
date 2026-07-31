@@ -176,7 +176,7 @@ Two tiers, and both of them decide something.
 They are the second-person `-sch` verb forms (`chasch`, `bisch`, `weisch`,
 `machsch`, `wohnsch`), plus everyday words that carry the dialect without a
 verb: `isch`, `gsy`, `öppis`, `chli`, `znüni`, `Meitschi`, and the l-vocalised
-spellings this repo's own rulebook prescribes (`aues`, `viu`, `schnäu`, `aut`).
+spellings this repo's own rulebook prescribes (`aues`, `viu`, `schnäu`).
 One is enough to fire. The verb forms alone were not enough: an imperative, a
 first-person statement or a bare greeting contains none of them.
 
@@ -184,7 +184,7 @@ first-person statement or a bare greeting contains none of them.
 else: `gsi` is a DynamoDB Global Secondary Index, `nit` is the English noun in
 "nit-picking", `chum` is an English word, `kei` is Dutch, `nid` is French for
 nest and an HPC network identifier, `gäu` is a German toponym (das Gäu, Bezirk
-Gäu SO). None of them decides anything alone. Two
+Gäu SO), `aut` is "application under test". None of them decides anything alone. Two
 *different* ones are required, so neither a lone ambiguous token nor the same
 token twice ("the Lustre NID and the nid mapping") can fire.
 
