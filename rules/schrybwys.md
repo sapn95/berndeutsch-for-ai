@@ -66,10 +66,10 @@ introduced where it does not, except as a length mark: `Aabe`, `nüüt`.
 **The lengthening `h`** survives where the length does: `fahre`, `meh`, `gseh`,
 and also where the vowel shifts: `näh`, `gah`, `verstah`. It is dropped where
 High German's separating `h` turns into a Bernese `j`: `blüeje`, `Chräje`. It
-is never invented where High German has none: `schryne`, `gä`, `la`.
+is never invented where High German has none: `schyne`, `gä`, `la`.
 
-**Separable prefixes** double their vowel when they stand alone: `mir stöh
-uuf`, `mir luege aa`.
+**Separable prefixes** double their vowel when they stand alone: `mir fahre
+uuse`, `mir fange aa`.
 
 ---
 
@@ -99,9 +99,9 @@ kept throughout.
 
 **The linking `n`** is what those vowel-final words need when the next word
 also starts with a vowel. All three spellings are fine as long as one of them
-is used throughout: `Wi ni gseit ha`, `Win i gseit ha`, `Wi-n-i gseit ha`.
-Next to an article it merges without a hyphen: `wi ne Bär`, `hesch en Unfall
-gha?`.
+is used throughout: `Wo ni das gseh ha`, `Won i das gseh ha`,
+`Wo-n-i das gseh ha`. Next to an article it merges without a hyphen:
+`är rennt wi ne Chüngu`, `mir hei ne Bäse bruucht`.
 
 **`sp` and `st`** are the one place where the spelling deliberately ignores the
 pronunciation. They are written as in High German at the start of a word, and

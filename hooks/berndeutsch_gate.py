@@ -54,9 +54,10 @@ hesch heschs chasch machsch weisch bisch wottsch chunnsch gisch nimmsch
 seisch tuesch muesch gohsch blybsch luegsch sägsch findsch bruuchsch
 verstahsch chöisch dörfsch söttisch wirsch wohnsch schaffsch schrybsch
 redsch chouffsch heissisch wosch chunsch meinsch gasch gahsch
-heit chömet chöit gö gha dihr
+heit chömet chöit gö dihr
 öppis öpper öppe mängisch itz sött söu söue wöu gäud niemer
-chli chunt chume chumme chöi göh göi
+chli chunt chunnt chume chumme chöme chömme chöi göh göi
+nüme nümme müed gärn üs üsi üse
 machemer gömer simer gmacht gseit gwüss mitenand sälber eifach gäbig
 öbe äbe grüessech vilmal gäng äuä äuwä nüt nüüt geits geit gaht
 znüni zmorge zobe zvieri zäme meitschi meiteli gieu hegu bueb
@@ -69,10 +70,10 @@ ahnig louf louft chlepfe chlepft poschte poschtet guete
 # needed, and they must be two DIFFERENT words: "Configure the Lustre NID and
 # the nid mapping" is one word twice, not two markers.
 #
-# gsi is the DynamoDB Global Secondary Index. nit is the English noun in
-# "nit-picking". chum is an English word. kei is Dutch. nid is French for nest
-# and an HPC network identifier. Each of those fired on ordinary prompts while
-# it was treated as decisive.
+# gsi is the DynamoDB Global Secondary Index, gha is GitHub Actions, nit is the
+# English noun in "nit-picking", chum is an English word, kei is Dutch, nid is
+# French for nest and an HPC network identifier. Each of those fired on ordinary
+# prompts while it was treated as decisive; gha did it on every CI question.
 #
 # Also demoted rather than dropped: hämmer is the German plural of Hammer,
 # geng is a common Chinese surname, gits is an English plural, and gäu is a
@@ -95,7 +96,7 @@ ahnig louf louft chlepfe chlepft poschte poschtet guete
 # non-letters. Any two of them reached the bar on prompts with no dialect at
 # all, and git reached it twice in one shell command.
 SUPPORTING = frozenset("""
-nid nit gsi kei chum witt geng gits hämmer gäu aut modi ching
+nid nit gsi gha kei chum witt geng gits hämmer gäu aut modi ching
 hei cha wott mues gah luege scho guet öi nöime hüt churz dänk söll
 """.split())
 

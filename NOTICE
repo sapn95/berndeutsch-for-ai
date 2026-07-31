@@ -49,16 +49,24 @@ nüüt, alli, aui, wölle, wöue, dihr, heit, chömet.
 
 That is a lot, and pretending otherwise would be silly. These are the standard
 illustrations for these rules; for several rules they are close to the only
-ones that exist, and we learned the rules from that document. The other 92
-words are our own, chosen freely and verified against a berndeutsch.ch
-dictionary entry with scripts/bdw.
+ones that exist, and we learned the rules from that document. The remaining
+words are ours, chosen freely. Most of them are exact berndeutsch.ch headwords
+checked with scripts/bdw; some are inflected or regional forms (ghout, Töu)
+that have no headword by design and were not verifiable that way, and one,
+schryne, was simply a typo for schyne and has been corrected.
 
-What is ours is the prose and the arrangement. No sentence from either CC BY-ND
-document is copied. The rulebook opens with a section that document does not
-have ("What gives a text away"), and the consonant section is ordered by what
-each phenomenon is (sound changes, then the joint they create, then the two
-spelling conventions) rather than by the PDF's numbered sequence. Neither
-document is redistributed with this repository.
+Multi-word examples were a separate problem. Five example phrases stood
+verbatim in both documents: "wi ne Bär", the three spellings of "Wi ni gseit
+ha", and "mir luege aa". They have been replaced with our own. As of this
+writing no phrase of two or more words appears in both, which is checkable and
+was checked, not assumed.
+
+What is ours is the prose and the arrangement. The rulebook opens with a
+section that document does not have ("What gives a text away"), and the
+consonant section is ordered by what each phenomenon is (sound changes, then
+the joint they create, then the two spelling conventions) rather than by the
+PDF's numbered sequence. Neither document is redistributed with this
+repository.
 
 If that distinction does not satisfy the rightsholder, the offer below stands.
 
