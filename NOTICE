@@ -33,20 +33,32 @@ and is summarised for the public by berndeutsch.ch, notably in:
 The rules a spelling system prescribes are facts about that system, and they
 are stated here in our own words and our own arrangement.
 
-About the examples, precisely and without flattering ourselves. Many of the
-illustrative words in rules/schrybwys.md are the same words the Pinheiro-Weber
-PDF uses: Gipfeli and Meiteli for the unstressed e, Poscht and Wäschpi for
-word-internal sch, ggange and ddänkt for the doubled soft consonant, Handy and
-Klinik for loanwords, Spiez for the place-name exception. That overlap is real
-and it is not coincidence: these are the standard illustrations for these
-rules, several of them are the only ones that exist, and we learned the rules
-from that document.
+About the examples, measured rather than asserted. An earlier version of this
+file named five words as shared with the Pinheiro-Weber PDF. A reviewer checked
+and three of them (Gipfeli, Meiteli, Spiez) are not in that document at all;
+they come from the free berndeutsch.ch summary page. The claim was wrong in
+both directions, so here is the actual count.
 
-What is ours is the prose, the arrangement, and the choices around those
-shared words. No sentence from either CC BY-ND document is copied, neither
-document is redistributed with this repository, and where an example could be
-chosen freely we chose our own and verified it against a berndeutsch.ch
+rules/schrybwys.md uses 176 distinct illustrative words. 84 of them, about 47%,
+also occur in the PDF: among others vergässe, Fride, sibe, ligt, Fröid, Höi,
+nöi, tröime, fahre, meh, gseh, näh, gah, verstah, blüeje, Chräje, Poscht,
+luschtig, Wäschpi, Stei, spile, starch, verstecke, umespringe, bruucht, trunke,
+kämpft, ggange, ddänkt, bbout, Sache, Loch, Unggle, Stäcke, hetze, locker,
+Hang, angers, mitenang, wi ne Bär, Handy, Klinik, Pandemie, Saal, Boot, Aabe,
+nüüt, alli, aui, wölle, wöue, dihr, heit, chömet.
+
+That is a lot, and pretending otherwise would be silly. These are the standard
+illustrations for these rules; for several rules they are close to the only
+ones that exist, and we learned the rules from that document. The other 92
+words are our own, chosen freely and verified against a berndeutsch.ch
 dictionary entry with scripts/bdw.
+
+What is ours is the prose and the arrangement. No sentence from either CC BY-ND
+document is copied. The rulebook opens with a section that document does not
+have ("What gives a text away"), and the consonant section is ordered by what
+each phenomenon is (sound changes, then the joint they create, then the two
+spelling conventions) rather than by the PDF's numbered sequence. Neither
+document is redistributed with this repository.
 
 If that distinction does not satisfy the rightsholder, the offer below stands.
 

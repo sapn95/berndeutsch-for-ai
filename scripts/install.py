@@ -53,7 +53,7 @@ def probe(hook, prompt):
     with tempfile.TemporaryDirectory() as sandbox:
         env["CLAUDE_CONFIG_DIR"] = sandbox
         return subprocess.run(
-            [sys.executable, str(hook)], input=payload, capture_output=True, text=True, env=env
+            [sys.executable, str(hook)], input=payload, capture_output=True, encoding="utf-8", errors="replace", env=env
         )
 
 
@@ -100,7 +100,7 @@ def main():
         return 1
     on_path = subprocess.run(
         [which, str(hook)], input=json.dumps({"prompt": "Chasch mer hälfe?"}),
-        capture_output=True, text=True,
+        capture_output=True, encoding="utf-8", errors="replace",
     )
     if on_path.returncode != 0 or not on_path.stdout.strip():
         print(f"self-test FAILED: {which} could not run the hook", file=sys.stderr)

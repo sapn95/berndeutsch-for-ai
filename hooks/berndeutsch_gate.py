@@ -40,7 +40,9 @@ SCAN_TAIL = 3000
 # (technisch, logisch, praktisch), so the productive forms are listed.
 #
 # The -sch forms are not enough on their own, though: an imperative, a
-# first-person statement or a bare greeting contains none of them. So the list
+# first-person statement or a bare greeting contains none of them. Nor is the
+# singular enough: the polite form in Bernese is the second person PLURAL
+# (heit, chömet, dihr), which is exactly what a stranger writes first. So the list
 # also carries everyday nouns and adverbs, and the l-vocalised spellings this
 # repository's own rulebook prescribes (aues, viu, schnäu, chüngu), which
 # were conspicuously missing while the non-vocalised vilmal was present.
@@ -52,6 +54,7 @@ hesch heschs chasch machsch weisch bisch wottsch chunnsch gisch nimmsch
 seisch tuesch muesch gohsch blybsch luegsch sägsch findsch bruuchsch
 verstahsch chöisch dörfsch söttisch wirsch wohnsch schaffsch schrybsch
 redsch chouffsch heissisch wosch chunsch meinsch gasch gahsch
+heit chömet chöit gö gha dihr
 öppis öpper öppe mängisch itz sött söu söue wöu gäud niemer
 chli chunt chume chumme chöi göh göi
 machemer gömer simer gmacht gseit gwüss mitenand sälber eifach gäbig
@@ -112,6 +115,12 @@ def scan_window(text):
     contained, e.g. German "Verzeichnisch..." cut after "...isch".
     """
     text = unicodedata.normalize("NFC", text)
+    # A pasted JSON log or an escaped error string contains literal \n, \r and
+    # \t two-character sequences. The backslash is not a letter, so "...\nID"
+    # tokenises to "nid" and "...\nIt" to "nit", conjuring supporting markers
+    # out of ordinary English. Turn the escapes into the whitespace they denote
+    # before tokenising.
+    text = re.sub(r"\\[nrt]", " ", text)
     if len(text) <= SCAN_HEAD + SCAN_TAIL:
         return text
     # Strip the partial token at each cut with the same character class the
@@ -262,7 +271,17 @@ def build_context(here, first_time, served):
         # Also the path taken when no rulebook file was found or none could be
         # read. Claiming the full rulebook "was already loaded" would be a lie
         # in that case, so the checklist stands on its own wording.
-        out.append(CHECKLIST)
+        #
+        # The bundled checklist is the schriftsprach-nah system. Emitting it to
+        # someone who set BERNDEUTSCH_RULES precisely to replace that system
+        # would hand them the rulebook they opted out of, on every prompt after
+        # the first. Point at their own file instead.
+        override = os.environ.get("BERNDEUTSCH_RULES")
+        if override:
+            out.append(f"Follow the rulebook at {override}, which is in force for")
+            out.append("this user and replaces any default Bernese spelling system.")
+        else:
+            out.append(CHECKLIST)
         if served:
             # Only true when the full rulebook actually went out earlier. Since
             # round 5 a supporting-only match also lands here with first_time

@@ -75,19 +75,9 @@ uuf`, `mir luege aa`.
 
 ## Consonants
 
-**`sp` and `st`** are written as in High German at the start of a word, and
-also after a prefix or a verb particle: `Stei`, `spile`, `starch`, `verstecke`,
-`umespringe`. Inside and at the end of a word they become `scht` and `schp`:
-`Poscht`, `luschtig`, `Wäschpi`. Place names and family names keep `Sp` and
-`St` in every system: `Spiez`, never `Schpiez`.
-
-**Doubling** happens only where Bernese actually doubles: `Büez`, `chouffe`,
-`bätte`. In the past participle the High-German `ge-` drops before a strong
-consonant: `bruucht`, `trunke`, `kämpft`. Verbs whose stem starts with a soft
-`b`, `d` or `g` before a vowel double that consonant instead: `ggange`,
-`ddänkt`, `bbout`. `ch` never doubles (`Sache`, `Loch`). `ng` does not double
-either but may be reinforced with a second `g`: `Unggle`. `dt`, `tz` and `ck`
-stay single: `Stäcke`, `hetze`, `locker`.
+Ordered by what they are, not by spelling-guide convention: the two sound
+changes that define the dialect first, then the joint they create, then the two
+places where the spelling merely follows a convention.
 
 **l-vocalisation** is the signature sound, and its boundary is where most
 mistakes happen. Three cases:
@@ -103,13 +93,30 @@ The dictionary supplies the minimal pair itself: the verb is `hole` with the
 a `t`. Where `u + l` would produce a double `u`, keep the `l` rather than
 doubling the vowel.
 
-**`nd` becomes `ng`:** `Hang`, `Ching`, `mitenang`, `angers`. Keeping the
-High-German `nd` throughout is also acceptable.
+**Velarisation: `nd` becomes `ng`.** `Hang`, `Ching`, `mitenang`, `angers`.
+Keeping the High-German `nd` throughout is also acceptable, as long as it is
+kept throughout.
 
-**The linking `n`** joins two vowels, and all three spellings are fine as long
-as one of them is used throughout: `Wi ni gseit ha`, `Win i gseit ha`,
-`Wi-n-i gseit ha`. Next to an article it merges without a hyphen: `wi ne Bär`,
-`hesch en Unfall gha?`.
+**The linking `n`** is what those vowel-final words need when the next word
+also starts with a vowel. All three spellings are fine as long as one of them
+is used throughout: `Wi ni gseit ha`, `Win i gseit ha`, `Wi-n-i gseit ha`.
+Next to an article it merges without a hyphen: `wi ne Bär`, `hesch en Unfall
+gha?`.
+
+**`sp` and `st`** are the one place where the spelling deliberately ignores the
+pronunciation. They are written as in High German at the start of a word, and
+also after a prefix or a verb particle: `Stei`, `spile`, `starch`,
+`verstecke`, `umespringe`. Inside and at the end of a word they follow the ear
+instead: `Poscht`, `luschtig`, `Wäschpi`. Place names and family names keep
+`Sp` and `St` in every system: `Spiez`, never `Schpiez`.
+
+**Doubling** follows the ear again, and only where Bernese actually doubles:
+`Büez`, `chouffe`, `bätte`. In the past participle the High-German `ge-` drops
+before a strong consonant: `bruucht`, `trunke`, `kämpft`. Verbs whose stem
+starts with a soft `b`, `d` or `g` before a vowel double that consonant
+instead: `ggange`, `ddänkt`, `bbout`. Three things never double: `ch`
+(`Sache`, `Loch`), and `dt`, `tz`, `ck` (`Stäcke`, `hetze`, `locker`). `ng`
+does not double either, but may be reinforced with a second `g`: `Unggle`.
 
 ---
 

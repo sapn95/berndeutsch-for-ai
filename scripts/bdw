@@ -136,13 +136,36 @@ def entries(page_html):
         }
 
 
+def strip_annotations(word):
+    """Remove editorial parentheses, keep optional word material.
+
+    "(im Oberland, selten)" is an annotation and goes. "(Mit)arbeitendi" is
+    optional material and must yield BOTH "Mitarbeitendi" and "Arbeitendi",
+    because dropping it silently would make the long form unmatchable.
+    """
+    optional = []
+    def repl(m):
+        inner = m.group(1)
+        if len(inner) <= 6 and not re.search(r"[\s,;]", inner):
+            optional.append(inner)
+            return "\x00" + inner + "\x00"
+        return ""
+    bare = re.sub(r"\(([^)]*)\)", repl, word)
+    with_opt = bare.replace("\x00", "")
+    without_opt = re.sub(r"\x00[^\x00]*\x00", "", bare)
+    return [w for w in (with_opt, without_opt) if w.strip()]
+
+
 def heads_of(entry):
     """Every form under which this entry counts as an exact match."""
-    forms = [entry["word"]] + spellings(entry["alt"])
-    # A headword may itself be a list, and the site uses both separators:
-    # "gä, Gas gä" but also "yne ga; yche ga; yhe ga (Oberland)". Splitting on
-    # the comma alone reports the semicolon-separated forms as not headwords.
-    forms += [re.sub(r"\(.*?\)", "", part) for part in re.split(r"[,;]", entry["word"])]
+    forms = list(spellings(entry["alt"]))
+    # Strip the parentheses BEFORE splitting: an annotation containing a comma
+    # ("gä (im Oberland, selten)") would otherwise be torn in half and take the
+    # bare headword with it. The site uses both separators for lists:
+    # "gä, Gas gä" and "yne ga; yche ga; yhe ga (Oberland)".
+    for variant in strip_annotations(entry["word"]):
+        forms.append(variant)
+        forms += re.split(r"[,;]", variant)
     return {norm(f) for f in forms if f.strip()}
 
 
