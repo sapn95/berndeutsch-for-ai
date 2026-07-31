@@ -118,6 +118,8 @@ def main():
         print(f"{value:7.2f} {len(text):>7}  {title}  [{mark}]", file=sys.stderr)
 
     if args.list:
+        if failed:
+            print(f"could not fetch {len(failed)}: {', '.join(failed)}", file=sys.stderr)
         return 0
 
     out = pathlib.Path(args.out)
@@ -129,12 +131,13 @@ def main():
         # Two titles can collapse to the same slug ("Bern (Stadt)" and
         # "Bern-Stadt"), so keep a counter rather than silently overwriting.
         slug = re.sub(r"[^\w-]+", "_", title).strip("_") or "artikel"
-        if slug in used:
-            used[slug] += 1
-            slug = f"{slug}-{used[slug]}"
-        # Register the derived name too, otherwise a later title that slugs to
-        # exactly "<slug>-2" silently overwrites this file.
-        used.setdefault(slug, 1)
+        # Loop rather than test once: the derived "<slug>-2" can itself already
+        # be taken by a title that slugged to exactly that string.
+        base = slug
+        while slug in used:
+            used[base] = used.get(base, 1) + 1
+            slug = f"{base}-{used[base]}"
+        used[slug] = 1
         header = (
             f"# {title}\n"
             f"# Source: https://als.wikipedia.org/wiki/{urllib.parse.quote(title.replace(' ', '_'))}\n"

@@ -9,6 +9,7 @@ eventually eats somebody's config.
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -84,6 +85,24 @@ def main():
         print("self-test FAILED: the hook fired on a plain English prompt", file=sys.stderr)
         return 1
     print("self-test: stays silent on English")
+
+    # The settings block names "python3" from PATH, not this interpreter, so
+    # check that one runs the hook too. Otherwise the installer can report a
+    # green self-test for a configuration that will not start.
+    which = shutil.which("python3")
+    if not which:
+        print("self-test FAILED: no python3 on PATH, which is what the settings "
+              "block invokes", file=sys.stderr)
+        return 1
+    on_path = subprocess.run(
+        [which, str(hook)], input=json.dumps({"prompt": "Chasch mer hälfe?"}),
+        capture_output=True, text=True,
+    )
+    if on_path.returncode != 0 or not on_path.stdout.strip():
+        print(f"self-test FAILED: {which} could not run the hook", file=sys.stderr)
+        print(on_path.stderr.strip(), file=sys.stderr)
+        return 1
+    print(f"self-test: python3 on PATH ({which}) runs it too")
 
     block = {
         "hooks": {

@@ -73,7 +73,19 @@ def spellings(alt):
     # contains a comma, so splitting first tears the annotation in half and
     # destroys the variant it was attached to.
     body = re.sub(r"\([^)]*\)", "", alt.split(":", 1)[-1])
-    return [f.strip().lower() for f in re.split(r"[,;]", body) if f.strip()]
+    forms = []
+    for part in re.split(r"[,;/]", body):
+        part = part.strip()
+        if not part:
+            continue
+        forms.append(part.lower())
+        # Not every qualifier is bracketed: the site also writes bare ones such
+        # as "Oberland yche gah" or "auch gschtabig". Keep the qualified form
+        # AND its last word, so the variant itself is still matchable.
+        words = part.split()
+        if len(words) > 1:
+            forms.append(words[-1].lower())
+    return forms
 
 
 def fetch(word, page=1):

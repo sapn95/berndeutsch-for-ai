@@ -1,9 +1,12 @@
 This licence covers the code in this repository: hooks/, scripts/ and the
 packaging files.
 
-rules/ is licensed separately, under CC BY-SA 4.0; see rules/LICENSE. corpus/
-describes material belonging to others and carries its own attribution
-requirements. NOTICE records the provenance of both.
+rules/ is licensed separately, under CC BY-SA 4.0; see rules/LICENSE.
+
+README.md, NOTICE, corpus/sources.md and rules/LICENSE are documentation of
+this repository and are covered by the MIT grant above. corpus/texts/ is not
+part of this repository; it is downloaded locally and stays under the licence
+of its authors. NOTICE records the provenance of everything.
 
 MIT License
 

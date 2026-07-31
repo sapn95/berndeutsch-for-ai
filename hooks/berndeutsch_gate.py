@@ -46,7 +46,7 @@ hesch heschs chasch machsch weisch bisch wottsch chunnsch gisch nimmsch
 seisch tuesch muesch gohsch blybsch luegsch sägsch findsch bruuchsch
 verstahsch chöisch dörfsch söttisch wirsch wohnsch schaffsch schrybsch
 redsch chouffsch heissisch wosch chunsch
-öppis öpper öppe mängisch itz sött söu söue wöu gäu gäud
+öppis öpper öppe mängisch itz sött söu söue wöu gäud
 chli chunt chume chumme chöi göh göi
 machemer gömer simer gmacht
 öbe äbe grüessech vilmal gäng äuä äuwä nüt nüüt geits geit gaht
@@ -63,8 +63,13 @@ machemer gömer simer gmacht
 # it was treated as decisive.
 #
 # Also demoted rather than dropped: hämmer is the German plural of Hammer,
-# geng is a common Chinese surname, gits is an English plural. Each is real
-# Bernese, and none of them should decide a prompt on its own.
+# geng is a common Chinese surname, gits is an English plural, and gäu is a
+# German toponym (das Gäu, Bezirk Gäu SO, Gäuboden). Each is real Bernese, and
+# none of them should decide a prompt on its own.
+#
+# Removed outright from both tiers: ig, aui, ke, wei. IG, AUI and KE are
+# ordinary acronyms and Wei is a common Chinese given name, so two of them in
+# one English engineering prompt cleared the supporting bar between them.
 #
 # Deliberately absent from both tiers: halt, grad, wäge, sowieso, merci, säge,
 # mer, het, hoi, and bare git. They are ordinary German or English words or, in
@@ -72,9 +77,8 @@ machemer gömer simer gmacht
 # non-letters. Any two of them reached the bar on prompts with no dialect at
 # all, and git reached it twice in one shell command.
 SUPPORTING = frozenset("""
-nid nit gsi kei ke chum witt geng gits hämmer
-hei cha wott mues gah luege scho guet öi aui nöime hüt zäme churz dänk
-ig wei söll
+nid nit gsi kei chum witt geng gits hämmer gäu
+hei cha wott mues gah luege scho guet öi nöime hüt zäme churz dänk söll
 """.split())
 
 # One decisive marker fires. Otherwise two DISTINCT supporting markers are
