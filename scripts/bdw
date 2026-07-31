@@ -45,6 +45,12 @@ POLITE_DELAY = 0.5  # seconds between requests; the site is volunteer-run
 # load on a volunteer-run site bounded; when it is hit, say so instead of
 # claiming the word does not exist.
 MAX_PAGES = 15
+# Bare grammatical markers that appear as a comma-separated fragment of a
+# headword ("gfreue, sech"). They are not forms of the word and must never
+# become an exact head, or "sech" matches eight unrelated reflexive verbs.
+NOT_A_FORM = frozenset("""
+sech sich se es er si mir dir ir eim eim öpper öppis
+""".split())
 # Bare, unbracketed qualifiers the site prefixes to a spelling variant.
 QUALIFIERS = frozenset("""
 oberland emmental seeland oberaargau stadt auch selten veraltet alt neu
@@ -175,7 +181,14 @@ def heads_of(entry):
             while len(words_) > 1 and words_[0].lower().strip(".,") in QUALIFIERS:
                 words_ = words_[1:]
                 forms.append(" ".join(words_))
-    return {norm(f) for f in forms if f.strip()}
+            # A fragment introduced by an unlisted qualifier still ends in the
+            # form itself, so register the trailing token when everything
+            # before it looks like an abbreviation or a lowercase qualifier.
+            if len(words_) > 1 and all(
+                w.endswith(".") or w.islower() for w in words_[:-1]
+            ):
+                forms.append(words_[-1])
+    return {norm(f) for f in forms if f.strip() and norm(f) not in NOT_A_FORM}
 
 
 def lookup(word):

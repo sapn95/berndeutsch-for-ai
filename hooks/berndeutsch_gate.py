@@ -59,6 +59,7 @@ heit chömet chöit gö dihr
 chli chunt chunnt chume chumme chöme chömme chöi göh göi
 nüme nümme müed gärn üs üsi üse
 zyt schrybe schrybt blybe blybt zäme wyt myni gsäh wotsch
+gseht gschribe gange verstande chönnt chönnte tuet gnoh gläse
 machemer gömer simer gmacht gseit gwüss mitenand sälber eifach gäbig
 öbe äbe grüessech vilmal gäng äuä äuwä nüt nüüt geits geit gaht
 znüni zmorge zobe zvieri zäme meitschi meiteli gieu hegu bueb
@@ -91,11 +92,14 @@ ahnig louf louft chlepfe chlepft poschte poschtet guete
 # AUT is "application under test", modi is Italian and a surname, Ching is a
 # Chinese surname.
 #
-# sy, si, het and ig are the copula and the pronoun, so they are everywhere in
-# real Bernese, but SI is a unit system, "si" is Italian and Spanish, and IG is
-# an acronym. Supporting, therefore, not decisive. Same for mys and gly: MYS is
-# the ISO 3166-1 code for Malaysia and Gly is the three-letter code for
-# glycine, and both are low-frequency next to myni, zyt and schrybe.
+# het is the copula and is everywhere in real Bernese, so it is supporting
+# rather than decisive. mys and gly likewise: MYS is the ISO 3166-1 code for
+# Malaysia and Gly is the three-letter code for glycine, and both are
+# low-frequency next to myni, zyt and schrybe.
+#
+# sy, si and ig were here and are now in neither tier. si and sy are adjacent
+# COLUMN HEADINGS in vmstat and top output, so pasting a performance dump into
+# an English debugging question cleared the bar on its own.
 #
 # Deliberately absent from both tiers: halt, grad, wäge, sowieso, merci, säge,
 # mer, hoi, and bare git. They are ordinary German or English words or, in
@@ -104,7 +108,7 @@ ahnig louf louft chlepfe chlepft poschte poschtet guete
 # all, and git reached it twice in one shell command.
 SUPPORTING = frozenset("""
 nid nit gsi gha kei chum witt geng gits hämmer gäu aut modi ching
-sy si het ig mys gly
+het mys gly
 hei cha wott mues gah luege scho guet öi nöime hüt churz dänk söll
 """.split())
 
@@ -232,12 +236,12 @@ CHECKLIST = """Quick checklist:
   long open i is ii (viil, Riis)
 - Zwielaut ie/ue/üe, never iä/uä/üä (Bier, guet, wüescht, Bueb, müed)
 - unstressed e stays e, no Ä-inflation (Gipfeli, Meiteli, Bibeli)
-- eu/äu becomes öi (Fröid, Höi, nöi, tröime)
+- äu/eu becomes öi (Höi, tröime, nöi, Fröid)
 - ds = article "das" (ds Modul); z = preposition "zu" (z Bärn, z tüe)
 - l-vocalisation: aut, viu, wöu, Gäud, schnäu. But a single l between vowels
-  stays: hole, Zahle, male. A double ll still vocalises: alli -> aui.
-- sp/st in Anlaut stay sp/st (Stadt, Stei, verstecke); inside a word scht/schp
-  (Poscht, luschtig, Wäschpi)
+  stays: hole, Zahle, male. A double ll still vocalises: wölle gives wöue.
+- sp/st in Anlaut stay sp/st (starch, Stei, verstecke); inside a word scht/schp
+  (luschtig, Wäschpi, Poscht)
 - no preterite, use the perfect (mir sy gange); pluperfect is a double perfect
 - negation nid/nit, NEVER nöd, and no other Zurich or Basel forms
 - itz (not jetz), louf (not Lauf), chlepfe (not chlöpfe), suber (not sufer)

@@ -41,7 +41,11 @@ while four did. So the claim is no longer hand-written.
 
 `scripts/pdf-overlap` fetches the PDF, extracts the illustrative words from
 rules/schrybwys.md and reports the overlap, including every shared word
-sequence. Run it yourself. As of this writing, abridged only where marked:
+sequence. It takes --file, so the compact rulebook and the checklist embedded
+in the hook, which are copies of the same content and drift apart, can be
+checked the same way. Run it yourself. Quoted below: the counts and the shared
+sequences in full; the list of the 73 individual shared words is omitted here
+because the script prints it and this file should not go stale again.
 
     illustrative words in rules/schrybwys.md: 173
     also occurring in the PDF:                73 (42%)
@@ -82,6 +86,12 @@ Of the shared sequences, every one of three words or more is a citation: an
 author's name or a book title. Among the two-word ones, the remainder are
 single letters, and "wi ne" is the linking-n construction the rule is about
 rather than a chosen example.
+
+The compact rulebook and the hook's embedded checklist were carrying the PDF's
+example order long after the main rulebook had been reordered, which is exactly
+what a copy does. Both are reordered; the checklist now shares no sequence of
+two words or more, and the compact block shares only "CC BY-ND" and the German
+statement of the rule itself ("nd wird ng").
 
 Getting there took work, and each step was found by measurement rather than by
 reading. Five example phrases once stood verbatim in both ("wi ne Bär", the

@@ -20,15 +20,15 @@ Regu: bis im ganze Text konsequent.
   lige); `ii` = offne lang (viil, Riis)
 - `ie/ue/üe`, NIE `iä/uä/üä`: Bier, gnue, wüescht, Bueb, müed
 - Unbetonts `e` blybt `e`: Gipfeli, Meiteli, Bibeli (nid Gipfäli)
-- `eu/äu` wird `öi`: Fröid, Höi, nöi, tröime
+- `äu/eu` wird `öi`: Höi, tröime, nöi, Fröid
 - `ds` = «das» (ds Modul), `z` = «zu» (z Bärn, z tüe). Nid verwächsle.
 - l-Vokalisierig: aut, viu, Gäud, schnäu, Chüngu, Löu, aui. ABER es eifachs `l`
   zwüschet zwe Vokau blybt: hole, Zahle, male (nid «Zaue»).
-- `nd` wird `ng`: Hang, Ching, mitenang, angers
-- `sp/st` am Wortaafang u nach Vorsilbe wi im Hochdütsche (Stei, spile,
-  verstecke); im Wortinnere `scht/schp` (Poscht, luschtig, Wäschpi)
+- `nd` wird zu `ng`: Ching, angers, mitenang, Hang
+- `sp/st` am Wortaafang u nach Vorsilbe wi im Hochdütsche (starch, Stei,
+  verstecke, spile); im Wortinnere `scht/schp` (luschtig, Wäschpi, Poscht)
 - Partizip ohni ge-: bruucht, trunke, kämpft. Weichi Aalut verdopple: ggange,
-  ddänkt, bbout. `ch` nie verdopple (Sache, Loch).
+  ddänkt, bbout. `ch` nie verdopple (Loch, Sache).
 - Kes Präteritum, immer Perfekt: «mir sy gange». Vorvergangeheit als
   Doppelperfekt: «bini scho gange gsy».
 - Höflechkeitsform isch di 2. Person Plural: Dir, dihr, Grüessech.

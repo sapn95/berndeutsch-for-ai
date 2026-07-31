@@ -78,20 +78,29 @@ def main():
     ap.add_argument("--phrases", type=int, default=2,
                     help="shortest shared phrase length to report (default 2)")
     ap.add_argument("--cache", default=None, help="directory to keep the PDF in")
+    ap.add_argument("--file", default=None,
+                    help="check another file instead of rules/schrybwys.md "
+                         "(the compact rulebook and the hook's embedded "
+                         "checklist are copies of the same content and drift)")
     args = ap.parse_args()
 
     cache = Path(args.cache).expanduser() if args.cache else Path(tempfile.gettempdir()) / "bd-pdf-cache"
     cache.mkdir(parents=True, exist_ok=True)
 
     pdf = pdf_text(cache)
-    book = RULEBOOK.read_text(encoding="utf-8")
+    target = Path(args.file).expanduser() if args.file else RULEBOOK
+    book = target.read_text(encoding="utf-8")
 
     mine = examples(book)
     theirs = set(w for w in words(pdf) if len(w) >= MIN_WORD)
     shared = sorted(mine & theirs)
     pct = round(100 * len(shared) / len(mine)) if mine else 0
 
-    print(f"illustrative words in {RULEBOOK.relative_to(REPO)}: {len(mine)}")
+    try:
+        label = target.relative_to(REPO)
+    except ValueError:
+        label = target
+    print(f"illustrative words in {label}: {len(mine)}")
     print(f"also occurring in the PDF:                   {len(shared)} ({pct}%)")
     print()
     print("shared:")
