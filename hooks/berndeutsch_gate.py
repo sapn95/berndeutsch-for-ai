@@ -123,28 +123,41 @@ hei cha wott mues gah luege scho guet öi nöime hüt churz dänk söll
 #
 # Requiring two DISTINCT supporting words stops one ambiguous token from
 # deciding a prompt, but it does nothing when a single sentence naturally
-# carries two of them, and a technical prompt does exactly that: "Update the
+# carries two of them, and a technical prompt does exactly that. "Update the
 # GHA workflow and the DynamoDB GSI projection" is ordinary English and fired
-# the gate, as did "the KEI report and the Lustre NID mapping". These tokens
-# are not rare words that happen to collide, they are the everyday spelling of
-# an acronym in the register this hook runs in, so they cluster.
+# the gate, as did "the KEI report and the Lustre NID mapping", the German "Es
+# gibt zwei Modi, und die Migration ist noch im Gange", and the bare URL path
+# "GET /api/het/modi returns 500".
 #
-# So they are not counted on their own: at least one marker must come from
-# outside this set. Two still suffice, and a real Bernese sentence supplies a
-# non-acronym marker easily ("Er het das nid gha" has het), while an English
-# sentence has to reach for one, which is the asymmetry the tier needs.
-ACRONYMISH = frozenset("gsi gha nid nit kei aut mys gly".split())
+# What those have in common is not that they are acronyms. It is that each word
+# is ALSO an ordinary word, an acronym or an identifier fragment in the register
+# this hook runs in, so they cluster: one such coincidence in a sentence makes a
+# second one likely rather than unlikely. An earlier version of this set covered
+# only the acronyms and the German and URL cases walked straight through it.
+#
+# Two of these together therefore decide nothing. Three do, because a sentence
+# with three separate collisions in it is no longer a coincidence, and real
+# Bernese reaches three easily: "Er het das nid gha" is all weak and still fires.
+WEAK = frozenset("""
+nid nit gsi gha kei aut mys gly
+het modi ching geng chum gits cha gange witt hämmer gäu
+""".split())
 
 # One decisive marker fires. Otherwise two DISTINCT supporting markers are
 # required, so neither a single ambiguous token nor one token repeated can
-# trigger on an English or German prompt.
+# trigger on an English or German prompt. If every one of them is WEAK, three
+# are required instead.
 MIN_SUPPORTING = 2
+MIN_WEAK_ONLY = 3
 # Splitting one list into two invites a typo that leaves an entry unreachable,
 # which is the bug scripts/bd-corpus shipped for real. The check lives in
 # scripts/selftest.py rather than in an assert here: a hook that raises on a
 # prompt is worse for the user than a marker that quietly does nothing, and
 # assertions are stripped under python3 -O anyway.
 TOKEN_RE = re.compile(r"[^\W\d_]+", re.UNICODE)
+# Characters that split a token but never split a word in prose, so a letter run
+# touching one came out of an identifier rather than out of a sentence.
+GLUE = frozenset("0123456789_")
 
 
 def _is_word_char(ch):
@@ -196,6 +209,30 @@ def scan_window(text):
     return head[:cut] + "\n" + tail[start:]
 
 
+def word_tokens(text):
+    """The letter runs that are words, dropping the ones that are identifier bits.
+
+    The tokeniser splits on digits and on the underscore, so any alphanumeric
+    blob is shredded into short letter runs, and short letter runs are what the
+    decisive tier is made of. A Kubernetes pod name does this constantly:
+    `api-gateway-7d4b9c8f5-itz9q` yields `itz`, which alone injects the whole
+    rulebook and spends the session's single full injection, so the genuinely
+    Bernese question that follows gets only the checklist. Measured over random
+    pastes this was the dominant remaining false positive: a base64 blob fired
+    4.5% of the time, a PEM certificate 1.35%, a `kubectl get pods` listing
+    0.77%.
+
+    A digit or an underscore never separates two letters inside a word of
+    running prose, in any of the languages this has to survive. It only happens
+    inside an identifier, a hash or an encoded blob. So a letter run touching
+    one on either side is not a word and does not vote. Ordinary punctuation is
+    left alone, because prose does use it: "Wo-n-i" must still tokenise.
+    """
+    return [m.group() for m in TOKEN_RE.finditer(text)
+            if not (m.start() and text[m.start() - 1] in GLUE)
+            and not (m.end() < len(text) and text[m.end()] in GLUE)]
+
+
 def is_dialect(text):
     """Return (fire, certain).
 
@@ -208,15 +245,16 @@ def is_dialect(text):
     modi list with Ching") is 1.4 KB, not 9 KB, and the next genuinely Bernese
     prompt in that session still gets the whole thing.
     """
-    tokens = TOKEN_RE.findall(scan_window(text).lower())
+    tokens = word_tokens(scan_window(text).lower())
     if any(t in DECISIVE for t in tokens):
         return True, True
     matched = {t for t in tokens if t in SUPPORTING}
-    # Two distinct markers, at least one of them not merely an acronym. Both
-    # halves are needed: without the count, one token decides a prompt; without
-    # the acronym rule, "the GHA workflow and the DynamoDB GSI" is two.
-    fire = len(matched) >= MIN_SUPPORTING and bool(matched - ACRONYMISH)
-    return fire, False
+    # Two distinct markers, or three if every one of them also reads as
+    # ordinary non-Bernese text. Both halves are needed: without the count, one
+    # token decides a prompt; without the weak rule, "the GHA workflow and the
+    # DynamoDB GSI" is two.
+    need = MIN_WEAK_ONLY if matched <= WEAK else MIN_SUPPORTING
+    return len(matched) >= need, False
 
 
 def config_dir():
@@ -298,7 +336,7 @@ CHECKLIST = """Quick checklist:
   stays: hole, Zahle, male. A double ll still vocalises: wölle gives wöue.
 - sp/st in Anlaut stay sp/st (starch, Stei, verstecke); inside a word scht/schp
   (luschtig, Wäschpi, Poscht)
-- no preterite, use the perfect (mir sy gange); pluperfect is a double perfect
+- no preterite, use the perfect (mir sy ggange); pluperfect is a double perfect
 - negation nid/nit, NEVER nöd, and no other Zurich or Basel forms
 - itz (not jetz), louf (not Lauf), chlepfe (not chlöpfe), suber (not sufer)
 - be CONSISTENT within one text, that is the golden rule"""

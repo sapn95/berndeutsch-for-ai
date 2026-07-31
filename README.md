@@ -202,13 +202,30 @@ first-person statement or a bare greeting contains none of them.
 else: `gsi` is a DynamoDB Global Secondary Index, `nit` is the English noun in
 "nit-picking", `chum` is an English word, `kei` is Dutch, `nid` is French for
 nest and an HPC network identifier, `gäu` is a German toponym (das Gäu, Bezirk
-Gäu SO), `aut` is "application under test". None of them decides anything alone. Two
-*different* ones are required, so neither a lone ambiguous token nor the same
-token twice ("the Lustre NID and the nid mapping") can fire.
+Gäu SO), `aut` is "application under test". None of them decides anything alone.
+Two *different* ones are required, so neither a lone ambiguous token nor the
+same token twice ("the Lustre NID and the nid mapping") can fire.
+
+Two was still not enough, because a sentence that contains one such collision
+tends to contain another. `Update the GHA workflow and the DynamoDB GSI
+projection` is ordinary English and fired; so did the German `Es gibt zwei Modi,
+und die Migration ist noch im Gange` and the bare URL path `GET /api/het/modi`.
+So the collision-prone markers are named as a set of their own, and **two of
+them together decide nothing: three are needed.** A sentence with three separate
+collisions is no longer a coincidence, and real Bernese reaches three without
+effort, so `Er het das nid gha` still fires on three weak markers alone.
 
 Ordinary German words like `halt`, `grad`, `wäge` and `sowieso` are in neither
 tier. An earlier version had them, and `Das ist halt so, das dauert grad noch
 ein bisschen` fired the hook on a sentence with no dialect in it at all.
+
+**Letter runs glued to a digit or an underscore do not vote at all.** The
+tokeniser splits on both, so any hash or identifier is shredded into short
+letter runs, and short letter runs are what the decisive tier is made of:
+`api-gateway-7d4b9c8f5-itz9q` yields `itz`. Measured over random pastes this was
+the dominant false positive left, firing on 4.5% of base64 blobs and 1.35% of
+PEM certificates. Neither a digit nor an underscore ever separates two letters
+inside a word of running prose, so a run touching one is not a word.
 
 A false positive is harmless by construction: the injected text says *if* this
 message is Bärndütsch, use these rules, so an English answer stays English.
@@ -230,7 +247,7 @@ transcript.
 Bernese has no binding orthography, and this repo does not pretend otherwise.
 It picks the schriftsprach-nah system, states so, and applies it consistently.
 The equally valid lautgetreu system after Dieth is documented in
-[Hans Jürg Zingg's recommendations](https://www.berndeutsch.ch/doc/berndeutsch-schreiben-aussprach-nah-v1.pdf);
+[Hans Jürg Zingg's *Bärndütsch schrybe: usschpraach-naach!*](https://www.berndeutsch.ch/doc/berndeutsch-schreiben-aussprach-nah-v1.pdf);
 point `BERNDEUTSCH_RULES` at your own file if that is your system.
 
 > Di wichtigschti Regu isch nid, weles System du nimmsch. Sondern das du bim

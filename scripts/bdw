@@ -70,6 +70,25 @@ ENTRY_RE = re.compile(
 )
 
 
+# Punctuation that can sit at the edge of a fragment without belonging to the
+# word. The hyphen is deliberately absent: it is part of "Änis-Chräbeli" and
+# "adi-e", and stripping it would break the variants it holds together.
+EDGE_PUNCT = " \t.,;:!?\"'«»()[]"
+
+
+def tidy(fragment):
+    """A fragment with its edges cleaned, whitespace and stray punctuation both.
+
+    The site's data is hand-maintained and occasionally carries a stray mark:
+    entry 17410 lists its variants as "verworge, verworgge,. verworgle", so
+    splitting on commas hands back ". verworgle" and a plain .strip() leaves the
+    period in place. The variant then matches nothing and «verworgle» is
+    reported as having no entry at all, which is the one answer this tool must
+    never give about a word that is right there on the page.
+    """
+    return fragment.strip(EDGE_PUNCT)
+
+
 def clean(raw):
     """Strip tags, unescape entities, collapse whitespace."""
     if not raw:
@@ -95,7 +114,7 @@ def spellings(alt):
     body = re.split(r"\s+[-–—]\s+", body)[0]
     forms = []
     for part in re.split(r"[,;/]", body):
-        part = part.strip()
+        part = tidy(part)
         if not part:
             continue
         forms.append(part.lower())
@@ -207,8 +226,11 @@ def heads_of(entry):
 
     primary += spellings(entry["alt"])
 
-    heads = {norm(f) for f in primary if f.strip()}
-    heads |= {norm(f) for f in derived if f.strip() and norm(f) not in NOT_A_FORM}
+    # tidy() on the way out as well as inside spellings(), so a stray mark on a
+    # composite HEADWORD is handled the same way as one on a spelling variant.
+    heads = {norm(tidy(f)) for f in primary if tidy(f)}
+    heads |= {norm(tidy(f)) for f in derived
+              if tidy(f) and norm(tidy(f)) not in NOT_A_FORM}
     return heads
 
 

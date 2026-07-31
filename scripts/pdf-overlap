@@ -125,6 +125,40 @@ def phrases(text, n):
     return {" ".join(seq[i:i + n]) for i in range(len(seq) - n + 1)}
 
 
+# Words that only ever appear here as part of naming a source: the authors, the
+# documents, the publishers, the licences. A sequence built entirely out of
+# these is a citation, and a citation is not borrowed phrasing.
+CITATION_WORDS = frozenset("""
+marti werner bietenhard ruth greyerz otto von pinheiro weber ursula zingg hans
+jürg dieth eugen francke cosmos bern auflage berndeutsches wörterbuch
+bärndütschi schrybwys bärndütsch schrybe schriftsprach nach usschpraach naach
+uussprach grammatik cc by nd sa spdx license identifier wird
+""".split())
+
+
+def classify(sequence):
+    """Why a shared word sequence is shared. Reported, not asserted in prose.
+
+    NOTICE used to state this partition in English and got it wrong every time
+    the measurement moved: it claimed all sixteen non-"wi ne" matches were
+    citations while three of them were not citations at all. A sentence that
+    restates a machine's output is a sentence that will disagree with it later,
+    so the machine states it.
+
+    LETTERS catches the artefact that broke the claim. Both texts NAME single
+    letters when they talk about spelling ("a soft `b`, `d` or `g`", "u + l"),
+    and the word splitter drops the punctuation between them and hands back a
+    pair. That is not shared phrasing, it is two texts discussing the same
+    alphabet.
+    """
+    parts = sequence.split()
+    if all(len(p) == 1 for p in parts):
+        return "LETTERS"
+    if all(p in CITATION_WORDS for p in parts):
+        return "citation"
+    return "OTHER"
+
+
 def main():
     ap = argparse.ArgumentParser(prog="pdf-overlap", description=__doc__.splitlines()[0])
     ap.add_argument("--phrases", type=int, default=2,
@@ -171,18 +205,35 @@ def main():
     # shared.
     print()
     worst = 0
+    unexplained = []
     for n in range(args.phrases, 9):
         common = sorted(phrases(book, n) & phrases(pdf, n))
         if not common:
             break
         worst = n
-        print(f"shared {n}-word sequences: {len(common)}")
+        tally = {}
+        for c in common:
+            tally.setdefault(classify(c), []).append(c)
+        summary = ", ".join(f"{len(v)} {k}" for k, v in sorted(tally.items()))
+        print(f"shared {n}-word sequences: {len(common)}  ({summary})")
         for c in common[:20]:
-            print(f"  {c}")
+            print(f"  {classify(c):9} {c}")
         if len(common) > 20:
             print(f"  ... and {len(common) - 20} more")
+        unexplained += tally.get("OTHER", [])
     if worst == 0:
         print(f"no shared word sequence of length {args.phrases} or more")
+    print()
+    # The bottom line, computed rather than claimed. Anything not accounted for
+    # as a citation or a named letter is phrasing that genuinely appears in both
+    # texts, and that is the number a reader of NOTICE actually needs.
+    if unexplained:
+        print(f"sequences that are neither a citation nor named letters: "
+              f"{len(unexplained)}")
+        for c in unexplained:
+            print(f"  {c}")
+    else:
+        print("every shared sequence is a citation or a pair of named letters")
     print()
     print("Note: short function-word sequences will always collide between two")
     print("texts about the same subject. What matters is whether a distinctive")

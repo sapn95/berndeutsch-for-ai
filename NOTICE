@@ -53,75 +53,86 @@ current output for all three, complete except for the per-word lists, which the
 script prints and this file will not duplicate because a duplicated list is a
 list that goes stale.
 
-    rules/schrybwys.md: 173
-    also occurring in the PDF: 73 (42%)
+    illustrative words in rules/schrybwys.md: 172
+    also occurring in the PDF:                   73 (42%)
 
-    shared 2-word sequences: 17
-      b d
-      berndeutsches wörterbuch
-      bietenhard berndeutsches
-      bärndütsch schrybe
-      bärndütschi schrybwys
-      cc by
-      eugen dieth
-      marti bärndütschi
-      n i
-      pinheiro weber
-      ruth bietenhard
-      schriftsprach nach
-      schrybe schriftsprach
-      u l
-      ursula pinheiro
-      werner marti
+    shared 2-word sequences: 17  (3 LETTERS, 1 OTHER, 13 citation)
+      LETTERS   b d
+      citation  berndeutsches wörterbuch
+      citation  bietenhard berndeutsches
+      citation  bärndütsch schrybe
+      citation  bärndütschi schrybwys
+      citation  cc by
+      citation  eugen dieth
+      citation  marti bärndütschi
+      LETTERS   n i
+      citation  pinheiro weber
+      citation  ruth bietenhard
+      citation  schriftsprach nach
+      citation  schrybe schriftsprach
+      LETTERS   u l
+      citation  ursula pinheiro
+      citation  werner marti
+      OTHER     wi ne
+    shared 3-word sequences: 6  (6 citation)
+      citation  bietenhard berndeutsches wörterbuch
+      citation  bärndütsch schrybe schriftsprach
+      citation  marti bärndütschi schrybwys
+      citation  schrybe schriftsprach nach
+      citation  ursula pinheiro weber
+      citation  werner marti bärndütschi
+    shared 4-word sequences: 2  (2 citation)
+      citation  bärndütsch schrybe schriftsprach nach
+      citation  werner marti bärndütschi schrybwys
+
+    sequences that are neither a citation nor named letters: 1
       wi ne
-    shared 3-word sequences: 6
-      bietenhard berndeutsches wörterbuch
-      bärndütsch schrybe schriftsprach
-      marti bärndütschi schrybwys
-      schrybe schriftsprach nach
-      ursula pinheiro weber
-      werner marti bärndütschi
-    shared 4-word sequences: 2
-      bärndütsch schrybe schriftsprach nach
-      werner marti bärndütschi schrybwys
 
-    rules/schrybwys-compact.md: 213
-    also occurring in the PDF: 59 (28%)
+    illustrative words in rules/schrybwys-compact.md: 212
+    also occurring in the PDF:                   59 (28%)
 
-    shared 2-word sequences: 5
-      by nd
-      cc by
-      nd wird
-      pinheiro weber
-      ursula pinheiro
-    shared 3-word sequences: 2
-      cc by nd
-      ursula pinheiro weber
+    shared 2-word sequences: 5  (5 citation)
+      citation  by nd
+      citation  cc by
+      citation  nd wird
+      citation  pinheiro weber
+      citation  ursula pinheiro
+    shared 3-word sequences: 2  (2 citation)
+      citation  cc by nd
+      citation  ursula pinheiro weber
 
-    hooks/berndeutsch_gate.py (embedded CHECKLIST): 101
-    also occurring in the PDF: 25 (25%)
+    every shared sequence is a citation or a pair of named letters
+
+    illustrative words in hooks/berndeutsch_gate.py (embedded CHECKLIST): 101
+    also occurring in the PDF:                   26 (26%)
+
     no shared word sequence of length 2 or more
+
+    every shared sequence is a citation or a pair of named letters
 
 Between a quarter and a half of the illustrative vocabulary is shared, and
 pretending otherwise would be silly. These are the standard illustrations for
 these rules, for several rules they are close to the only ones that exist, and
 we learned the rules from that document.
 
-What is NOT shared is any sequence of words that is not a citation or an
-artefact of counting. Of the seventeen two-word matches listed above, thirteen
-name an author, a document or a licence: "Ursula Pinheiro Weber", "Werner
-Marti Bärndütschi Schrybwys", "CC BY". Three are not word pairs at all. They
-are single letters that both texts name AS letters, which the word-splitter
-then glues into a pair once it drops the punctuation between them: "b d" comes
-from "a soft `b`, `d` or `g`", "n i" from "Wo-n-i", "u l" from "u + l". The
-seventeenth is "wi ne", the linking-n construction the rule teaches rather
-than an example anyone chose.
+The sequence classification above is the script's, not ours. It labels a
+sequence a citation when every word in it only ever names a source (an author,
+a document, a publisher, a licence), and LETTERS when the sequence is nothing
+but single letters, which happens because both texts NAME letters when they
+discuss spelling and the word splitter drops the punctuation between them:
+"b d" comes from "a soft `b`, `d` or `g`", "n i" from "Wo-n-i", "u l" from
+"u + l". The script then counts what is left over and prints that count.
 
-The earlier version of this paragraph claimed all sixteen others were
-citations and named "wi ne" as the single exception, which the three letter
-pairs quietly contradicted thirty lines further up in this same file. That is
-the fourth time a hand-written sentence here has disagreed with the
-measurement printed above it.
+Across all three files, one sequence is left over: "wi ne", the linking-n
+construction the rule teaches rather than an example anyone chose.
+
+This paragraph used to state that partition by hand, and got it wrong. It said
+sixteen of the seventeen were citations and named "wi ne" as the only
+exception, while the three letter pairs sat contradicting it thirty lines
+higher up in this same file. That was the fourth time a hand-written sentence
+here disagreed with the measurement printed above it, so the sentence was
+replaced by a column in the output. There is no longer a claim here for a
+future edit to falsify.
 
 Getting there took work, and every step of it was found by measurement rather
 than by re-reading. Five example phrases once stood verbatim in both ("wi ne

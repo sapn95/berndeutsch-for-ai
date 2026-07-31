@@ -126,9 +126,9 @@ does not double either, but may be reinforced with a second `g`: `Unggle`.
 ## Grammar
 
 **There is no preterite.** Alemannic lost it, so the perfect does the work:
-«wir gingen» is `mir sy gange`. With no preterite there is no pluperfect
+«wir gingen» is `mir sy ggange`. With no preterite there is no pluperfect
 either, and a double perfect fills the gap: `Wo ds Telefon glütet het, bini
-scho gange gsy.`
+scho ggange gsy.`
 
 **The subjunctive is used far more than in High German:** `Chäm öpper no eis
 cho näh?` A periphrastic form with `täte` is common in modern usage.
@@ -185,7 +185,7 @@ Read the primary sources rather than this file:
 - [Wie schreiben?](https://www.berndeutsch.ch/pages/schrybe), the free summary
 - **Ursula Pinheiro-Weber**, *Bärndütsch schrybe: schriftsprach-nach* (2021),
   [PDF](https://www.berndeutsch.ch/doc/berndeutsch-schreiben-schriftsprach-nah-v1.pdf)
-- **Hans Jürg Zingg**, *Bärndütsch schrybe: uussprach-nach* (2021),
+- **Hans Jürg Zingg**, *Bärndütsch schrybe: usschpraach-naach!* (2021),
   [PDF](https://www.berndeutsch.ch/doc/berndeutsch-schreiben-aussprach-nah-v1.pdf),
   for the other system
 - Werner Marti, *Bärndütschi Schrybwys* (Francke, Bern, 1978)

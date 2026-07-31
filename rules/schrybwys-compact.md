@@ -29,8 +29,8 @@ Regu: bis im ganze Text konsequent.
   verstecke, spile); im Wortinnere `scht/schp` (luschtig, Wäschpi, Poscht)
 - Partizip ohni ge-: bruucht, trunke, kämpft. Weichi Aalut verdopple: ggange,
   ddänkt, bbout. `ch` nie verdopple (Loch, Sache).
-- Kes Präteritum, immer Perfekt: «mir sy gange». Vorvergangeheit als
-  Doppelperfekt: «bini scho gange gsy».
+- Kes Präteritum, immer Perfekt: «mir sy ggange». Vorvergangeheit als
+  Doppelperfekt: «bini scho ggange gsy».
 - Höflechkeitsform isch di 2. Person Plural: Dir, dihr, Grüessech.
 - zwe Here / zwo Froue / zwöi Ching · drei Here / drü Ching
 - ga/cho/la verdopple: «I ga ga schaffe», «I chume cho hälfe»
