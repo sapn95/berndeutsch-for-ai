@@ -49,6 +49,7 @@ MAX_PAGES = 15
 QUALIFIERS = frozenset("""
 oberland emmental seeland oberaargau stadt auch selten veraltet alt neu
 landschaftlich mundartlich früher heute meist
+dim pl sg m f n adj adv subst verb pp part präs prät
 """.split())
 UA = "bdw/1.0 (+https://github.com/sapn95/berndeutsch-for-ai) courtesy lookup client"
 
@@ -165,7 +166,15 @@ def heads_of(entry):
     # "gä, Gas gä" and "yne ga; yche ga; yhe ga (Oberland)".
     for variant in strip_annotations(entry["word"]):
         forms.append(variant)
-        forms += re.split(r"[,;]", variant)
+        for part in re.split(r"[,;]", variant):
+            forms.append(part)
+            # Composite headwords carry grammatical abbreviations on the
+            # fragments too ("dim. Beckli"), and without stripping them the
+            # listed form itself is unmatchable.
+            words_ = part.split()
+            while len(words_) > 1 and words_[0].lower().strip(".,") in QUALIFIERS:
+                words_ = words_[1:]
+                forms.append(" ".join(words_))
     return {norm(f) for f in forms if f.strip()}
 
 

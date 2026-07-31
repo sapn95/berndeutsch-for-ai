@@ -58,6 +58,7 @@ heit chömet chöit gö dihr
 öppis öpper öppe mängisch itz sött söu söue wöu gäud niemer
 chli chunt chunnt chume chumme chöme chömme chöi göh göi
 nüme nümme müed gärn üs üsi üse
+zyt schrybe schrybt blybe blybt gly zäme wyt myni mys gsäh
 machemer gömer simer gmacht gseit gwüss mitenand sälber eifach gäbig
 öbe äbe grüessech vilmal gäng äuä äuwä nüt nüüt geits geit gaht
 znüni zmorge zobe zvieri zäme meitschi meiteli gieu hegu bueb
@@ -90,13 +91,18 @@ ahnig louf louft chlepfe chlepft poschte poschtet guete
 # AUT is "application under test", modi is Italian and a surname, Ching is a
 # Chinese surname.
 #
+# sy, si, het and ig are the copula and the pronoun, so they are everywhere in
+# real Bernese, but SI is a unit system, "si" is Italian and Spanish, and IG is
+# an acronym. Supporting, therefore, not decisive.
+#
 # Deliberately absent from both tiers: halt, grad, wäge, sowieso, merci, säge,
-# mer, het, hoi, and bare git. They are ordinary German or English words or, in
+# mer, hoi, and bare git. They are ordinary German or English words or, in
 # the case of mer and het, fall out of a URL path once tokens are split on
 # non-letters. Any two of them reached the bar on prompts with no dialect at
 # all, and git reached it twice in one shell command.
 SUPPORTING = frozenset("""
 nid nit gsi gha kei chum witt geng gits hämmer gäu aut modi ching
+sy si het ig
 hei cha wott mues gah luege scho guet öi nöime hüt churz dänk söll
 """.split())
 
@@ -278,10 +284,15 @@ def build_context(here, first_time, served):
         # would hand them the rulebook they opted out of, on every prompt after
         # the first. Point at their own file instead.
         override = os.environ.get("BERNDEUTSCH_RULES")
-        if override:
-            out.append(f"Follow the rulebook at {override}, which is in force for")
+        primary, _ = rulebooks(here)
+        if override and primary:
+            out.append(f"Follow the rulebook at {primary}, which is in force for")
             out.append("this user and replaces any default Bernese spelling system.")
         else:
+            # Including the case where BERNDEUTSCH_RULES points at a path that
+            # does not exist. Pointing the model at a file that is not there
+            # would leave it with no rules whatsoever, which is worse than the
+            # default checklist it opted out of.
             out.append(CHECKLIST)
         if served:
             # Only true when the full rulebook actually went out earlier. Since

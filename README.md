@@ -39,6 +39,7 @@ claude:  answers in Bärndütsch, with nid instead of nöd
 | `scripts/bdw` | Dictionary lookup against berndeutsch.ch. Answers the question the model cannot answer honestly by itself: is this actually a word? |
 | `scripts/bd-corpus` | Fetches a small corpus of genuinely Bernese text, for feel rather than rules. |
 | `corpus/sources.md` | Where to read real Bernese, with licences. |
+| `scripts/pdf-overlap` | Measures what the rulebook shares with the CC BY-ND source, so `NOTICE` quotes a number instead of a guess. |
 | `NOTICE` | Who wrote what this repository summarises, and under which licence. |
 
 ## Use it with any AI

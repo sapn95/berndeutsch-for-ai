@@ -1,0 +1,126 @@
+#!/usr/bin/env python3
+"""pdf-overlap — measure what rules/schrybwys.md shares with the CC BY-ND PDF.
+
+NOTICE makes claims about how much this repository's rulebook has in common
+with Ursula Pinheiro-Weber's "Bärndütsch schrybe: schriftsprach-nach". Those
+claims were written by hand three times and were wrong all three times: words
+named as shared that were not in the document, a word count that drifted after
+an edit, and a flat "no phrase appears in both" that four phrases contradicted.
+
+So the claim is no longer written by hand. This script measures it, NOTICE
+quotes the output, and anyone can re-run it:
+
+    scripts/pdf-overlap                 # measure and print
+    scripts/pdf-overlap --phrases 2     # shortest shared phrase length to report
+
+Requires pdftotext (poppler). Without it the script says so and exits 3 rather
+than guessing.
+"""
+
+import argparse
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import unicodedata
+import urllib.request
+from pathlib import Path
+
+PDF_URL = ("https://www.berndeutsch.ch/doc/"
+           "berndeutsch-schreiben-schriftsprach-nah-v1.pdf")
+REPO = Path(__file__).resolve().parent.parent
+RULEBOOK = REPO / "rules" / "schrybwys.md"
+UA = "pdf-overlap/1.0 (+https://github.com/sapn95/berndeutsch-for-ai)"
+MIN_WORD = 3
+
+
+def pdf_text(cache):
+    """Fetch the PDF once into `cache` and return its text."""
+    pdf = cache / "schriftsprach-nah.pdf"
+    if not pdf.exists():
+        req = urllib.request.Request(PDF_URL, headers={"User-Agent": UA})
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            pdf.write_bytes(resp.read())
+    tool = shutil.which("pdftotext")
+    if not tool:
+        print("pdftotext not found (brew install poppler / apt install poppler-utils).",
+              file=sys.stderr)
+        print("Refusing to guess at the overlap.", file=sys.stderr)
+        raise SystemExit(3)
+    out = cache / "pdf.txt"
+    subprocess.run([tool, "-layout", str(pdf), str(out)], check=True,
+                   capture_output=True)
+    return out.read_text(encoding="utf-8")
+
+
+def words(text):
+    text = unicodedata.normalize("NFC", text)
+    return [w.lower() for w in re.findall(r"[^\W\d_]+", text, re.UNICODE)]
+
+
+def examples(rulebook):
+    """The illustrative words: everything the rulebook puts in backticks."""
+    found = set()
+    for span in re.findall(r"`([^`]+)`", rulebook):
+        found.update(w for w in words(span) if len(w) >= MIN_WORD)
+    return found
+
+
+def phrases(text, n):
+    """Every n-word sequence, normalised, for a verbatim comparison."""
+    seq = words(text)
+    return {" ".join(seq[i:i + n]) for i in range(len(seq) - n + 1)}
+
+
+def main():
+    ap = argparse.ArgumentParser(prog="pdf-overlap", description=__doc__.splitlines()[0])
+    ap.add_argument("--phrases", type=int, default=2,
+                    help="shortest shared phrase length to report (default 2)")
+    ap.add_argument("--cache", default=None, help="directory to keep the PDF in")
+    args = ap.parse_args()
+
+    cache = Path(args.cache).expanduser() if args.cache else Path(tempfile.gettempdir()) / "bd-pdf-cache"
+    cache.mkdir(parents=True, exist_ok=True)
+
+    pdf = pdf_text(cache)
+    book = RULEBOOK.read_text(encoding="utf-8")
+
+    mine = examples(book)
+    theirs = set(w for w in words(pdf) if len(w) >= MIN_WORD)
+    shared = sorted(mine & theirs)
+    pct = round(100 * len(shared) / len(mine)) if mine else 0
+
+    print(f"illustrative words in {RULEBOOK.relative_to(REPO)}: {len(mine)}")
+    print(f"also occurring in the PDF:                   {len(shared)} ({pct}%)")
+    print()
+    print("shared:")
+    for i in range(0, len(shared), 8):
+        print("  " + ", ".join(shared[i:i + 8]))
+
+    # Phrases are compared over the whole rulebook, not only its backticks: a
+    # copied example sentence is prose, and prose is exactly what must not be
+    # shared.
+    print()
+    worst = 0
+    for n in range(args.phrases, 9):
+        common = sorted(phrases(book, n) & phrases(pdf, n))
+        if not common:
+            break
+        worst = n
+        print(f"shared {n}-word sequences: {len(common)}")
+        for c in common[:20]:
+            print(f"  {c}")
+        if len(common) > 20:
+            print(f"  ... and {len(common) - 20} more")
+    if worst == 0:
+        print(f"no shared word sequence of length {args.phrases} or more")
+    print()
+    print("Note: short function-word sequences will always collide between two")
+    print("texts about the same subject. What matters is whether a distinctive")
+    print("example or a sentence of prose appears in both.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

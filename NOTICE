@@ -33,42 +33,44 @@ and is summarised for the public by berndeutsch.ch, notably in:
 The rules a spelling system prescribes are facts about that system, and they
 are stated here in our own words and our own arrangement.
 
-About the examples, measured rather than asserted. An earlier version of this
-file named five words as shared with the Pinheiro-Weber PDF. A reviewer checked
-and three of them (Gipfeli, Meiteli, Spiez) are not in that document at all;
-they come from the free berndeutsch.ch summary page. The claim was wrong in
-both directions, so here is the actual count.
+About the examples, measured by a script rather than asserted by a human. This
+paragraph was written by hand three times and was wrong all three times: it
+named words as shared that are not in the PDF at all, it quoted a count that
+had drifted after an edit, and it flatly claimed no phrase appeared in both
+while four did. So the claim is no longer hand-written.
 
-rules/schrybwys.md uses 176 distinct illustrative words. 84 of them, about 47%,
-also occur in the PDF: among others vergässe, Fride, sibe, ligt, Fröid, Höi,
-nöi, tröime, fahre, meh, gseh, näh, gah, verstah, blüeje, Chräje, Poscht,
-luschtig, Wäschpi, Stei, spile, starch, verstecke, umespringe, bruucht, trunke,
-kämpft, ggange, ddänkt, bbout, Sache, Loch, Unggle, Stäcke, hetze, locker,
-Hang, angers, mitenang, wi ne Bär, Handy, Klinik, Pandemie, Saal, Boot, Aabe,
-nüüt, alli, aui, wölle, wöue, dihr, heit, chömet.
+`scripts/pdf-overlap` fetches the PDF, extracts the illustrative words from
+rules/schrybwys.md and reports the overlap. Run it yourself. As of this
+writing it says:
 
-That is a lot, and pretending otherwise would be silly. These are the standard
-illustrations for these rules; for several rules they are close to the only
-ones that exist, and we learned the rules from that document. The remaining
-words are ours, chosen freely. Most of them are exact berndeutsch.ch headwords
-checked with scripts/bdw; some are inflected or regional forms (ghout, Töu)
-that have no headword by design and were not verifiable that way, and one,
-schryne, was simply a typo for schyne and has been corrected.
+    illustrative words in rules/schrybwys.md: 173
+    also occurring in the PDF:                73 (42%)
 
-Multi-word examples were a separate problem. Five example phrases stood
-verbatim in both documents: "wi ne Bär", the three spellings of "Wi ni gseit
-ha", and "mir luege aa". They have been replaced with our own. As of this
-writing no phrase of two or more words appears in both, which is checkable and
-was checked, not assumed.
+    shared 3-word sequences: 6
+      bietenhard berndeutsches wörterbuch
+      bärndütsch schrybe schriftsprach
+      marti bärndütschi schrybwys
+      schrybe schriftsprach nach
+      ursula pinheiro weber
+      werner marti bärndütschi
+
+42% of the illustrative words are shared, and pretending otherwise would be
+silly. These are the standard illustrations for these rules, for several rules
+they are close to the only ones that exist, and we learned the rules from that
+document. Every remaining shared sequence of three or more words is a citation:
+an author's name or a book title.
+
+Getting there took work. Five example phrases once stood verbatim in both
+("wi ne Bär", the three spellings of "Wi ni gseit ha", "mir luege aa") and are
+replaced. Several example lists shared the PDF's ordering, which the script
+surfaced as shared 3-word sequences, and they have been reordered. One word,
+"schryne", was simply our typo for "schyne".
 
 What is ours is the prose and the arrangement. The rulebook opens with a
 section that document does not have ("What gives a text away"), and the
-consonant section is ordered by what each phenomenon is (sound changes, then
-the joint they create, then the two spelling conventions) rather than by the
+consonant section is ordered by what each phenomenon is rather than by the
 PDF's numbered sequence. Neither document is redistributed with this
 repository.
-
-If that distinction does not satisfy the rightsholder, the offer below stands.
 
 If Ursula Pinheiro-Weber, Hans Jürg Zingg or berndeutsch.ch consider any part
 of rules/ to encroach on their work, open an issue and it will be rewritten or

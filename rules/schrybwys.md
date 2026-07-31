@@ -49,10 +49,10 @@ with `Ritter` in armour, and `Bruuch` (a custom) with `Bruch` (a break).
 | open, short | `i` | `Schritt`, `lige`, `Sitzig` |
 
 `ie` is written only where both vowels are genuinely pronounced as a diphthong:
-`Bier`, `Lied`, `verschiebe`. Where High German `ie` gives a short open `i` in
+`verschiebe`, `Bier`, `Lied`. Where High German `ie` gives a short open `i` in
 Bernese, the lengthening `e` drops out: `Fride`, `sibe`, `ligt`.
 
-Loanwords are outside this rule: `lila`, `d Klinik`.
+Loanwords are outside this rule: `d Kiwi`, `d Software`.
 
 **The swallowed `e`.** The nearly inaudible `e` is still written. Neither
 replacing it with `ä` nor dropping it belongs to this system: `vergässe`, not
@@ -105,9 +105,9 @@ is used throughout: `Wo ni das gseh ha`, `Won i das gseh ha`,
 
 **`sp` and `st`** are the one place where the spelling deliberately ignores the
 pronunciation. They are written as in High German at the start of a word, and
-also after a prefix or a verb particle: `Stei`, `spile`, `starch`,
-`verstecke`, `umespringe`. Inside and at the end of a word they follow the ear
-instead: `Poscht`, `luschtig`, `Wäschpi`. Place names and family names keep
+also after a prefix or a verb particle: `spile`, `starch`, `Stei`,
+`umespringe`, `verstecke`. Inside and at the end of a word they follow the ear
+instead: `luschtig`, `Wäschpi`, `Poscht`. Place names and family names keep
 `Sp` and `St` in every system: `Spiez`, never `Schpiez`.
 
 **Doubling** follows the ear again, and only where Bernese actually doubles:
@@ -115,7 +115,7 @@ instead: `Poscht`, `luschtig`, `Wäschpi`. Place names and family names keep
 before a strong consonant: `bruucht`, `trunke`, `kämpft`. Verbs whose stem
 starts with a soft `b`, `d` or `g` before a vowel double that consonant
 instead: `ggange`, `ddänkt`, `bbout`. Three things never double: `ch`
-(`Sache`, `Loch`), and `dt`, `tz`, `ck` (`Stäcke`, `hetze`, `locker`). `ng`
+(`Loch`, `Sache`), and `tz`, `ck`, `dt` (`hetze`, `locker`, `Stäcke`). `ng`
 does not double either, but may be reinforced with a second `g`: `Unggle`.
 
 ---
@@ -143,13 +143,13 @@ der Vatter (la) grüesse`, where the second `la` is optional.
 **Politeness is the second person plural**, not the third, as in French and as
 in 18th-century German. Hence `Grüessech`. Written out, `dihr` is preferable to
 `dir`, which collides with the dative «dir». After the verb the short form is
-usual: `heit 'er`, `chömet 'er`.
+usual: `gseht 'er`, `wüsst 'er`.
 
 **Apostrophes** are optional in a shortened «es»: `Wi hei mer's` or `Wi hei
 mers`. The article `d` never takes one: `d Lüt`, `d Wäut`.
 
 **Loanwords keep their original spelling.** This is a principle of the system,
-not an oversight: `Handy`, `Klinik`, `Pandemie`.
+not an oversight: `Handy`, `Router`, `Pandemie`.
 
 ---
 
