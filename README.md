@@ -40,6 +40,7 @@ claude:  answers in Bärndütsch, with nid instead of nöd
 | `scripts/bd-corpus` | Fetches a small corpus of genuinely Bernese text, for feel rather than rules. |
 | `corpus/sources.md` | Where to read real Bernese, with licences. |
 | `scripts/pdf-overlap` | Measures what the rulebook shares with the CC BY-ND source, so `NOTICE` quotes a number instead of a guess. |
+| `scripts/selftest.py` | The regression suite. Every check in it is a bug that shipped. |
 | `NOTICE` | Who wrote what this repository summarises, and under which licence. |
 
 ## Use it with any AI
@@ -107,10 +108,24 @@ shell re-interprets the path:
 
 Then open `/hooks` once in Claude Code, or restart it, so the new config is read.
 
-The only requirement is `python3`. The hook, `bdw`, `bd-corpus` and `install.py`
-are standard library only, with no third-party packages and no shell. The fourth
-script, `pdf-overlap`, additionally needs `pdftotext` (poppler), and it is a
-maintenance tool that nobody has to run in order to use the rulebook.
+The only requirement is `python3`. The hook, `bdw`, `bd-corpus`, `install.py`
+and `selftest.py` are standard library only, with no third-party packages and no
+shell. The remaining script, `pdf-overlap`, additionally needs `pdftotext`
+(poppler), and it is a maintenance tool that nobody has to run in order to use
+the rulebook.
+
+To check a change, run the suite:
+
+```sh
+./scripts/selftest.py            # everything that needs no network
+./scripts/selftest.py --online   # also check bdw against berndeutsch.ch
+```
+
+Every check in it is a bug that was shipped once, and most of them were shipped
+by a fix for something else: a filter that dropped bare grammatical markers
+also dropped the real headwords `öppis` and `öpper`, so the lookup reported two
+core Bernese words as nonexistent. The network checks are opt-in because a
+volunteer-run dictionary should not be hit by a test loop.
 
 ## Using it
 

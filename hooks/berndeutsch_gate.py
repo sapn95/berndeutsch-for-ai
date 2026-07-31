@@ -59,7 +59,7 @@ heit chömet chöit gö dihr
 chli chunt chunnt chume chumme chöme chömme chöi göh göi
 nüme nümme müed gärn üs üsi üse
 zyt schrybe schrybt blybe blybt zäme wyt myni gsäh wotsch
-gseht gschribe gange verstande chönnt chönnte tuet gnoh gläse
+gseht gschribe ggange verstande chönnt chönnte tuet gnoh gläse
 machemer gömer simer gmacht gseit gwüss mitenand sälber eifach gäbig
 öbe äbe grüessech vilmal gäng äuä äuwä nüt nüüt geits geit gaht gahts goht gohts
 znüni zmorge zobe zvieri zäme meitschi meiteli gieu hegu bueb
@@ -92,6 +92,13 @@ ahnig louf louft chlepfe chlepft poschte poschtet guete
 # AUT is "application under test", modi is Italian and a surname, Ching is a
 # Chinese surname.
 #
+# gange was DECISIVE and is now merely supporting: "im Gange" and "am Gange"
+# are ordinary German, tokens are lowercased before matching, and a single
+# German sentence about a migration in progress therefore fired the full
+# rulebook AND consumed the session's one full injection. The doubled ggange,
+# which is what this repository's own rulebook actually prescribes for the
+# participle, has no German reading and takes its place in the decisive tier.
+#
 # het is the copula and is everywhere in real Bernese, so it is supporting
 # rather than decisive. mys and gly likewise: MYS is the ISO 3166-1 code for
 # Malaysia and Gly is the three-letter code for glycine, and both are
@@ -107,16 +114,48 @@ ahnig louf louft chlepfe chlepft poschte poschtet guete
 # non-letters. Any two of them reached the bar on prompts with no dialect at
 # all, and git reached it twice in one shell command.
 SUPPORTING = frozenset("""
-nid nit gsi gha kei chum witt geng gits hämmer gäu aut modi ching
+nid nit gsi gha kei chum witt geng gits hämmer gäu aut modi ching gange
 het mys gly
 hei cha wott mues gah luege scho guet öi nöime hüt churz dänk söll
 """.split())
+
+# A subset of SUPPORTING, and the reason two markers were not enough.
+#
+# Requiring two DISTINCT supporting words stops one ambiguous token from
+# deciding a prompt, but it does nothing when a single sentence naturally
+# carries two of them, and a technical prompt does exactly that: "Update the
+# GHA workflow and the DynamoDB GSI projection" is ordinary English and fired
+# the gate, as did "the KEI report and the Lustre NID mapping". These tokens
+# are not rare words that happen to collide, they are the everyday spelling of
+# an acronym in the register this hook runs in, so they cluster.
+#
+# So they are not counted on their own: at least one marker must come from
+# outside this set. Two still suffice, and a real Bernese sentence supplies a
+# non-acronym marker easily ("Er het das nid gha" has het), while an English
+# sentence has to reach for one, which is the asymmetry the tier needs.
+ACRONYMISH = frozenset("gsi gha nid nit kei aut mys gly".split())
 
 # One decisive marker fires. Otherwise two DISTINCT supporting markers are
 # required, so neither a single ambiguous token nor one token repeated can
 # trigger on an English or German prompt.
 MIN_SUPPORTING = 2
+# Splitting one list into two invites a typo that leaves an entry unreachable,
+# which is the bug scripts/bd-corpus shipped for real. The check lives in
+# scripts/selftest.py rather than in an assert here: a hook that raises on a
+# prompt is worse for the user than a marker that quietly does nothing, and
+# assertions are stripped under python3 -O anyway.
 TOKEN_RE = re.compile(r"[^\W\d_]+", re.UNICODE)
+
+
+def _is_word_char(ch):
+    """True for exactly the characters TOKEN_RE groups into a token.
+
+    isalpha() is not the same class as `[^\\W\\d_]`: the underscore is excluded
+    by both, but isalpha() also rejects a combining mark, and after NFC there
+    can still be one (there is no precomposed form for every sequence). Testing
+    the real pattern keeps the trim and the tokeniser from disagreeing.
+    """
+    return TOKEN_RE.fullmatch(ch) is not None
 
 
 def scan_window(text):
@@ -140,9 +179,21 @@ def scan_window(text):
     # tokeniser uses, rather than hunting for a space. A minified file or a
     # base64 blob can contain no space in the whole window, and then a
     # space-based trim leaves the fragment in place.
-    head = re.sub(r"[^\W\d_]+$", "", text[:SCAN_HEAD], flags=re.UNICODE)
-    tail = re.sub(r"^[^\W\d_]+", "", text[-SCAN_TAIL:], flags=re.UNICODE)
-    return head + "\n" + tail
+    #
+    # Scanned character by character rather than with an anchored `+$` regex.
+    # That pattern is quadratic on the trailing side: at every start offset the
+    # engine matches a letter run and then backtracks it away against the
+    # anchor, so a 3000-character paste with no letter at the very end costs
+    # millions of steps. This hook runs on a timeout, on every prompt, and a
+    # pasted blob is the normal case rather than the adversarial one.
+    head, tail = text[:SCAN_HEAD], text[-SCAN_TAIL:]
+    cut = len(head)
+    while cut and _is_word_char(head[cut - 1]):
+        cut -= 1
+    start = 0
+    while start < len(tail) and _is_word_char(tail[start]):
+        start += 1
+    return head[:cut] + "\n" + tail[start:]
 
 
 def is_dialect(text):
@@ -160,7 +211,12 @@ def is_dialect(text):
     tokens = TOKEN_RE.findall(scan_window(text).lower())
     if any(t in DECISIVE for t in tokens):
         return True, True
-    return len({t for t in tokens if t in SUPPORTING}) >= MIN_SUPPORTING, False
+    matched = {t for t in tokens if t in SUPPORTING}
+    # Two distinct markers, at least one of them not merely an acronym. Both
+    # halves are needed: without the count, one token decides a prompt; without
+    # the acronym rule, "the GHA workflow and the DynamoDB GSI" is two.
+    fire = len(matched) >= MIN_SUPPORTING and bool(matched - ACRONYMISH)
+    return fire, False
 
 
 def config_dir():

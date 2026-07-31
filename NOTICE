@@ -24,8 +24,10 @@ and is summarised for the public by berndeutsch.ch, notably in:
   licensed CC BY-ND 4.0
   https://www.berndeutsch.ch/doc/berndeutsch-schreiben-schriftsprach-nah-v1.pdf
 
-  Hans Jürg Zingg, "Bärndütsch schrybe: uussprach-nach" (2021), the
-  aussprach-nah counterpart, same licence
+  Hans Jürg Zingg, "Bärndütsch schrybe: usschpraach-naach!" (2021), the
+  aussprach-nah counterpart, same licence. Its title is quoted here as the
+  document itself spells it. This file previously rendered it in the
+  schriftsprach-nah system, which is the one thing that document is not.
   https://www.berndeutsch.ch/doc/berndeutsch-schreiben-aussprach-nah-v1.pdf
 
   https://www.berndeutsch.ch/pages/schrybe (the free summary page)
@@ -42,10 +44,14 @@ while four did. So the claim is no longer hand-written.
 `scripts/pdf-overlap` fetches the PDF, extracts the illustrative vocabulary and
 reports the overlap together with every shared word sequence. It takes --file,
 so the compact rulebook and the checklist embedded in the hook, which are
-copies of the same content and drift apart, are measured the same way. Run it
-yourself. Below is its current output for all three, complete except for the
-per-word lists, which the script prints and this file will not duplicate
-because a duplicated list is a list that goes stale.
+copies of the same content and drift apart, are measured the same way. For the
+hook it measures the CHECKLIST string rather than the .py around it, and says
+so in the line quoted below: pointed at the source file it counted 943 words of
+English comment and Python identifier, reported a flattering 6%, and offered
+"verb", "form" and "hand" as shared vocabulary. Run it yourself. Below is its
+current output for all three, complete except for the per-word lists, which the
+script prints and this file will not duplicate because a duplicated list is a
+list that goes stale.
 
     rules/schrybwys.md: 173
     also occurring in the PDF: 73 (42%)
@@ -92,7 +98,7 @@ because a duplicated list is a list that goes stale.
       cc by nd
       ursula pinheiro weber
 
-    the hook's embedded checklist: 101
+    hooks/berndeutsch_gate.py (embedded CHECKLIST): 101
     also occurring in the PDF: 25 (25%)
     no shared word sequence of length 2 or more
 
@@ -101,11 +107,21 @@ pretending otherwise would be silly. These are the standard illustrations for
 these rules, for several rules they are close to the only ones that exist, and
 we learned the rules from that document.
 
-What is NOT shared is any sequence of words that is not a citation. Every
-remaining multi-word match names an author or a document: "Ursula Pinheiro
-Weber", "Werner Marti Bärndütschi Schrybwys", "CC BY-ND". The single exception
-is "wi ne", which is the linking-n construction the rule teaches rather than an
-example anyone chose.
+What is NOT shared is any sequence of words that is not a citation or an
+artefact of counting. Of the seventeen two-word matches listed above, thirteen
+name an author, a document or a licence: "Ursula Pinheiro Weber", "Werner
+Marti Bärndütschi Schrybwys", "CC BY". Three are not word pairs at all. They
+are single letters that both texts name AS letters, which the word-splitter
+then glues into a pair once it drops the punctuation between them: "b d" comes
+from "a soft `b`, `d` or `g`", "n i" from "Wo-n-i", "u l" from "u + l". The
+seventeenth is "wi ne", the linking-n construction the rule teaches rather
+than an example anyone chose.
+
+The earlier version of this paragraph claimed all sixteen others were
+citations and named "wi ne" as the single exception, which the three letter
+pairs quietly contradicted thirty lines further up in this same file. That is
+the fourth time a hand-written sentence here has disagreed with the
+measurement printed above it.
 
 Getting there took work, and every step of it was found by measurement rather
 than by re-reading. Five example phrases once stood verbatim in both ("wi ne

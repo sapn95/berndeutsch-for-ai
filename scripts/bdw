@@ -85,6 +85,14 @@ def spellings(alt):
     # contains a comma, so splitting first tears the annotation in half and
     # destroys the variant it was attached to.
     body = re.sub(r"\([^)]*\)", "", alt.split(":", 1)[-1])
+    # Not every remark is bracketed. Entry "äne, däne" reads "ääne - damit
+    # ändert nicht nur die Schreibung, ..." and carries a whole sentence after
+    # a spaced dash, commas and all. Splitting that on commas yields prose
+    # fragments as spelling variants and, worse, glues the note to the one real
+    # variant, so «ääne» came back as having no entry. Cut at the spaced dash.
+    # Spaced on purpose: a hyphen inside a variant is written tight
+    # ("Änis-Chräbeli", "adi-e") and must survive.
+    body = re.split(r"\s+[-–—]\s+", body)[0]
     forms = []
     for part in re.split(r"[,;/]", body):
         part = part.strip()
@@ -92,12 +100,16 @@ def spellings(alt):
             continue
         forms.append(part.lower())
         # Not every qualifier is bracketed: the site also writes bare ones such
-        # as "Oberland yche gah". Strip a known leading qualifier so the variant
-        # itself is matchable. Taking the LAST token instead would be wrong: it
-        # would report a mere fragment of a multi-word variant as an exact
-        # headword, which is precisely the answer this tool exists to prevent.
+        # as "Oberland yche gah", and punctuates them freely. Entry 14099
+        # (Gspaane) lists "Oberland: Gspändleni" with a colon, which was not in
+        # the stripped set, so the qualifier was not recognised and bdw reported
+        # a listed spelling variant as having no entry at all. Strip a known
+        # leading qualifier so the variant itself is matchable. Taking the LAST
+        # token instead would be wrong: it would report a mere fragment of a
+        # multi-word variant as an exact headword, which is precisely the answer
+        # this tool exists to prevent.
         words = part.split()
-        while len(words) > 1 and words[0].lower().strip(".,") in QUALIFIERS:
+        while len(words) > 1 and words[0].lower().strip(".,:") in QUALIFIERS:
             words = words[1:]
             forms.append(" ".join(words).lower())
     return forms
@@ -183,7 +195,7 @@ def heads_of(entry):
             derived += parts
         for part in parts:
             words_ = part.split()
-            while len(words_) > 1 and words_[0].lower().strip(".,") in QUALIFIERS:
+            while len(words_) > 1 and words_[0].lower().strip(".,:") in QUALIFIERS:
                 words_ = words_[1:]
                 derived.append(" ".join(words_))
             # Only when the dropped prefix really looks like an abbreviation.
