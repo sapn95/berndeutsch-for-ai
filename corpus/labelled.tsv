@@ -324,3 +324,15 @@ xx	url	Open https://www.example.com/docs/api and read the pagination section.
 xx	dutch	Met dien verstande dat de levering pas volgende week plaatsvindt.
 xx	dutch	Ik ga akkoord, met dien verstande dat de kosten gedeeld worden.
 xx	dutch	De afspraak geldt, met dien verstande dat beide partijen tekenen.
+
+# ADDRESS_RE is the bluntest rule in the file: it blanks a whole non-space run
+# that looks like a host, a URL, an e-mail or a hyphenated identifier with a
+# digit. These pin what it must NOT eat. A Bernese sentence keeps firing on the
+# words around a URL, and an abbreviation, a decimal and a version string are
+# blanked without taking the clause with them.
+bd	url	Chasch mer das aaluege? https://example.com/foo isch kaputt.
+bd	url	Lueg z.B. da: das isch guet.
+bd	url	Mir hei 3.5 Stund gschaffet u es isch guet gsi.
+bd	url	Version 1.2.3 isch itz drusse, chasch das teschte?
+bd	url	Schrib mer u.s.w. i ds Dokumänt, das isch guet.
+xx	url	Check https://itz.example.com/viu and the zyt.example.org CNAME.
