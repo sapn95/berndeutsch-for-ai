@@ -220,6 +220,17 @@ def hook_checks(tmp):
     check("an elision apostrophe joins the word",
           gate.is_dialect("Wie geit's?")[0] and gate.is_dialect("Hesch's gseh?")[0])
 
+    # A generated marker is only safe if the PARTS are safe. German's
+    # inseparable prefixes are where the one confirmed collision came from
+    # (über + bracht = überbracht), and a participle stem that is itself German
+    # is the other half of the same mistake: Bernese writes g-, German ge-.
+    bad_prefix = sorted(set(gate.PREFIXES) & gate.GERMAN_INSEPARABLE)
+    check("no separable prefix is one of German's inseparable ones",
+          not bad_prefix, str(bad_prefix))
+    german_shaped = sorted(p for p in gate.PARTICIPLES if p.startswith("ge"))
+    check("no participle stem is written the German way",
+          not german_shaped, str(german_shaped))
+
     # Every function that GENERATES markers must be inside the mutation scope,
     # or the most consequential code in the file is measured by nothing.
     mutation_scope = load(REPO / "scripts" / "mutation.py").DETECTION

@@ -227,6 +227,14 @@ verschobe verstande vergässe
 # nonsense live. A minimum length keeps ygschribe and umboue and drops agha,
 # igsy, agnu and the rest.
 MIN_PREFIXED = 6
+# German's INSEPARABLE prefixes, which must never appear in PREFIXES. This is
+# the rule that was violated: über + bracht is "überbracht", ordinary German,
+# and it went into the decisive tier. A dictionary check would have caught it
+# and did not, because the dictionary on this machine is English. The rule is
+# checkable offline and names the actual cause instead of sampling for it.
+GERMAN_INSEPARABLE = frozenset("""
+be emp ent er ge miss ver zer über unter durch hinter wider
+""".split())
 
 
 def prefixed(token):
