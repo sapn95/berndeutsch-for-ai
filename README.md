@@ -164,8 +164,14 @@ can these tests fail? It uses [cosmic-ray](https://github.com/sixty-north/cosmic
 to change the code and check that something goes red. An assertion that cannot
 fail kills nothing, and the score says so without anybody's opinion in it. The
 detection core started at **19%**, with 75 of 75 mutations to the window
-function surviving. It is **75%** now. That is the only reason to believe the
+function surviving. It is **86%** now. That is the only reason to believe the
 tests above are worth anything.
+
+The surviving-mutant list is also the best source of test cases there is. Four
+of the threshold probes in `evaluate.py` were written from it rather than from
+imagination: each is the smallest input that notices one specific change that
+nothing else noticed, such as a `continue` becoming a `break` and silently
+discarding every marker after the first rejected one.
 
 ## Using it
 

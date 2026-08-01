@@ -2,3 +2,7 @@ corpus/texts/
 __pycache__/
 *.pyc
 .DS_Store
+
+# scripts/mutation.py working directory: a copy of the tree plus a cosmic-ray
+# session database. Regenerated on every run, never useful to commit.
+.mutation/

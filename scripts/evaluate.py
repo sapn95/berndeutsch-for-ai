@@ -152,6 +152,35 @@ BOUNDARY = [
     # GLUE: the same letters, once as prose and once inside an identifier.
     (True, "markers as prose", "das isch guet"),
     (False, "the same letters inside identifiers", "das_isch_guet x1isch2 a/isch+b"),
+    # The four below were written from a list of surviving mutants rather than
+    # from imagination, which is the point of having the list: each one is the
+    # smallest input that notices a specific change nothing else noticed.
+    # None of them contains a decisive marker, or the supporting logic would
+    # never be reached and the probe would prove nothing.
+    #
+    # Kills: sentence_initial's walk-back offset. If it inspects the token's own
+    # first character instead of the one before it, "Chum" stops counting.
+    (True, "a weak marker capitalised at position 0", "Chum, mir luege das aa."),
+    # Kills: the `continue` that skips a rejected weak marker. Turned into a
+    # `break` it abandons the whole token stream, so the two good markers after
+    # the rejected one vanish.
+    (True, "markers after a rejected weak marker still count",
+     "es Modi, mir luege scho lang."),
+    # Kills: the capitalisation test. Inverted, three Title-case weak markers
+    # would clear the weak-only bar.
+    (False, "three Title-case weak markers mid-sentence",
+     "We use the Modi, the Gits and the Cha here."),
+    # Kills: >= turned into ==. Four markers is above the threshold, not at it.
+    (True, "four markers, above the threshold rather than on it",
+     "Hei si scho nid dänk?"),
+]
+
+# The second half of the return value, which decides FULL rulebook versus short
+# checklist and whether the session's one full injection is spent. evaluate.py
+# looked only at the first half, so every mutation to the flag survived.
+CERTAINTY = [
+    (True, "a decisive marker is certain", "Das isch so."),
+    (False, "supporting markers alone are not certain", "Das het nid so."),
 ]
 
 
@@ -228,6 +257,12 @@ def boundary(gate, show_errors):
               f"{'fires' if want else 'silent'}")
         if got != want and show_errors:
             print(f"          {text}")
+    for want, name, text in CERTAINTY:
+        got = gate.is_dialect(text)[1]
+        if got != want:
+            wrong += 1
+        print(f"  {'ok  ' if got == want else 'FAIL'}  {name:44} "
+              f"{'full rulebook' if want else 'checklist'}")
     return wrong
 
 

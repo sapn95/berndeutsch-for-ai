@@ -34,7 +34,6 @@ import shutil
 import sqlite3
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -44,12 +43,15 @@ TARGET = "hooks/berndeutsch_gate.py"
 # hook as a subprocess; --full includes those.
 DETECTION = ("word_tokens", "word_matches", "scan_window", "is_dialect",
              "sentence_initial", "_is_word_char")
-SESSION = Path(tempfile.gettempdir()) / "bd-mutation"
+# Under the repository, not the system temp directory. gettempdir() on macOS
+# is a private per-user path that is cleaned periodically, so --report-only
+# would work or not depending on how long ago the run was. Gitignored.
+SESSION = REPO / ".mutation"
 # The floor, recorded from a real run so a change cannot quietly lower it.
 # 19% when this was first measured; the gap was almost entirely scan_window,
 # where 75 of 75 mutations survived, and is_dialect, where 35 of 42 did.
 # Raise it when the measurement rises. Never lower it to make a run pass.
-MIN_SCORE = 70.0
+MIN_SCORE = 80.0
 
 
 def stage():

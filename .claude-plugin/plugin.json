@@ -1,7 +1,7 @@
 {
   "name": "berndeutsch-for-ai",
   "displayName": "Bärndütschi Schrybwys",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "description": "Bärndütsch for AI assistants. A tool-agnostic rulebook for the codified schriftsprach-nah spelling, plus a Claude Code hook that injects it whenever your prompt is in dialect, and a berndeutsch.ch dictionary lookup.",
   "author": {
     "name": "sapn95",
