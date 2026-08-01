@@ -207,7 +207,11 @@ def hook_checks(tmp):
         for path in dictionaries:
             english |= {w.strip().lower()
                         for w in path.read_text(errors="ignore").splitlines()}
+        # And the one rule whose output is a predicate rather than a set.
+        # suffixed() accepts anything matching -lech, so the only way to check
+        # it is to run it over the dictionary rather than to intersect with it.
         collisions = sorted(generated & english)
+        collisions += sorted(w for w in english if gate.suffixed(w))
         check(f"no generated marker is an English word ({len(generated)} generated)",
               not collisions, str(collisions))
     else:
@@ -375,6 +379,43 @@ def bdw_offline_checks():
                           "neime, neimedüre", "pos": "", "gloss": "", "url": ""})
     check("a multi-token region label is stripped", "neime" in heads,
           str(sorted(heads)))
+
+    # A grammatical label in front of a variant. plausible() rejected the whole
+    # fragment because a lower-case word follows the full stop, so the variant
+    # never reached the qualifier loop that exists to strip that very label.
+    heads = bdw.heads_of({"word": "abhälfe", "alt": "Schreibweisen: abhäufe, "
+                          "PP. abghoufe", "pos": "", "gloss": "", "url": ""})
+    check("a variant behind a grammatical label survives", "abghoufe" in heads,
+          str(sorted(heads)))
+
+    # Sentence punctuation at the END of a fragment. tidy() stripped it off the
+    # edges before plausible() looked for it, so the veto could never fire in
+    # the position sentence punctuation actually occupies.
+    tag = {"word": "Tag", "pos": "m., Pl. Tage, Dim. Tägli n.",
+           "alt": 'Schreibweisen: Taag, das allgemein schweizerische "Tääg" '
+                  'hört man oft, wir empfehlen es nicht!',
+           "gloss": "", "url": ""}
+    heads = bdw.heads_of(tag)
+    check("a clause ending in sentence punctuation is not a headword",
+          "wir empfehlen es nicht" not in heads and "taag" in heads,
+          str(sorted(heads)))
+    # And the same entry proves the pos bracket is harvested: Tägli is listed
+    # only there, never in the Schreibweisen line.
+    check("forms listed in the grammar bracket are heads", "tägli" in heads,
+          str(sorted(heads)))
+
+    # An unbracketed note continuation, with no dash to cut at.
+    heads = bdw.heads_of({"word": "Brosme", "pos": "m., Pl. unverändert, "
+                          "Dim. Brösmeli, Bröseli, Brösi n.",
+                          "alt": "Schreibweisen: Broosme, Bröösmeli Aussprache: "
+                                 "langes o/ö in Broosme/Bröösmeli/Brööseli, "
+                                 "kurzes ö in Bröseli/Brösi",
+                          "gloss": "", "url": ""})
+    check("a named note label is cut like a dash", "langes o" not in heads,
+          str(sorted(h for h in heads if " " in h)))
+    check("both diminutives of the same entry are heads",
+          {"bröseli", "brösi"} <= heads, str(sorted(heads)))
+    check("a grammar placeholder is not a head", "unverändert" not in heads)
 
     # The QUERY goes through the same cleaning as the heads. It did not, so a
     # word typed or pasted with punctuation on it could never equal any head,

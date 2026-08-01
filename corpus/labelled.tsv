@@ -402,3 +402,33 @@ bd	diminutive	Es Momäntli, bitte.
 bd	diminutive	Das Chindli schlaft no.
 bd	diminutive	Häsch es Böxli für die Schruube?
 bd	diminutive	D Vögeli sy im Garte.
+
+# Round-24. The round-23 comment above named "-flechte" as walking through
+# LECH_RE, and the fix put blech, schlech, cromlech and stilech into LECH_NOT
+# and no flecht. Nothing noticed, because no row was ever labelled for it:
+# "geflechte" is "gef" + lech + "te" and "entflechte" is "entf" + lech + "te",
+# both clearing the two-character minimum in front of -lech. Geflecht is an
+# ordinary German noun with a productive plural and (ver|ent|ein|um|durch)-
+# flechten are ordinary German verbs.
+xx	german-lech	Die Geflechte aus Weide werden noch von Hand hergestellt.
+xx	german-lech	Ich entflechte gerade die Abhängigkeiten zwischen den Modulen.
+xx	german-lech	Bitte verflechte die beiden Datenströme nicht miteinander.
+
+# Round-24. The schlecht guard is startswith/endswith only, and the second
+# chance -- the token[:-n] window at the end of suffixed() -- tests LECH_NOT[0]
+# alone, i.e. "blech". So an inflected Blech COMPOUND is caught and an inflected
+# schlecht COMPOUND is not, although schlecht is the more productive head of the
+# two: grottenschlecht is a Duden headword.
+xx	german-lech	Das war eine grottenschlechte Idee, ehrlich gesagt.
+xx	german-lech	Die sauschlechte Verbindung im Zug nervt mich.
+
+# Round-24. Listed markers from the numeral and -ig batches that are ordinary
+# German. "zäh" is ten in Bernese and the everyday adjective tough/viscous in
+# German. "meinige" is not listed at all: plural_ig() derives it from "meinig",
+# and it is the German possessive in "die meinige". "zwo" is a Duden headword,
+# the telephone form of zwei. All three are DECISIVE, so one occurrence injects
+# the full 9 KB rulebook and spends the session's single full injection.
+xx	german	Der Teig ist zäh und lässt sich kaum ausrollen.
+xx	german	Die Verhandlungen mit dem Anbieter waren ausgesprochen zäh.
+xx	german	Diese Ansicht ist nicht die deinige, sondern die meinige.
+xx	german	Wiederhole die Nummer bitte: eins, zwo, drei, vier.

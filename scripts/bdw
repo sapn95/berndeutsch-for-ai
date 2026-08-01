@@ -50,7 +50,7 @@ MAX_PAGES = 15
 # become an exact head, or "sech" matches eight unrelated reflexive verbs.
 NOT_A_FORM = frozenset("""
 sech sich se es er si mir dir ir eim eim öpper öppis
-etc usw uä ua bzw resp vgl
+etc usw uä ua bzw resp vgl unverändert unregelmässig
 """.split())
 # Bare, unbracketed qualifiers the site prefixes to a spelling variant.
 QUALIFIERS = frozenset("""
@@ -61,7 +61,7 @@ dim pl sg m f n adj adv subst verb pp part präs prät
 # The same, for the END of a variant. A leading qualifier says which dialect or
 # register a spelling belongs to; a trailing one is usually an abbreviation
 # saying the list goes on. Both leave the actual word unmatchable if kept.
-TRAILING = QUALIFIERS | frozenset("etc usw uä ua bzw resp vgl s. z".split())
+TRAILING = QUALIFIERS | frozenset("etc usw uä ua bzw resp vgl s z".split())
 UA = "bdw/1.0 (+https://github.com/sapn95/berndeutsch-for-ai) courtesy lookup client"
 
 # One search hit: <h3><a href=".../words/44197?q=..">suber</a> <small>[Adj.]</small></h3>
@@ -119,7 +119,13 @@ def plausible(candidate):
     # abbreviation in front of a variant, which the qualifier loop strips,
     # while "nicht. Wir empfehlen" is prose. Vetoing every full stop threw the
     # real variants away with the prose.
-    return not re.search(r'["«»„“”]|\.\s+[a-zäöü]|[!?]', candidate)
+    probe = candidate
+    while True:
+        m = re.match(r"\s*([A-Za-zÄÖÜäöüß]+)\.\s+", probe)
+        if not m or m.group(1).lower() not in QUALIFIERS:
+            break
+        probe = probe[m.end():]
+    return not re.search(r'["«»„“”]|\.\s+[a-zäöü]|[!?]', probe)
 
 
 def spellings(alt):
@@ -138,12 +144,16 @@ def spellings(alt):
     # Spaced on purpose: a hyphen inside a variant is written tight
     # ("Änis-Chräbeli", "adi-e") and must survive.
     body = re.split(r"\s+[-–—]\s+", body)[0]
+    # And at a named note label, for the entries that start one without a dash
+    # or a bracket. Only these labels: a blanket colon cut would destroy
+    # "Stadt Bern: neime", which is a region label in front of a real variant.
+    body = re.split(r"\s(?:Aussprache|Bemerkung|Herkunft|Hinweis|Anmerkung"
+                    r"|Etymologie|Beispiel)\s*:", body)[0]
     forms = []
     for part in re.split(r"[,;/]", body):
+        terminal = re.search(r'[!?"«»„“”]\s*$', part)
         part = tidy(part)
-        if not part:
-            continue
-        if not plausible(part):
+        if not part or terminal or not plausible(part):
             continue
         forms.append(part.lower())
         # A region or register label is not a fixed vocabulary. Entry 13274
@@ -285,7 +295,8 @@ def heads_of(entry):
     # EXACT. Certifying a punctuation mark as a Bernese word is the same
     # failure as denying a real one, just pointing the other way.
     heads = {norm(tidy(f)) for f in primary if tidy(f)}
-    heads |= {norm(tidy(f)) for f in spellings(entry["alt"]) + derived
+    heads |= {norm(tidy(f)) for f in spellings(entry["alt"])
+              + spellings(": " + entry.get("pos", "")) + derived
               if tidy(f) and norm(tidy(f)) not in NOT_A_FORM}
     return heads
 

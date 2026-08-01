@@ -72,7 +72,7 @@ ahnig louf louft chlepfe chlepft poschte poschtet guete
 lueg luegit schryb schrybit säg sägit öb mues muess churz
 mäntig zischtig mittwuch donnschtig fritig samschtig sunntig
 ändrig sitzig rächnig wohnig ladig bschtellig zahlig meinig ornig rüschtig
-zwöi zwo drü füf sächs sibe nün zäh euf zwöuf zwänzg drissg vierzg füfzg tuusig
+zwöi drü füf sächs sibe nün euf zwöuf zwänzg drissg vierzg füfzg tuusig
 übermorn geschter vorgeschter aabe morge namittag nomittag
 liebschte beschte schönschte gröschte schnäuschte deheime
 wäri wärsch wärit wetti wettsch wettit giengsch giengit
@@ -131,7 +131,7 @@ chönnti chönntsch müessti müesstisch chunnti
 SUPPORTING = frozenset("""
 nid nit gsi gha kei chum witt geng gits hämmer gäu aut modi ching gange
 het mys gly heit
-hei cha wott gah luege scho öi nöime hüt dänk söll nei guet geit verstande morn
+hei cha wott gah luege scho öi nöime hüt dänk söll nei guet geit verstande morn zäh zwo
 wär hätt tät wett andersch gieng
 znüni zmorge zobe zvieri meitschi bueb
 """.split())
@@ -168,7 +168,7 @@ znüni zmorge zobe zvieri meitschi bueb
 # own collisions are with a URL path segment and an uppercase identifier, and
 # GLUE and the lower-case rule cover both without costing the language anything.
 WEAK = frozenset("""
-nit gsi gha kei aut mys gly het geit hei nei verstande morn
+nit gsi gha kei aut mys gly het geit hei nei verstande morn zäh zwo
 modi ching geng chum gits cha gange witt hämmer gäu heit
 wär hätt tät wett gieng guet
 """.split())
@@ -250,17 +250,23 @@ LECH_RE = re.compile(r"^\w{2,}lech(i|e|er|s|te|schte)?$")
 # with a productive compound class (Schutzblech, Backblech, Wellblech,
 # Feinblech), and "schlecht" is an everyday adjective whose inflected forms end
 # in -lechte. Both matched and both injected the full rulebook on plain German.
-LECH_NOT = ("blech", "schlech", "cromlech", "stilech")
+# Every stem that ends in -lech and is not Bernese. The last three came out of
+# the dictionary check the moment it was pointed at the suffix rule rather than
+# only at the two set-valued rules; adramelech is a demon in the Book of Kings.
+LECH_NOT = ("blech", "schlech", "flecht", "cromlech", "stilech",
+            "kreplech", "parfleche", "teiglech", "melech", "archlech")
 
 
 def suffixed(token):
     """True for the -lech adjective class, which German spells -lich."""
-    if any(token.startswith(x) or token.endswith(x) for x in LECH_NOT):
-        return False
     if LECH_RE.match(token) is None:
         return False
-    # An inflected Blech compound: Schutzbleche, Backblechs.
-    return not any(token[:-n].endswith(LECH_NOT[0]) for n in range(1, 5))
+    # One test, at every strip depth, against every German stem. A German stem
+    # can sit at the HEAD of a compound (grottenschlecht is a Duden headword),
+    # where startswith cannot see it, and the longest inflection LECH_RE allows
+    # is "schte", so five characters have to come off, not four.
+    return not any(token[:len(token) - n].endswith(x)
+                   for n in range(0, 6) for x in LECH_NOT)
 
 
 def prefixed(token):
@@ -277,9 +283,15 @@ def prefixed(token):
 # decisive marker stays decisive and a velarised supporting one stays
 # supporting. Computed at import: the lists above stay readable as the thing a
 # human maintains, and the rules stay in one place.
+# Whose plural is a German word: "die meinige", "das Meinige". The singular
+# meinig is only a rare surname and keeps its slot.
+IG_NOT = frozenset({"meinig"})
+
+
 def plural_ig(markers):
     """-ig nouns take -ige in the plural, which is how they usually appear."""
-    return frozenset(m + "e" for m in markers if m.endswith("ig") and len(m) > 4)
+    return frozenset(m + "e" for m in markers
+                     if m.endswith("ig") and len(m) > 4 and m not in IG_NOT)
 
 
 DECISIVE |= plural_ig(DECISIVE)
