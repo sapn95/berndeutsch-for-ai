@@ -6,3 +6,8 @@ __pycache__/
 # scripts/mutation.py working directory: a copy of the tree plus a cosmic-ray
 # session database. Regenerated on every run, never useful to commit.
 .mutation/
+
+# A relative CLAUDE_CONFIG_DIR used to make the hook build its state tree in
+# whatever directory it was started in. Fixed, and ignored so a stray one is
+# never committed again.
+relcfg/

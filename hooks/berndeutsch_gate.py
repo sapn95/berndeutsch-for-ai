@@ -30,6 +30,10 @@ from pathlib import Path
 # after it, and a head-only window misses the second case entirely.
 SCAN_HEAD = 3000
 SCAN_TAIL = 3000
+# How much raw text to keep before normalising and substituting. Eight times
+# the window, because every transform can only shrink the text and the head
+# still has to be SCAN_HEAD long when they are done.
+PRECUT = 8
 
 # Two tiers, and both of them decide something.
 #
@@ -331,17 +335,24 @@ def looks_like_address(chunk):
     """
     if "://" in chunk or "@" in chunk:
         return True
-    for i, ch in enumerate(chunk):
-        # A dot between two word characters: a hostname or a filename.
-        if ch == "." and 0 < i < len(chunk) - 1:
-            if chunk[i - 1].isalnum() and chunk[i + 1].isalnum():
-                return True
-        # A hyphen followed later by a digit: pod names, ticket ids, versions.
-        # The digit is required so the linking hyphen the rulebook teaches
-        # ("Wo-n-i", "Änis-Chräbeli") is left alone.
-        if ch == "-" and any(c.isdigit() for c in chunk[i + 1:]):
+    # The FIRST hyphen only. Testing every hyphen re-slices the rest of the
+    # chunk each time, which is quadratic: 6000 dashes cost 471 ms. If a later
+    # hyphen has a digit after it then so does the first, so one test suffices.
+    # The digit is required so the linking hyphen the rulebook teaches
+    # ("Wo-n-i", "Änis-Chräbeli") is left alone.
+    hyphen = chunk.find("-")
+    if hyphen != -1 and any(c.isdigit() for c in chunk[hyphen + 1:]):
+        return True
+    # A dot between two word characters: a hostname or a filename. find() walks
+    # forward rather than scanning every character.
+    start = 1
+    while True:
+        i = chunk.find(".", start, len(chunk) - 1)
+        if i < 0:
+            return False
+        if chunk[i - 1].isalnum() and chunk[i + 1].isalnum():
             return True
-    return False
+        start = i + 1
 
 
 def strip_addresses(text):
@@ -368,6 +379,11 @@ def scan_window(text):
     fragment, and a fragment can be a marker that the real text never
     contained, e.g. German "Verzeichnisch..." cut after "...isch".
     """
+    # A generous pre-cut before any transform touches the text. The comment
+    # below says addresses are stripped after the window and never before; the
+    # three transforms above it were still running on the full prompt.
+    if len(text) > PRECUT * (SCAN_HEAD + SCAN_TAIL):
+        text = text[:PRECUT * SCAN_HEAD] + "\n" + text[-PRECUT * SCAN_TAIL:]
     text = unicodedata.normalize("NFC", text)
     # A pasted JSON log or an escaped error string contains literal \n, \r and
     # \t two-character sequences. The backslash is not a letter, so "...\nID"
@@ -528,7 +544,7 @@ def unresolved(path):
     happens to have been started from, which for a prompt hook is the user's
     project. Silently, on every prompt.
     """
-    return str(path).startswith("~")
+    return str(path).startswith("~") or not Path(path).is_absolute()
 
 
 def config_dir():

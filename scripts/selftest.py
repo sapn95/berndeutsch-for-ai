@@ -33,6 +33,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -250,6 +251,30 @@ def hook_checks(tmp):
           not gate.is_dialect("The host itz-prod-01 is unreachable.")[0]
           and gate.is_dialect("Wo-n-i das gseh ha bini erchlüpft.")[0],
           "GLUE cannot do this: '.' would eat the marker before a full stop")
+
+    # COST, asserted rather than hoped for. Three times now a change has made
+    # the hook quadratic and shipped: 54 seconds of CPU on a 280 KB paste in
+    # round 1, an outright hang on 60 KB without whitespace in round 23, and
+    # 471 ms on 6000 hyphens in round 24. Every one was found by a reviewer
+    # thinking to time it, because nothing here ever did. These shapes are the
+    # ones that broke it, kept so the next author does not have to guess them.
+    print("hook: cost")
+    shapes = [
+        ("6000 hyphens", "-" * 6000),
+        ("alternating dot and dash", "-." * 3000),
+        ("one 6000-character word", "a" * 6000),
+        ("6000 escape sequences", "\\n" * 6000),
+        ("2 MB of apostrophes", "a'b" * 700_000),
+        ("1 MB of one umlaut", "ä" * 1_048_576),
+        ("1 MB of combining marks", "a" + "\u0316" * 500_000 + "\u0334" * 500_000),
+        ("2 MB of ordinary prose", "Please review the log. " * 91_000),
+    ]
+    for name, blob in shapes:
+        start = time.perf_counter()
+        gate.is_dialect(blob)
+        spent = (time.perf_counter() - start) * 1000
+        check(f"is_dialect stays under 50 ms: {name}", spent < 50,
+              f"{spent:.1f} ms over {len(blob):,} chars")
 
     print("hook: prompts that must load the rules")
     for i, (prompt, why) in enumerate(FIRES):
@@ -687,6 +712,15 @@ def config_dir_checks():
         got = gate.config_dir()
         check("an unresolvable ~user gives no config directory", got is None,
               str(got))
+        # A RELATIVE value did the same damage without a tilde: the hook built
+        # its state tree in whatever directory it was started in, which for a
+        # prompt hook is the user's project. It happened: a review agent's
+        # probe left relcfg/cache/berndeutsch-gate/env-test in this repository
+        # and it was committed.
+        for bad in ("relcfg", "./x/y", " ", "cache"):
+            os.environ["CLAUDE_CONFIG_DIR"] = bad
+            check(f"a relative config dir gives nowhere: {bad!r}",
+                  gate.config_dir() is None, str(gate.config_dir()))
         os.environ["CLAUDE_CONFIG_DIR"] = "/tmp/bd-cfg-check"
         check("an ordinary path still resolves",
               gate.config_dir() == Path("/tmp/bd-cfg-check"))
