@@ -214,6 +214,19 @@ def hook_checks(tmp):
         SKIPPED.append("generated markers vs an English dictionary: none installed")
         print("  skip  no generated marker is an English word  (no system dictionary)")
 
+    # The apostrophe marks an elision and the elided spelling is what the lists
+    # carry. "Wie geit's", the commonest greeting in the language, tokenised to
+    # geit + s and matched nothing.
+    check("an elision apostrophe joins the word",
+          gate.is_dialect("Wie geit's?")[0] and gate.is_dialect("Hesch's gseh?")[0])
+
+    # Every function that GENERATES markers must be inside the mutation scope,
+    # or the most consequential code in the file is measured by nothing.
+    mutation_scope = load(REPO / "scripts" / "mutation.py").DETECTION
+    for generator in ("velarised", "prefixed"):
+        check(f"{generator} is inside the measured scope",
+              generator in mutation_scope)
+
     print("hook: prompts that must load the rules")
     for i, (prompt, why) in enumerate(FIRES):
         ctx, err = run_hook(prompt, f"fire-{i}", tmp / f"fire{i}")
@@ -615,6 +628,26 @@ def config_dir_checks():
             os.environ["CLAUDE_CONFIG_DIR"] = saved
 
 
+def installer_checks():
+    """The installer must never unlink its own source.
+
+    With CLAUDE_CONFIG_DIR resolving to the repository, link() unlinked the
+    destination and symlinked it to the source, which were the same path: the
+    hook and bdw became self-referential symlinks and 32 KB of working code was
+    gone.
+    """
+    print("install.py: does not eat the repository")
+    install = load(REPO / "scripts" / "install.py")
+    with tempfile.TemporaryDirectory(prefix="bd-install-") as tmp:
+        src = Path(tmp) / "thing.py"
+        src.write_text("# content\n")
+        before = src.read_text()
+        install.link(src, src)
+        check("linking a file onto itself leaves it intact",
+              src.is_file() and not src.is_symlink() and src.read_text() == before,
+              "symlink" if src.is_symlink() else "ok")
+
+
 def citation_checks():
     """The cited titles must agree with each other across files.
 
@@ -731,6 +764,7 @@ def main():
     packaging_checks()
     overlap_checks()
     citation_checks()
+    installer_checks()
     config_dir_checks()
     mutation_order_checks()
     readme_number_checks()

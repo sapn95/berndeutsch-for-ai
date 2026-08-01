@@ -68,6 +68,8 @@ meiteli gieu hegu
 aues viu viumau viumou schnäu chüngu wüescht gnue luschtig
 ahnig louf louft chlepfe chlepft poschte poschtet guete
 lueg luegit schryb schrybit säg sägit öb mues muess churz
+mäntig zischtig mittwuch donnschtig fritig samschtig sunntig
+morn übermorn geschter vorgeschter aabe morge namittag nomittag
 liebschte beschte schönschte gröschte schnäuschte deheime
 wäri wärsch wärit wetti wettsch wettit giengsch giengit
 chiem chiemsch chiemti hätti hättsch hättit täti tätsch jä
@@ -125,7 +127,7 @@ chönnti chönntsch müessti müesstisch chunnti
 SUPPORTING = frozenset("""
 nid nit gsi gha kei chum witt geng gits hämmer gäu aut modi ching gange
 het mys gly heit
-hei cha wott gah luege scho öi nöime hüt dänk söll nei guet merci
+hei cha wott gah luege scho öi nöime hüt dänk söll nei guet merci geit
 wär hätt tät wett andersch gieng
 znüni zmorge zobe zvieri meitschi bueb
 """.split())
@@ -162,7 +164,7 @@ znüni zmorge zobe zvieri meitschi bueb
 # own collisions are with a URL path segment and an uppercase identifier, and
 # GLUE and the lower-case rule cover both without costing the language anything.
 WEAK = frozenset("""
-nit gsi gha kei aut mys gly
+nit gsi gha kei aut mys gly het geit hei
 modi ching geng chum gits cha gange witt hämmer gäu heit
 wär hätt tät wett gieng merci guet
 """.split())
@@ -205,13 +207,13 @@ def velarised(markers):
 # labelled set. Matching a listed participle as a SUFFIX behind a known prefix
 # covers the paradigm without enumerating the cross product.
 PREFIXES = tuple("""
-uf zue ab dür use ine ache uehe abe vor no mit y a i um über under
+uf zue ab dür use ine ache uehe abe vor no mit y a i um
 """.split())
 # Only participles, not every marker: "ufisch" is not a word, and allowing any
 # marker to be suffixed would let a prefix manufacture matches.
 PARTICIPLES = frozenset("""
 gmacht gschribe gläse ggange gseit gnoh gseh gsy gsii boue gschaffet gschickt
-gnu gwüsst gfunde gha gsprunge gschlafe gläbt gwartet gluegt bracht choufft
+gnu gwüsst gfunde gha gsprunge gschlafe gläbt gwartet gluegt choufft
 verschobe verstande vergässe
 """.split())
 
@@ -291,6 +293,11 @@ def scan_window(text):
     # out of ordinary English. Turn the escapes into the whitespace they denote
     # before tokenising.
     text = re.sub(r"\\[nrt]", " ", text)
+    # An apostrophe inside a word marks an elision, and the elided spelling is
+    # what the marker lists carry: geit's is geits, hesch's is heschs. Removing
+    # it joins the halves instead of splitting the word in two. Nothing else
+    # depends on it: English "don't" becomes "dont", which is not a marker.
+    text = re.sub(r"(?<=\w)['\u2019](?=\w)", "", text)
     if len(text) <= SCAN_HEAD + SCAN_TAIL:
         return text
     # Strip the partial token at each cut with the same character class the

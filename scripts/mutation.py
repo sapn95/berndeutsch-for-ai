@@ -42,7 +42,12 @@ TARGET = "hooks/berndeutsch_gate.py"
 # is state files, injection and IO, which selftest.py covers by running the
 # hook as a subprocess; --full includes those.
 DETECTION = ("word_tokens", "word_matches", "scan_window", "is_dialect",
-             "sentence_initial", "_is_word_char")
+             "sentence_initial", "_is_word_char",
+             # Added when round 20 introduced them. They GENERATE decisive
+             # markers rather than list them, which makes them the most
+             # consequential code in the file, and they sat outside the
+             # measured scope for a round.
+             "velarised", "prefixed")
 # Under the repository, not the system temp directory. gettempdir() on macOS
 # is a private per-user path that is cleaned periodically, so --report-only
 # would work or not depending on how long ago the run was. Gitignored.
@@ -243,6 +248,24 @@ def main():
         print("Renamed or deleted? Either way the score would silently exclude "
               "them. Update DETECTION.", file=sys.stderr)
         return 2
+
+    # The scope belongs to the run, not to the flag. --report-only --full
+    # re-labelled a detection-core session "whole hook" and printed a number
+    # for functions that were never mutated with that oracle.
+    # Recorded beside the session, not inside the staged tree: the tree is
+    # rebuilt on every run and cr.toml did not survive, so the guard that read
+    # it never fired.
+    scope_file = SESSION / "scope"
+    if not args.report_only:
+        scope_file.write_text("full" if args.full else "detection")
+    elif scope_file.is_file():
+        was = scope_file.read_text().strip()
+        want = "full" if args.full else "detection"
+        if was != want:
+            print(f"\nThis session was recorded with scope '{was}', and you asked "
+                  f"for '{want}'. The scope belongs to the run, not to the flag: "
+                  f"re-run without --report-only.", file=sys.stderr)
+            return 2
 
     finished, planned = completeness(db)
     if finished < planned:

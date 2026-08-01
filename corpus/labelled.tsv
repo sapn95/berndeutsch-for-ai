@@ -207,3 +207,50 @@ xx	other	Het is een mooie dag vandaag. De geit staat in de wei.
 bd	question	Wär hätt das dänkt?
 bd	question	Wär hätt das gwüsst?
 bd	short	Das wett i o.
+
+# Round-21 recall probe. Round 20 dropped bare 'geit' from SUPPORTING because
+# of Dutch 'geit' (goat), leaving only the contracted 'geits' in DECISIVE.
+# 'Wie geit's' is normally written WITH the apostrophe, and the apostrophe is
+# not a word character, so it tokenises as geit + s and neither half is a
+# marker. The bare 'gaht' and 'goht' of the same verb are still DECISIVE, so
+# only the Bernese form of the commonest greeting in the language went silent.
+bd	greeting	Hoi, wie geit's?
+bd	question	Wie geit's dir hüt?
+bd	statement	Es geit mir guet, danke.
+bd	question	Geit das o no morn?
+bd	statement	Das geit so nid.
+
+# Round-21 precision probe. hei and nei are SUPPORTING but not WEAK, so two of
+# them decide a prompt and neither has to be lower case. Dutch 'het' (the
+# article) plus Dutch 'hei' (the heath, and the interjection) is an ordinary
+# pair in ordinary Dutch, which is a language this set already carries because
+# of kei and geit.
+xx	other	Het is mooi weer op de hei vandaag.
+xx	other	We hebben het huis op de hei gekocht.
+xx	english	The HEI framework and the NEI dataset both need review.
+
+# Round-21 recall probe: the calendar register. Both tiers carry the meal
+# nouns (znüni, zmorge, zvieri, zobe) and not one weekday, so the commonest
+# scheduling sentence in the language scores nothing: Mäntig, Zischtig,
+# Mittwuch, Donnschtig, Fritig, Samschtig, Sunntig, Aabe, Wuche and übermorn
+# are in neither tier, and all seven weekdays differ from the German form, so
+# they are decisive-grade evidence that is simply absent. The two German rows
+# are the control: whatever fixes the class must leave them silent.
+bd	scheduling	Am Zischtig hei mir Sitzig.
+bd	scheduling	Mir mache das am Donnschtig.
+bd	scheduling	Am Samschtig bini nid da.
+bd	scheduling	Bis am Fritig am Aabe.
+bd	scheduling	Am Mittwuch am Morge passt mir guet.
+bd	scheduling	Am Mäntig fah i wider aa.
+bd	scheduling	Am Sunntig schaffe mir nid.
+bd	scheduling	Übermorn mache mir ds Release.
+xx	other	Am Dienstag haben wir die Sitzung, am Freitag das Release.
+xx	other	Der Termin am Mittwochmorgen passt mir gut.
+
+# Round-21. The separable-prefix rule generates 'überbracht' (über + bracht),
+# which is the ordinary German participle of überbringen. It is DECISIVE, so
+# one occurrence in a German sentence injects the full rulebook and spends the
+# session's single full injection. The generated set is checked in
+# scripts/selftest.py against /usr/share/dict/web2, which is English only.
+xx	german	Die Nachricht wurde gestern überbracht.
+xx	german	Der Bote hat das Schreiben überbracht und ist wieder gegangen.

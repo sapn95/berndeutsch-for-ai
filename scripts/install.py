@@ -26,6 +26,14 @@ def config_dir():
 
 
 def link(src, dst):
+    # Never unlink the source. When CLAUDE_CONFIG_DIR resolves to the
+    # repository itself, dst IS src, and unlink-then-symlink replaced the hook
+    # and bdw with self-referential symlinks: 32 KB of working code gone,
+    # unreadable afterwards with ELOOP. An installer that can destroy what it
+    # installs is worse than one that does nothing.
+    if dst.exists() and dst.resolve() == src.resolve():
+        print(f"already in place: {dst}")
+        return dst
     if dst.parent.exists() and not dst.parent.is_dir():
         raise SystemExit(f"{dst.parent} exists and is not a directory")
     dst.parent.mkdir(parents=True, exist_ok=True)

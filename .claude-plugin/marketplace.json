@@ -9,7 +9,7 @@
       "name": "berndeutsch-for-ai",
       "source": "./",
       "description": "Bärndütsch for AI assistants: injects the codified schriftsprach-nah spelling rules whenever your prompt is in Bernese German.",
-      "version": "0.16.1"
+      "version": "0.17.0"
     }
   ],
   "description": "Bärndütsch for AI: a tool-agnostic rulebook for writing real Bernese German, plus a hook that injects it when your prompt is in dialect."

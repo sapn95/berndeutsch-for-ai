@@ -300,9 +300,9 @@ Two tiers, and both of them decide something.
 They are the second-person `-sch` verb forms (`chasch`, `bisch`, `weisch`,
 `machsch`, `wohnsch`), plus everyday words that carry the dialect without a
 verb: `isch`, `gsy`, `öppis`, `chli`, `itz`, `gäng`, `Meiteli`, the INFLECTED
-Konjunktiv II forms (`wäri`, `wettsch`, `gieng`, `hätti`, `chiem`), and the
+Konjunktiv II forms (`wäri`, `wettsch`, `giengsch`, `hätti`, `chiem`), and the
 l-vocalised spellings this repo's own rulebook prescribes (`aues`, `viu`,
-`schnäu`). The bare stems `wär`, `hätt`, `tät` and `wett` are deliberately NOT
+`schnäu`). The bare stems `wär`, `hätt`, `tät`, `wett` and `gieng` are deliberately NOT
 here: all four are ordinary written German, so they sit in the weak tier.
 One is enough to fire. The verb forms alone were not enough: an imperative, a
 first-person statement or a bare greeting contains none of them.
