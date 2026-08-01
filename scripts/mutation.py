@@ -83,16 +83,36 @@ def stage():
 
 
 def owner_map(source):
-    """line number -> enclosing function name, innermost wins."""
-    spans = sorted((n.lineno, n.end_lineno, n.name) for n in ast.walk(ast.parse(source))
-                   if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)))
+    """line number -> enclosing TOP-LEVEL function name.
+
+    Top-level, not innermost. A nested closure is part of the function that
+    contains it, and attributing its lines separately quietly removed them from
+    the score: refactoring the case rule in is_dialect into a `counts()` helper
+    moved 18 mutants to a name that is not in DETECTION, so the `only` filter
+    dropped them and the reported total shrank without anything saying so. The
+    score went UP, because the mutants that disappeared were the surviving ones.
+
+    Walked from the module body rather than with ast.walk, so "top level" means
+    what it says. A function defined inside a class counts as top level too; a
+    function defined inside a function does not.
+    """
+    spans = []
+
+    def collect(body):
+        for node in body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                spans.append((node.lineno, node.end_lineno, node.name))
+            elif isinstance(node, ast.ClassDef):
+                collect(node.body)
+
+    collect(ast.parse(source).body)
+    spans.sort()
 
     def owner(line):
-        found = "<module level>"
         for lo, hi, name in spans:
             if lo <= line <= hi:
-                found = name
-        return found
+                return name
+        return "<module level>"
     return owner
 
 

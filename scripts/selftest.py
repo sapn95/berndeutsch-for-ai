@@ -278,6 +278,26 @@ def bdw_offline_checks():
     check("a stray mark at a fragment edge is removed", "verworgle" in heads,
           str(sorted(heads)))
 
+    # A Schreibweisen field that holds PROSE must yield no variants at all.
+    # Entry 13962 fills it with a German sentence about compound spelling, and
+    # every clause of it became an EXACT headword: the query "Nomen werden
+    # meist zusammen geschrieben" was certified as a Bernese word.
+    prose = ("Schreibweisen: Nomen werden meist zusammen geschrieben "
+             '("Huereseich"), doch trifft man auch die getrennte Schreibung '
+             'an: "Das isch e huere Seich".')
+    heads = bdw.heads_of({"word": "huere-", "alt": prose, "pos": "", "gloss": "",
+                          "url": ""})
+    check("a prose Schreibweisen field yields no spelling variant",
+          not any(len(h.split()) > 4 for h in heads), str(sorted(heads)))
+
+    # A two-token region label. The qualifier loop strips one known word at a
+    # time, so "Stadt Bern: neime" never produced the bare word and bdw called
+    # a listed variant nonexistent.
+    heads = bdw.heads_of({"word": "nöime", "alt": "Schreibweisen: Stadt Bern: "
+                          "neime, neimedüre", "pos": "", "gloss": "", "url": ""})
+    check("a multi-token region label is stripped", "neime" in heads,
+          str(sorted(heads)))
+
     # The QUERY goes through the same cleaning as the heads. It did not, so a
     # word typed or pasted with punctuation on it could never equal any head,
     # and the answer was the flat "no entry" this tool must not give.
@@ -512,6 +532,42 @@ def mutation_order_checks():
     check("the source is read after staging", source_line > stage_line,
           f"stage() on line {stage_line}, source read on line {source_line}")
 
+    # Mutants inside a nested closure belong to the function that contains it.
+    # Attributed to the closure's own name they fall outside DETECTION and are
+    # dropped from the score, so refactoring a branch into a helper RAISES the
+    # number by deleting the mutants it was failing.
+    mutation = load(REPO / "scripts" / "mutation.py")
+    sample = "def outer():\n    def inner():\n        return 1\n    return inner\n"
+    owner = mutation.owner_map(sample)
+    check("a nested closure is attributed to its enclosing function",
+          owner(3) == "outer", f"line 3 -> {owner(3)}")
+
+
+def config_dir_checks():
+    """An unresolvable ~user must yield nowhere, not a directory called "~user".
+
+    expand() falls back to the literal string so the hook survives, but
+    mkdir(parents=True) on a name starting with a tilde does not fail: it
+    creates that directory wherever the hook was started, which for a prompt
+    hook is the user's project, on every prompt.
+    """
+    print("hook: config directory")
+    gate = load(HOOK)
+    saved = os.environ.get("CLAUDE_CONFIG_DIR")
+    try:
+        os.environ["CLAUDE_CONFIG_DIR"] = "~nosuchuser-" + "x" * 12 + "/.claude"
+        got = gate.config_dir()
+        check("an unresolvable ~user gives no config directory", got is None,
+              str(got))
+        os.environ["CLAUDE_CONFIG_DIR"] = "/tmp/bd-cfg-check"
+        check("an ordinary path still resolves",
+              gate.config_dir() == Path("/tmp/bd-cfg-check"))
+    finally:
+        if saved is None:
+            os.environ.pop("CLAUDE_CONFIG_DIR", None)
+        else:
+            os.environ["CLAUDE_CONFIG_DIR"] = saved
+
 
 def citation_checks():
     """The cited titles must agree with each other across files.
@@ -617,6 +673,7 @@ def main():
     packaging_checks()
     overlap_checks()
     citation_checks()
+    config_dir_checks()
     mutation_order_checks()
     readme_number_checks()
     classifier_checks()

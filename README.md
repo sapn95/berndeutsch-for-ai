@@ -194,7 +194,7 @@ flowchart TD
 
     CODE --> EV["scripts/evaluate.py<br/>is the answer right?"]
     CODE --> ST["scripts/selftest.py<br/>does anything still work?"]
-    EV --> LAB["corpus/labelled.tsv<br/>113 labelled prompts"]
+    EV --> LAB["corpus/labelled.tsv<br/>the labelled prompts"]
     LAB --> NUM["precision and recall<br/>100% and 100%"]
 
     EV --> MUT["scripts/mutation.py<br/>CAN these tests fail?"]
@@ -279,7 +279,7 @@ flowchart TD
     P["your prompt"] --> W["scan window<br/>first 3000 + last 3000 characters"]
     W --> T["split into words<br/>runs touching a digit, _, / or + are dropped"]
     T --> D{"a decisive<br/>marker?"}
-    D -->|"yes: isch, chasch, itz, wett"| B{"first dialect turn<br/>this session?"}
+    D -->|"yes: isch, chasch, itz, gsy"| B{"first dialect turn<br/>this session?"}
     B -->|yes| FULL["inject the FULL rulebook<br/>about 9 KB, once per session"]
     B -->|no| CL["inject the short checklist<br/>about 1.5 KB"]
     D -->|no| S{"two supporting markers?<br/>three if all of them are weak"}
@@ -297,9 +297,11 @@ Two tiers, and both of them decide something.
 **Decisive markers** cannot plausibly appear in English or German running text.
 They are the second-person `-sch` verb forms (`chasch`, `bisch`, `weisch`,
 `machsch`, `wohnsch`), plus everyday words that carry the dialect without a
-verb: `isch`, `gsy`, `öppis`, `chli`, `itz`, `gäng`, `Meiteli`, the Konjunktiv
-II forms (`wär`, `wett`, `gieng`, `hätt`, `chiem`), and the l-vocalised
-spellings this repo's own rulebook prescribes (`aues`, `viu`, `schnäu`).
+verb: `isch`, `gsy`, `öppis`, `chli`, `itz`, `gäng`, `Meiteli`, the INFLECTED
+Konjunktiv II forms (`wäri`, `wettsch`, `gieng`, `hätti`, `chiem`), and the
+l-vocalised spellings this repo's own rulebook prescribes (`aues`, `viu`,
+`schnäu`). The bare stems `wär`, `hätt`, `tät` and `wett` are deliberately NOT
+here: all four are ordinary written German, so they sit in the weak tier.
 One is enough to fire. The verb forms alone were not enough: an imperative, a
 first-person statement or a bare greeting contains none of them.
 

@@ -164,3 +164,23 @@ xx	german	Ich tät sagen, wir machen das morgen.
 xx	german	Er hat den Verlust wieder wett gemacht.
 xx	german	Das wär gut, wenn ich mehr Zeit hätt.
 xx	german	Ich hätt gedacht, das wär längst erledigt.
+
+# Round-19 additions. Markers introduced in rounds 17 and 18 that are also
+# ordinary words or proper names elsewhere: Andersch is a German surname
+# (Alfred Andersch), gieng is the 19th-century German spelling of ging,
+# and merci joined the supporting tier, which turns two of the negatives
+# above into a firing pair when they meet in one prompt.
+xx	german	Ich lese gerade Alfred Andersch.
+xx	german	Der Roman von Andersch steht im Regal.
+xx	german	Als er hinaus gieng, war es schon dunkel.
+xx	other	Merci, il fait le guet devant la porte.
+xx	other	Het is een mooie dag vandaag. De geit staat in de wei.
+
+# The recall side of the same round-18 change. war, hatt, tat and wett were
+# demoted to the WEAK subset, so a Bernese sentence whose only markers are
+# those stems now needs three of them and goes silent. None of these three
+# is Standard German: 'Wer haette das gedacht?', 'Wer haette das gewusst?',
+# 'Das wollte ich auch.'
+bd	question	Wär hätt das dänkt?
+bd	question	Wär hätt das gwüsst?
+bd	short	Das wett i o.

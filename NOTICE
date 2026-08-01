@@ -111,6 +111,12 @@ list that goes stale.
 
     every shared sequence is a citation or a pair of named letters
 
+For the two copies the script says so itself on stderr: below twenty backticked
+words it measures EVERY word of the text instead, so "illustrative words: 212"
+for the compact rulebook counts its prose as well as its examples. The headline
+percentage for those two is therefore a whole-text overlap, not an example
+overlap, and it is quoted here as the script reports it rather than relabelled.
+
 Between a quarter and a half of the illustrative vocabulary is shared, and
 pretending otherwise would be silly. These are the standard illustrations for
 these rules, for several rules they are close to the only ones that exist, and

@@ -101,6 +101,23 @@ def clean(raw):
     return " ".join(html.unescape(re.sub(r"<[^>]+>", "", raw)).split())
 
 
+# A Schreibweisen field is hand-maintained and sometimes holds prose rather than
+# variants. Entry 13962 (huere-) fills it with a German sentence about compound
+# spelling, and every comma-separated clause of it became an EXACT headword: the
+# query "Nomen werden meist zusammen geschrieben" was certified as a Bernese
+# word. That is the false EXACT this tool exists to prevent, arriving from the
+# one direction nothing was checking.
+MAX_VARIANT_WORDS = 4
+
+
+def plausible(candidate):
+    """Whether a fragment can be a spelling of one word rather than prose."""
+    if len(candidate.split()) > MAX_VARIANT_WORDS:
+        return False
+    # Sentence punctuation inside a fragment means a sentence, not a spelling.
+    return not re.search(r'["«»„“”]|\.\s|[!?]', candidate)
+
+
 def spellings(alt):
     """Parse a 'Schreibweisen: aafaa, aafo' line into a list of forms."""
     if not alt:
@@ -122,7 +139,18 @@ def spellings(alt):
         part = tidy(part)
         if not part:
             continue
+        if not plausible(part):
+            continue
         forms.append(part.lower())
+        # A region or register label is not a fixed vocabulary. Entry 13274
+        # writes "Stadt Bern: neime", two tokens, and the QUALIFIERS loop only
+        # strips one known word at a time, so the bare «neime» was never
+        # produced and bdw called a listed variant nonexistent. Anything before
+        # the LAST colon is a label; what follows it is the word.
+        if ":" in part:
+            tail = tidy(part.rsplit(":", 1)[1])
+            if tail and plausible(tail):
+                forms.append(tail.lower())
         # Not every qualifier is bracketed: the site also writes bare ones such
         # as "Oberland yche gah", and punctuates them freely. Entry 14099
         # (Gspaane) lists "Oberland: Gspändleni" with a colon, which was not in

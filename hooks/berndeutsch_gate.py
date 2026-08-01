@@ -352,18 +352,39 @@ def expand(path):
         return Path(path)
 
 
+def unresolved(path):
+    """True when a leading ~ survived expansion, so the path is not a path.
+
+    expand() falls back to the literal string when "~someone" cannot be
+    resolved, which keeps the hook alive but leaves a name beginning with a
+    tilde. Handing that to mkdir(parents=True) does not fail: it creates a
+    directory literally called "~someone" in whatever directory the hook
+    happens to have been started from, which for a prompt hook is the user's
+    project. Silently, on every prompt.
+    """
+    return str(path).startswith("~")
+
+
 def config_dir():
+    """Where session state lives, or None if there is nowhere sensible.
+
+    None rather than a guess. Every caller already has to cope with the state
+    directory being unusable, because it can be read-only or full, and a
+    littered project directory is a worse failure than losing the once-per-
+    session budget for one session.
+    """
     explicit = os.environ.get("CLAUDE_CONFIG_DIR")
     if explicit:
-        # expanduser: an unexpanded "~" would create a literal ~ directory
-        # wherever the hook happens to be running from.
-        return expand(explicit)
+        candidate = expand(explicit)
+        return None if unresolved(candidate) else candidate
     home = os.environ.get("HOME")
     if not home:
         try:
             home = os.path.expanduser("~")
         except (OSError, RuntimeError, ValueError):
-            home = "."
+            return None
+    if not home or unresolved(home):
+        return None
     return Path(home) / ".claude"
 
 
@@ -408,7 +429,9 @@ def rulebooks(here):
     seen.clear()
     add(os.environ.get("BERNDEUTSCH_IDIOLECT"))
     try:
-        for overlay in sorted(config_dir().glob("projects/*/memory/berndeutsch-schrybwys.md")):
+        cfg = config_dir()
+        for overlay in sorted(cfg.glob("projects/*/memory/berndeutsch-schrybwys.md")
+                              if cfg else []):
             add(overlay)
     except OSError:
         pass
@@ -416,7 +439,11 @@ def rulebooks(here):
 
 
 def lookup_tool(here):
-    for candidate in (here.parent / "scripts" / "bdw", config_dir() / "scripts" / "bdw"):
+    cfg = config_dir()
+    places = [here.parent / "scripts" / "bdw"]
+    if cfg:
+        places.append(cfg / "scripts" / "bdw")
+    for candidate in places:
         try:
             if candidate.is_file() and os.access(candidate, os.X_OK):
                 return candidate.resolve()
@@ -527,7 +554,13 @@ def session_marker(session_id):
     if not isinstance(session_id, str) or not session_id:
         return None
     safe = re.sub(r"[^A-Za-z0-9_-]", "_", session_id)[:128]
-    state_dir = config_dir() / "cache" / "berndeutsch-gate"
+    cfg = config_dir()
+    if cfg is None:
+        # Nowhere sensible to keep state. The turn still gets its rules; it just
+        # cannot remember that it did, which costs the once-per-session budget
+        # and nothing else.
+        return None
+    state_dir = cfg / "cache" / "berndeutsch-gate"
     try:
         state_dir.mkdir(parents=True, exist_ok=True)
     except OSError:
