@@ -158,12 +158,6 @@ def main():
         return 3
 
     db = SESSION / "session.sqlite"
-    # The measured copy, not the working tree. Line numbers in the session
-    # belong to the source cosmic-ray actually mutated; read them against a
-    # file that has been edited since and every mutant is attributed to the
-    # wrong function, silently and plausibly.
-    measured = SESSION / "tree" / TARGET
-    source = (measured if measured.is_file() else REPO / TARGET).read_text(encoding="utf-8")
 
     if not args.report_only:
         SESSION.mkdir(parents=True, exist_ok=True)
@@ -200,6 +194,12 @@ def main():
     if not db.exists():
         print("no previous session to report", file=sys.stderr)
         return 2
+
+    # After staging, so this is the source cosmic-ray actually mutated. Read the
+    # working tree instead and every mutant is attributed to the wrong function
+    # as soon as the file has been edited by as little as one inserted line.
+    measured = SESSION / "tree" / TARGET
+    source = (measured if measured.is_file() else REPO / TARGET).read_text(encoding="utf-8")
 
     finished, planned = completeness(db)
     if finished < planned:

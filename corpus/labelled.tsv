@@ -153,3 +153,14 @@ xx	other	C'était un guet-apens: le serveur renvoie une 500.
 xx	other	De geit staat in de wei naast de schuur.
 xx	other	Ik heb een geit en twee schapen.
 xx	german	Wir betreiben das im ITZ und nicht in der Cloud.
+
+# German written with the colloquial subjunctive stems. These four were added
+# to DECISIVE in round 17 as part of the Konjunktiv II paradigm and are
+# ordinary German, so each one alone injected the full rulebook and spent the
+# session's single injection.
+xx	german	Das wär super, wenn wir das noch diese Woche deployen könnten.
+xx	german	Ich hätt da noch eine Frage zum Deployment.
+xx	german	Ich tät sagen, wir machen das morgen.
+xx	german	Er hat den Verlust wieder wett gemacht.
+xx	german	Das wär gut, wenn ich mehr Zeit hätt.
+xx	german	Ich hätt gedacht, das wär längst erledigt.

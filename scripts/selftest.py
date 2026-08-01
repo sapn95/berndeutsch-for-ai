@@ -24,6 +24,7 @@ network that is down must never look like a repository that is broken.
 """
 
 import argparse
+import ast
 import importlib.machinery
 import importlib.util
 import json
@@ -482,6 +483,36 @@ def overlap_checks():
     check("a markdown target is measured whole", embedded is None)
 
 
+def mutation_order_checks():
+    """The measured source must be read AFTER the tree is staged.
+
+    Read before, and a live run attributes its mutants using the PREVIOUS
+    run's copy: every line number still resolves to some function, so the
+    report looks entirely normal and is wrong by however many lines the file
+    has moved. That shipped, and the wrong numbers were quoted to a user
+    before anything noticed. Checked as source ORDER because that is exactly
+    what the invariant is.
+    """
+    print("mutation.py: reads the source it measured")
+    tree = ast.parse((REPO / "scripts" / "mutation.py").read_text(encoding="utf-8"))
+    main = next((n for n in tree.body
+                 if isinstance(n, ast.FunctionDef) and n.name == "main"), None)
+    if not check("mutation.py has a main()", main is not None):
+        return
+    stage_line = source_line = None
+    for node in ast.walk(main):
+        if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "stage":
+            stage_line = node.lineno
+        if (isinstance(node, ast.Assign) and len(node.targets) == 1
+                and getattr(node.targets[0], "id", "") == "source"):
+            source_line = node.lineno
+    if not check("it stages and it reads a source", stage_line and source_line,
+                 f"stage at {stage_line}, source at {source_line}"):
+        return
+    check("the source is read after staging", source_line > stage_line,
+          f"stage() on line {stage_line}, source read on line {source_line}")
+
+
 def citation_checks():
     """The cited titles must agree with each other across files.
 
@@ -586,6 +617,7 @@ def main():
     packaging_checks()
     overlap_checks()
     citation_checks()
+    mutation_order_checks()
     readme_number_checks()
     classifier_checks()
     if args.online:

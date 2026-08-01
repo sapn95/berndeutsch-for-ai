@@ -67,8 +67,9 @@ meiteli gieu hegu
 aues viu viumau viumou schnäu chüngu wüescht gnue luschtig
 ahnig louf louft chlepfe chlepft poschte poschtet guete
 lueg luegit schryb schrybit säg sägit öb mues muess churz
-wär wäri wärsch wärit wett wetti wettsch wettit gieng giengsch giengit
-chiem chiemsch chiemti hätt hätti hättsch hättit tät täti tätsch jä
+liebschte beschte schönschte gröschte schnäuschte deheime andersch
+wäri wärsch wärit wetti wettsch wettit gieng giengsch giengit
+chiem chiemsch chiemti hätti hättsch hättit täti tätsch jä
 chönnti chönntsch müessti müesstisch chunnti
 """.split())
 
@@ -122,6 +123,7 @@ SUPPORTING = frozenset("""
 nid nit gsi gha kei chum witt geng gits hämmer gäu aut modi ching gange
 het mys gly heit
 hei cha wott gah luege scho öi nöime hüt dänk söll nei guet geit merci
+wär hätt tät wett
 znüni zmorge zobe zvieri meitschi bueb
 """.split())
 
@@ -159,6 +161,7 @@ znüni zmorge zobe zvieri meitschi bueb
 WEAK = frozenset("""
 nit gsi gha kei aut mys gly
 modi ching geng chum gits cha gange witt hämmer gäu heit
+wär hätt tät wett
 """.split())
 
 # One decisive marker fires. Otherwise two DISTINCT supporting markers are
