@@ -188,6 +188,32 @@ def hook_checks(tmp):
           and not gate.prefixed("ufxyz"),
           "the perfect is the only past tense the language has")
 
+    # A rule that GENERATES markers has to be checked on what it generates,
+    # because there is no list left to read. One combination, "agha", was an
+    # English word (an Ottoman title) and was decisive, so a single occurrence
+    # injected the whole rulebook.
+    generated = {p + w for p in gate.PREFIXES for w in gate.PARTICIPLES
+                 if gate.prefixed(p + w)}
+    listed = set()
+    source = HOOK.read_text(encoding="utf-8")
+    for name in ("DECISIVE", "SUPPORTING"):
+        listed |= set(source.split(f'{name} = frozenset("""', 1)[1]
+                      .split('"""')[0].split())
+    generated |= (gate.DECISIVE | gate.SUPPORTING) - listed
+    dictionaries = [Path(d) for d in ("/usr/share/dict/words", "/usr/share/dict/web2")
+                    if Path(d).exists()]
+    if dictionaries:
+        english = set()
+        for path in dictionaries:
+            english |= {w.strip().lower()
+                        for w in path.read_text(errors="ignore").splitlines()}
+        collisions = sorted(generated & english)
+        check(f"no generated marker is an English word ({len(generated)} generated)",
+              not collisions, str(collisions))
+    else:
+        SKIPPED.append("generated markers vs an English dictionary: none installed")
+        print("  skip  no generated marker is an English word  (no system dictionary)")
+
     print("hook: prompts that must load the rules")
     for i, (prompt, why) in enumerate(FIRES):
         ctx, err = run_hook(prompt, f"fire-{i}", tmp / f"fire{i}")
