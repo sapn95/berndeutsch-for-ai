@@ -63,12 +63,18 @@ def cases():
     for line in LABELLED.read_text(encoding="utf-8").splitlines():
         if not line.strip() or line.lstrip().startswith("#"):
             continue
-        parts = line.split("\t")
+        # maxsplit=2: a tab inside the TEXT is part of the text, not a fourth
+        # field. And nothing is dropped silently: a row that does not parse, or
+        # a label that is not one of the two, is a mistake in the data and has
+        # to be loud. Discarding it quietly moves the metric in whichever
+        # direction the mistake happened to point.
+        parts = line.split("\t", 2)
         if len(parts) != 3:
-            continue
-        label, kind, text = parts
-        # The file stores escapes literally, the way a pasted log carries them.
-        yield label.strip(), kind.strip(), text
+            raise SystemExit(f"corpus/labelled.tsv: not three fields: {line!r}")
+        label, kind, text = parts[0].strip(), parts[1].strip(), parts[2]
+        if label not in ("bd", "xx"):
+            raise SystemExit(f"corpus/labelled.tsv: label is not bd or xx: {label!r}")
+        yield label, kind, text
 
 
 def wilson(hits, total, z=1.96):

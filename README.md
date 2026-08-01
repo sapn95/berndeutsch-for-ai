@@ -46,6 +46,31 @@ claude:  answers in Bärndütsch, with nid instead of nöd
 | `scripts/mutation.py` | Mutation score: whether the tests can fail at all. |
 | `NOTICE` | Who wrote what this repository summarises, and under which licence. |
 
+## How the pieces fit together
+
+The rulebook is the product. Everything else is a way of getting it in front of
+a model at the right moment.
+
+```mermaid
+flowchart LR
+    RB["rules/schrybwys.md<br/>the rulebook"]
+    CB["rules/schrybwys-compact.md<br/>the same rules, 1789 characters"]
+
+    RB --> ANY["any AI<br/>paste into a system prompt,<br/>AGENTS.md, .cursor/rules"]
+    CB --> BOX["instruction boxes with a limit<br/>ChatGPT custom instructions"]
+    RB --> HOOK["hooks/berndeutsch_gate.py<br/>Claude Code only"]
+
+    HOOK -->|"only on dialect turns"| CTX["the rules, in that turn"]
+    ANY -->|"on every turn, always"| CTX
+    BOX -->|"on every turn, always"| CTX
+
+    BDW["scripts/bdw<br/>look a word up before using it"] -.->|"named in the injected text"| CTX
+```
+
+The only difference between the paths is *when* the rules are present. Pasted
+instructions sit in context on every unrelated turn; the hook injects them on
+the turns that are in dialect and stays quiet otherwise.
+
 ## Use it with any AI
 
 The rulebook is the product; the hook is one delivery mechanism. Nothing in
@@ -159,12 +184,31 @@ The first run said what no amount of reviewing had: **precision 100%, recall
 ones you can see. One Bernese sentence in six was being dropped in silence, and
 the whole class of imperatives was missing from the marker lists.
 
+The three of them make one loop, and the arrow that closes it is the useful
+part: a mutation that survives is, by definition, a behaviour no test describes,
+so the surviving list is a to-do list for the labelled set.
+
+```mermaid
+flowchart TD
+    CODE["hooks/berndeutsch_gate.py"]
+
+    CODE --> EV["scripts/evaluate.py<br/>is the answer right?"]
+    CODE --> ST["scripts/selftest.py<br/>does anything still work?"]
+    EV --> LAB["corpus/labelled.tsv<br/>113 labelled prompts"]
+    LAB --> NUM["precision and recall<br/>100% and 100%"]
+
+    EV --> MUT["scripts/mutation.py<br/>CAN these tests fail?"]
+    ST --> MUT
+    MUT --> SCORE["mutation score<br/>82% of changes get caught"]
+    SCORE -.->|"every surviving mutant<br/>is a missing test"| EV
+```
+
 `mutation.py` answers the other question, the one reviewers kept guessing at:
 can these tests fail? It uses [cosmic-ray](https://github.com/sixty-north/cosmic-ray)
 to change the code and check that something goes red. An assertion that cannot
 fail kills nothing, and the score says so without anybody's opinion in it. The
 detection core started at **19%**, with 75 of 75 mutations to the window
-function surviving. It is **86%** now. That is the only reason to believe the
+function surviving. It is **82%** now. That is the only reason to believe the
 tests above are worth anything.
 
 The surviving-mutant list is also the best source of test cases there is. Four
@@ -230,6 +274,20 @@ not exist.
 
 ## How the detection works
 
+```mermaid
+flowchart TD
+    P["your prompt"] --> W["scan window<br/>first 3000 + last 3000 characters"]
+    W --> T["split into words<br/>runs touching a digit, _, / or + are dropped"]
+    T --> D{"a decisive<br/>marker?"}
+    D -->|"yes: isch, chasch, itz, wett"| B{"first dialect turn<br/>this session?"}
+    B -->|yes| FULL["inject the FULL rulebook<br/>about 9 KB, once per session"]
+    B -->|no| CL["inject the short checklist<br/>about 1.5 KB"]
+    D -->|no| S{"two supporting markers?<br/>three if all of them are weak"}
+    S -->|"yes: het + nid"| CL
+    S -->|no| N["inject nothing"]
+```
+
+
 Marker matching over the first and last 3000 characters of the prompt, so that
 a large paste neither hides the question nor costs anything to scan. A 1.4 MB
 paste takes 0.15 s.
@@ -239,7 +297,8 @@ Two tiers, and both of them decide something.
 **Decisive markers** cannot plausibly appear in English or German running text.
 They are the second-person `-sch` verb forms (`chasch`, `bisch`, `weisch`,
 `machsch`, `wohnsch`), plus everyday words that carry the dialect without a
-verb: `isch`, `gsy`, `öppis`, `chli`, `znüni`, `Meitschi`, and the l-vocalised
+verb: `isch`, `gsy`, `öppis`, `chli`, `itz`, `gäng`, `Meiteli`, the Konjunktiv
+II forms (`wär`, `wett`, `gieng`, `hätt`, `chiem`), and the l-vocalised
 spellings this repo's own rulebook prescribes (`aues`, `viu`, `schnäu`).
 One is enough to fire. The verb forms alone were not enough: an imperative, a
 first-person statement or a bare greeting contains none of them.
@@ -259,7 +318,10 @@ und die Migration ist noch im Gange` and the bare URL path `GET /api/het/modi`.
 So the collision-prone markers are named as a set of their own, and **two of
 them together decide nothing: three are needed.** A sentence with three separate
 collisions is no longer a coincidence, and real Bernese reaches three without
-effort, so `Er het das nid gha` still fires on three weak markers alone.
+effort. `gsi gha nit` is three of them and fires; `gsi gha` is two and does
+not. (`het` and `nid` are deliberately outside that set: auxiliary plus
+negation is the commonest pair in the language, and requiring a third silenced
+`Das het nid klappt` for a whole round.)
 
 Ordinary German words like `halt`, `grad`, `wäge` and `sowieso` are in neither
 tier. An earlier version had them, and `Das ist halt so, das dauert grad noch

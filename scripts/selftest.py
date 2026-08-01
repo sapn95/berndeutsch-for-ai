@@ -163,6 +163,18 @@ def hook_checks(tmp):
     check("the supporting tier keeps some non-weak markers",
           len(gate.SUPPORTING - gate.WEAK) >= 8,
           f"{len(gate.SUPPORTING - gate.WEAK)} non-weak")
+    check("CASED contains only real markers",
+          gate.CASED <= (gate.DECISIVE | gate.SUPPORTING),
+          str(sorted(gate.CASED - (gate.DECISIVE | gate.SUPPORTING))))
+    # A frozenset silently swallows a repeated word, so the same marker can be
+    # listed twice in the source and nothing notices. Harmless in itself, but it
+    # is the visible symptom of a list edited without reading it, which is how
+    # `wei` came back after being removed for colliding with a name.
+    source = HOOK.read_text(encoding="utf-8")
+    for name in ("DECISIVE", "SUPPORTING", "WEAK"):
+        listed = source.split(f'{name} = frozenset("""', 1)[1].split('"""')[0].split()
+        dupes = sorted({w for w in listed if listed.count(w) > 1})
+        check(f"no marker is listed twice in {name}", not dupes, str(dupes))
 
     print("hook: prompts that must load the rules")
     for i, (prompt, why) in enumerate(FIRES):

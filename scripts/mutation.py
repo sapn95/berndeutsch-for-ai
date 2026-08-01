@@ -56,6 +56,13 @@ MIN_SCORE = 80.0
 
 def stage():
     """A copy of the tracked tree, because cosmic-ray edits files in place."""
+    SESSION.mkdir(parents=True, exist_ok=True)
+    # Keep Spotlight out. This directory is a whole copy of the tree, written
+    # and deleted on every run, and it lives under the user's home where macOS
+    # indexes by default. Indexing it made the Finder redraw repeatedly while a
+    # run was in progress. The marker file is the documented way to opt a
+    # directory out, and it is inert everywhere else.
+    (SESSION / ".metadata_never_index").touch(exist_ok=True)
     work = SESSION / "tree"
     if work.exists():
         shutil.rmtree(work)
@@ -87,6 +94,14 @@ def owner_map(source):
                 found = name
         return found
     return owner
+
+
+def completeness(db_path):
+    """(finished, planned). A partial session is not a smaller measurement."""
+    db = sqlite3.connect(db_path)
+    planned = db.execute("select count(*) from work_items").fetchone()[0]
+    finished = db.execute("select count(*) from work_results").fetchone()[0]
+    return finished, planned
 
 
 def score(db_path, source, only=None):
@@ -143,7 +158,12 @@ def main():
         return 3
 
     db = SESSION / "session.sqlite"
-    source = (REPO / TARGET).read_text(encoding="utf-8")
+    # The measured copy, not the working tree. Line numbers in the session
+    # belong to the source cosmic-ray actually mutated; read them against a
+    # file that has been edited since and every mutant is attributed to the
+    # wrong function, silently and plausibly.
+    measured = SESSION / "tree" / TARGET
+    source = (measured if measured.is_file() else REPO / TARGET).read_text(encoding="utf-8")
 
     if not args.report_only:
         SESSION.mkdir(parents=True, exist_ok=True)
@@ -181,6 +201,14 @@ def main():
         print("no previous session to report", file=sys.stderr)
         return 2
 
+    finished, planned = completeness(db)
+    if finished < planned:
+        print(f"\nINCOMPLETE: {finished} of {planned} mutants ran. A partial "
+              f"session is not a smaller measurement of the same thing, it is a "
+              f"measurement of an arbitrary subset.", file=sys.stderr)
+        print("Re-run without a timeout, or pass --report-only knowing this.",
+              file=sys.stderr)
+
     only = None if args.full else set(DETECTION)
     total, survived = score(db, source, only)
     label = "whole hook" if args.full else "detection core"
@@ -193,7 +221,11 @@ def main():
         print("line coverage says. That is the honest reading.")
     print(json.dumps({"scope": label, "score": round(overall, 1),
                       "mutants": sum(total.values()),
-                      "survived": sum(survived.values())}))
+                      "survived": sum(survived.values()),
+                      "complete": finished >= planned,
+                      "ran": finished, "planned": planned}))
+    if finished < planned:
+        return 2
     if not args.full and overall < MIN_SCORE:
         print(f"\nBELOW FLOOR: {overall:.0f}% < {MIN_SCORE:.0f}%", file=sys.stderr)
         return 1

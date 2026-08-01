@@ -3,10 +3,16 @@ packaging files.
 
 rules/ is licensed separately, under CC BY-SA 4.0; see rules/LICENSE.
 
-README.md, NOTICE, corpus/sources.md and rules/LICENSE are documentation of
-this repository and are covered by the MIT licence set out below. corpus/texts/ is not
-part of this repository; it is downloaded locally and stays under the licence
-of its authors. NOTICE records the provenance of everything.
+Everything else committed here is covered by the MIT licence set out below:
+README.md, NOTICE, rules/LICENSE, corpus/sources.md and corpus/labelled.tsv,
+which is a set of example prompts written for this repository. The enumeration
+is stated that way round on purpose. The previous version listed the files by
+name and a new one, corpus/labelled.tsv, was added without being added here, so
+for a while the repository shipped a file no licence file mentioned.
+
+corpus/texts/ is not part of this repository; it is downloaded locally by
+scripts/bd-corpus and stays under the licence of its authors. NOTICE records
+the provenance of everything.
 
 MIT License
 

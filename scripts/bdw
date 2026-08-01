@@ -221,7 +221,10 @@ def heads_of(entry):
 
     for variant in strip_annotations(entry["word"]):
         primary.append(variant)
-        parts = re.split(r"[,;]", variant)
+        # Same separator class as spellings() uses on the Schreibweisen line.
+        # The two disagreed, so a headword written "wälts / wäuts" kept the
+        # slash and matched neither spelling.
+        parts = re.split(r"[,;/]", variant)
         if len(parts) > 1:
             derived += parts
         for part in parts:

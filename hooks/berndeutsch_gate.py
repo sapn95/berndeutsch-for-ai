@@ -62,11 +62,14 @@ nüme nümme müed gärn üs üsi üse
 zyt schrybe schrybt blybe blybt zäme wyt myni gsäh wotsch
 gseht gschribe ggange verstande chönnt chönnte tuet gnoh gläse
 machemer gömer simer gmacht gseit gwüss mitenand sälber eifach gäbig
-öbe äbe grüessech vilmal gäng äuä äuwä nüt nüüt geits geit gaht gahts goht gohts
-zäme meiteli gieu hegu
+öbe äbe grüessech vilmal gäng äuä äuwä nüt nüüt geits gaht gahts goht gohts
+meiteli gieu hegu
 aues viu viumau viumou schnäu chüngu wüescht gnue luschtig
 ahnig louf louft chlepfe chlepft poschte poschtet guete
-lueg luegit schryb schrybit säg sägit öb mues muess guet churz
+lueg luegit schryb schrybit säg sägit öb mues muess churz
+wär wäri wärsch wärit wett wetti wettsch wettit gieng giengsch giengit
+chiem chiemsch chiemti hätt hätti hättsch hättit tät täti tätsch jä
+chönnti chönntsch müessti müesstisch chunnti
 """.split())
 
 # SUPPORTING: genuinely Bernese, but each one collides with a real word or a
@@ -118,7 +121,7 @@ lueg luegit schryb schrybit säg sägit öb mues muess guet churz
 SUPPORTING = frozenset("""
 nid nit gsi gha kei chum witt geng gits hämmer gäu aut modi ching gange
 het mys gly heit
-hei cha wott gah luege scho öi nöime hüt dänk söll nei
+hei cha wott gah luege scho öi nöime hüt dänk söll nei guet geit merci
 znüni zmorge zobe zvieri meitschi bueb
 """.split())
 
@@ -164,6 +167,13 @@ modi ching geng chum gits cha gange witt hämmer gäu heit
 # are required instead.
 MIN_SUPPORTING = 2
 MIN_WEAK_ONLY = 3
+
+# Markers that must be written in lower case to count, or capitalised only at
+# the start of a sentence. Every WEAK marker qualifies by construction, and a
+# few DECISIVE ones do too: ITZ is a German IT department, and one occurrence
+# of a decisive marker injects the whole rulebook, so an acronym reading is
+# expensive there rather than merely wrong.
+CASED = WEAK | frozenset("itz".split())
 # Splitting one list into two invites a typo that leaves an entry unreachable,
 # which is the bug scripts/bd-corpus shipped for real. The check lives in
 # scripts/selftest.py rather than in an assert here: a hook that raises on a
@@ -257,7 +267,13 @@ def word_tokens(text):
 # What can precede a word and still leave it sentence-initial. A capital there
 # is the orthography, not a signal, so a WEAK marker written "Chum" at the start
 # of a Bernese sentence has to keep counting.
-SENTENCE_END = frozenset(".!?:;\"»)]…\n\r")
+#
+# Openers as well as closers. The first version held only closing punctuation,
+# which is the wrong half: a sentence does not begin after a closing quote, it
+# begins after an OPENING one. «Chum mer wei das luege.» went silent, and so did
+# the same sentence as a markdown bullet or a blockquote, which is how half the
+# prompts in a chat client are actually written.
+SENTENCE_END = frozenset(".!?:;\"'»«„“”‹›()[]…\n\r-*>•\u2013\u2014")
 
 
 def word_matches(text):
@@ -289,23 +305,26 @@ def is_dialect(text):
     """
     window = scan_window(text)
     matches = word_matches(window)
-    if any(m.group().lower() in DECISIVE for m in matches):
+
+    def counts(m):
+        """False when a case-sensitive marker was not written like the word.
+
+        Its collision is with an acronym or a German noun, and both of those
+        are capitalised where the Bernese word is not: NID, GSI, GHA, MYS,
+        Gly, ITZ, "im Gange", "zwei Modi", "Minister Modi". A capital at the
+        start of a sentence is orthography rather than evidence, so that one
+        still counts.
+        """
+        token = m.group()
+        if token.lower() not in CASED or token == token.lower():
+            return True
+        return (token == token.capitalize()
+                and sentence_initial(window, m.start()))
+
+    if any(m.group().lower() in DECISIVE and counts(m) for m in matches):
         return True, True
-    # A WEAK marker only counts when it was actually written in lower case, or
-    # when its capital is just the start of a sentence. Its collision is with an
-    # acronym or a German noun, and both of those are capitalised mid-sentence:
-    # NID, GSI, GHA, MYS, Gly, "im Gange", "zwei Modi", "Minister Modi". The
-    # Bernese words are not.
-    matched = set()
-    for m in matches:
-        low = m.group().lower()
-        if low not in SUPPORTING:
-            continue
-        if low in WEAK and m.group() != low and not (
-                m.group() == m.group().capitalize()
-                and sentence_initial(window, m.start())):
-            continue
-        matched.add(low)
+    matched = {m.group().lower() for m in matches
+               if m.group().lower() in SUPPORTING and counts(m)}
     # Two distinct markers, or three if every one of them also reads as
     # ordinary non-Bernese text. Both halves are needed: without the count, one
     # token decides a prompt; without the weak rule, "the GHA workflow and the

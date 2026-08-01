@@ -168,7 +168,11 @@ politeness as the second person plural) follows the Alemannic Wikipedia article
 
 corpus/
 -------
-corpus/sources.md is ours. corpus/texts/ is not committed to this repository;
+corpus/sources.md and corpus/labelled.tsv are ours. labelled.tsv is a set of
+example prompts written for this repository to measure the detector against;
+none of it is quoted from anywhere, and none of it is real correspondence.
+
+corpus/texts/ is not committed to this repository;
 it is produced locally by scripts/bd-corpus, which downloads Alemannic
 Wikipedia articles licensed CC BY-SA 4.0 and writes the attribution into the
 header of every file it creates. If you redistribute those texts, CC BY-SA 4.0
