@@ -114,8 +114,12 @@ def plausible(candidate):
     """Whether a fragment can be a spelling of one word rather than prose."""
     if len(candidate.split()) > MAX_VARIANT_WORDS:
         return False
-    # Sentence punctuation inside a fragment means a sentence, not a spelling.
-    return not re.search(r'["«»„“”]|\.\s|[!?]', candidate)
+    # Sentence punctuation means a sentence, not a spelling. A full stop only
+    # counts when a LOWER-CASE word follows it: "PP. abghoufe" is a grammatical
+    # abbreviation in front of a variant, which the qualifier loop strips,
+    # while "nicht. Wir empfehlen" is prose. Vetoing every full stop threw the
+    # real variants away with the prose.
+    return not re.search(r'["«»„“”]|\.\s+[a-zäöü]|[!?]', candidate)
 
 
 def spellings(alt):

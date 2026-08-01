@@ -336,3 +336,69 @@ bd	url	Mir hei 3.5 Stund gschaffet u es isch guet gsi.
 bd	url	Version 1.2.3 isch itz drusse, chasch das teschte?
 bd	url	Schrib mer u.s.w. i ds Dokumänt, das isch guet.
 xx	url	Check https://itz.example.com/viu and the zyt.example.org CNAME.
+
+# Round-23. The CARDINAL NUMERALS are in neither tier, in any spelling. The
+# rulebook this repository ships declines two and three itself (`zwe Here`,
+# `zwo Froue`, `zwöi Ching`, `drü Ching`), and berndeutsch.ch carries zwöi,
+# drü, zwänzg and tuusig as headwords, so these are not invented forms: they
+# are the prescribed ones. A numeral is the commonest content word there is in
+# the register this hook runs in ("mir hei zwöi Server", "es het drü Fähler"),
+# and every one of these is silent.
+bd	numeral	Mir hei zwöi Server im Cluster.
+bd	numeral	Es het drü Fähler drin.
+bd	numeral	Das choschtet tuusig Franke im Jahr.
+bd	numeral	Mir warte scho zwänzg Minute.
+bd	numeral	Zwöi vo de Tests bringe rot.
+bd	numeral	Drü Team schaffe a däm Ticket.
+
+# Round-23. The -ig noun class (High German -ung) is hand-listed in the BARE
+# SINGULAR only: ändrig sitzig rächnig wohnig ladig bschtellig zahlig meinig.
+# berndeutsch.ch gives the plural in the headword itself -- "Rächnig [f., Pl.
+# Rächnige]" -- and not one of those plurals matches anything. Contrast the
+# -lech class, which got an inflection-aware regex (i|e|er|s|te|schte); the
+# -ig class got a list of ten uninflected words.
+bd	ig-plural	D Rächnige stimme nid.
+bd	ig-plural	D Ändrige sy scho dinne.
+bd	ig-plural	Die Wohnige im Ort sy z tüür.
+bd	ig-plural	Mir warte no uf d Bschtellige.
+bd	ig-plural	I ha d Zahlige kontrolliert.
+
+# Round-23. suffixed()/LECH_RE is DECISIVE on its own and its regex is
+# `^\w{2,}lech(i|e|er|s|te|schte)?$`. German's -Blech compounds are a fully
+# productive noun class and every one of them ends in ...b + lech with at
+# least two characters in front, so Schutzblech, Backblech, Wellblech,
+# Trapezblech and the rest all clear the rule and inject the FULL 9 KB
+# rulebook into an ordinary German turn, spending the session's one full
+# injection. English /usr/share/dict/words contributes cromlech, kreplech,
+# parfleche and teiglech to the same class.
+xx	lech	Das Schutzblech am Velo ist verbogen, kannst du das reparieren?
+xx	lech	Wir brauchen ein neues Backblech für die Kantine.
+xx	lech	Lochblech, Trapezblech und Weissblech sind ab Lager lieferbar.
+xx	lech	Die Wellblech-Fassade der Halle muss saniert werden.
+xx	lech	The cromlech at Pentre Ifan is a neolithic burial chamber.
+
+# Round-23. LECH_RE is a GENERATED DECISIVE marker, so one match injects the
+# full 9 KB rulebook and spends the session's single full injection. The rule
+# is `^\w{2,}lech(i|e|er|s|te|schte)?$`, and "sch" + "lech" + "te" is the
+# ordinary German adjective SCHLECHTE, rank 1277 by frequency (9581 hits in
+# the de_50k OpenSubtitles list). selftest.py pins `not suffixed("blech")`,
+# which passes only because "blech" has one letter before the -lech; every
+# COMPOUND of Blech, every -flechte and stilecht walk through.
+xx	german-lech	Die schlechte Performance der Pipeline nervt mich.
+xx	german-lech	Das ist eine schlechte Idee, bitte prüfe die Alternative.
+xx	german-lech	Wir haben eine schlechte Erfahrung mit dem Anbieter gemacht.
+xx	german-lech	Der schlechte Zustand des Codes ist dokumentiert.
+xx	german-lech	Eine stilechte Restaurierung dauert mehrere Monate.
+
+# Round-23. The -li DIMINUTIVE is in neither tier. It is the most productive
+# noun class the language has, and this repository's own CHECKLIST names three
+# of them as its worked examples ("Gipfeli, Meiteli, Bibeli") -- yet only
+# meiteli and chli are markers, so the class as a class is invisible. Every
+# one of these is silent.
+bd	diminutive	Nimm no es Gipfeli.
+bd	diminutive	Mir hei no es Bierli trunke.
+bd	diminutive	S Hüsli ghört em Nachbar.
+bd	diminutive	Es Momäntli, bitte.
+bd	diminutive	Das Chindli schlaft no.
+bd	diminutive	Häsch es Böxli für die Schruube?
+bd	diminutive	D Vögeli sy im Garte.

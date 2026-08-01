@@ -66,11 +66,14 @@ machemer gömer simer gmacht gseit gwüss mitenand sälber eifach gäbig
 öbe äbe grüessech vilmal gäng äuä äuwä nüt nüüt geits gaht gahts goht gohts
 meiteli gieu hegu
 aues viu viumau viumou schnäu chüngu wüescht gnue luschtig
+gipfeli bierli hüsli momäntli chindli böxli vögeli meitli brötli
+stückli züpfli chüechli gläsli schöggeli chatzli hündli fänschterli
 ahnig louf louft chlepfe chlepft poschte poschtet guete
 lueg luegit schryb schrybit säg sägit öb mues muess churz
 mäntig zischtig mittwuch donnschtig fritig samschtig sunntig
 ändrig sitzig rächnig wohnig ladig bschtellig zahlig meinig ornig rüschtig
-morn übermorn geschter vorgeschter aabe morge namittag nomittag
+zwöi zwo drü füf sächs sibe nün zäh euf zwöuf zwänzg drissg vierzg füfzg tuusig
+übermorn geschter vorgeschter aabe morge namittag nomittag
 liebschte beschte schönschte gröschte schnäuschte deheime
 wäri wärsch wärit wetti wettsch wettit giengsch giengit
 chiem chiemsch chiemti hätti hättsch hättit täti tätsch jä
@@ -120,7 +123,7 @@ chönnti chönntsch müessti müesstisch chunnti
 #
 # Deliberately absent from both tiers: halt, grad, wäge, sowieso, säge,
 # mer, hoi, and bare git. (merci WAS in this list and is now supporting and
-# weak; the sentence claiming otherwise outlived the change by two rounds.)
+# weak in round 21 and dropped outright in round 22, for being French.)
 # They are ordinary German or English words or, in the case of mer, fall out of
 # a URL path once tokens are split on non-letters. Any two of them reached the
 # bar on prompts with no dialect at all, and git reached it twice in one shell
@@ -128,7 +131,7 @@ chönnti chönntsch müessti müesstisch chunnti
 SUPPORTING = frozenset("""
 nid nit gsi gha kei chum witt geng gits hämmer gäu aut modi ching gange
 het mys gly heit
-hei cha wott gah luege scho öi nöime hüt dänk söll nei guet geit verstande
+hei cha wott gah luege scho öi nöime hüt dänk söll nei guet geit verstande morn
 wär hätt tät wett andersch gieng
 znüni zmorge zobe zvieri meitschi bueb
 """.split())
@@ -165,7 +168,7 @@ znüni zmorge zobe zvieri meitschi bueb
 # own collisions are with a URL path segment and an uppercase identifier, and
 # GLUE and the lower-case rule cover both without costing the language anything.
 WEAK = frozenset("""
-nit gsi gha kei aut mys gly het geit hei nei verstande
+nit gsi gha kei aut mys gly het geit hei nei verstande morn
 modi ching geng chum gits cha gange witt hämmer gäu heit
 wär hätt tät wett gieng guet
 """.split())
@@ -243,11 +246,21 @@ be emp ent er ge miss ver zer über unter durch hinter wider
 # labelled set were carried by nothing else. A suffix rule covers the class;
 # a list would need every adjective in the language.
 LECH_RE = re.compile(r"^\w{2,}lech(i|e|er|s|te|schte)?$")
+# German's collisions with -lech, and they are a closed set. "Blech" is a noun
+# with a productive compound class (Schutzblech, Backblech, Wellblech,
+# Feinblech), and "schlecht" is an everyday adjective whose inflected forms end
+# in -lechte. Both matched and both injected the full rulebook on plain German.
+LECH_NOT = ("blech", "schlech", "cromlech", "stilech")
 
 
 def suffixed(token):
     """True for the -lech adjective class, which German spells -lich."""
-    return LECH_RE.match(token) is not None
+    if any(token.startswith(x) or token.endswith(x) for x in LECH_NOT):
+        return False
+    if LECH_RE.match(token) is None:
+        return False
+    # An inflected Blech compound: Schutzbleche, Backblechs.
+    return not any(token[:-n].endswith(LECH_NOT[0]) for n in range(1, 5))
 
 
 def prefixed(token):
@@ -264,6 +277,12 @@ def prefixed(token):
 # decisive marker stays decisive and a velarised supporting one stays
 # supporting. Computed at import: the lists above stay readable as the thing a
 # human maintains, and the rules stay in one place.
+def plural_ig(markers):
+    """-ig nouns take -ige in the plural, which is how they usually appear."""
+    return frozenset(m + "e" for m in markers if m.endswith("ig") and len(m) > 4)
+
+
+DECISIVE |= plural_ig(DECISIVE)
 DECISIVE |= velarised(DECISIVE)
 SUPPORTING |= velarised(SUPPORTING)
 
@@ -289,13 +308,33 @@ GLUE = frozenset("0123456789_/+")
 # A run of non-space that contains a dot between two word characters, or an @,
 # or a scheme. Deliberately greedy about what counts as an address: the cost of
 # blanking one is losing a word nobody writes in a hostname anyway.
-ADDRESS_RE = re.compile(
-    r"\S*(?:\w[.@]\w|://)\S*"          # host, e-mail, URL
-    r"|\S*\w-\w*\d\S*"                 # hyphenated identifier with a digit
-)
-# The second alternative is what catches "itz-prod-01", which has no dot. It
-# requires a DIGIT somewhere after the hyphen, so the linking hyphen the
-# rulebook teaches ("Wo-n-i", "Änis-Chräbeli") is untouched.
+def looks_like_address(chunk):
+    """True for a whitespace-delimited chunk that is an address, not a word.
+
+    Plain string tests, deliberately. The first version was a regex of the
+    shape \\S*(?:...)\\S*, which backtracks across the whole run at every start
+    offset: quadratic, and it hung the hook on a 60 KB paste with no
+    whitespace. A prompt hook that hangs is the failure this repository fixed
+    in its first review round, and I reintroduced it.
+    """
+    if "://" in chunk or "@" in chunk:
+        return True
+    for i, ch in enumerate(chunk):
+        # A dot between two word characters: a hostname or a filename.
+        if ch == "." and 0 < i < len(chunk) - 1:
+            if chunk[i - 1].isalnum() and chunk[i + 1].isalnum():
+                return True
+        # A hyphen followed later by a digit: pod names, ticket ids, versions.
+        # The digit is required so the linking hyphen the rulebook teaches
+        # ("Wo-n-i", "Änis-Chräbeli") is left alone.
+        if ch == "-" and any(c.isdigit() for c in chunk[i + 1:]):
+            return True
+    return False
+
+
+def strip_addresses(text):
+    """Blank every chunk that is an address. Linear in the length of the text."""
+    return " ".join("" if looks_like_address(c) else c for c in text.split())
 
 
 def _is_word_char(ch):
@@ -329,14 +368,11 @@ def scan_window(text):
     # it joins the halves instead of splitting the word in two. Nothing else
     # depends on it: English "don't" becomes "dont", which is not a marker.
     text = re.sub(r"(?<=\w)['\u2019](?=\w)", "", text)
-    # A hostname, a URL or an e-mail address is not running text, and its labels
-    # are exactly the short letter runs the decisive tier is made of: itz-prod-01,
-    # viu.com, zyt.example.org, support@itz.example.com. Blank the whole token.
-    # GLUE cannot do this job: "." would drop the marker before a full stop and
-    # "-" would break "Wo-n-i", which the rulebook itself teaches.
-    text = ADDRESS_RE.sub(" ", text)
+    # Addresses are stripped AFTER the window is bounded, never before. Doing
+    # it first meant every byte of a megabyte paste went through the address
+    # scan, which is the whole point of having a window.
     if len(text) <= SCAN_HEAD + SCAN_TAIL:
-        return text
+        return strip_addresses(text)
     # Strip the partial token at each cut with the same character class the
     # tokeniser uses, rather than hunting for a space. A minified file or a
     # base64 blob can contain no space in the whole window, and then a
@@ -355,7 +391,7 @@ def scan_window(text):
     start = 0
     while start < len(tail) and _is_word_char(tail[start]):
         start += 1
-    return head[:cut] + "\n" + tail[start:]
+    return strip_addresses(head[:cut] + "\n" + tail[start:])
 
 
 def word_tokens(text):

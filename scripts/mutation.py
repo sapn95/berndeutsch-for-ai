@@ -47,7 +47,8 @@ DETECTION = ("word_tokens", "word_matches", "scan_window", "is_dialect",
              # markers rather than list them, which makes them the most
              # consequential code in the file, and they sat outside the
              # measured scope for a round.
-             "velarised", "prefixed")
+             "velarised", "prefixed", "suffixed",
+             "looks_like_address", "strip_addresses")
 # Under the repository, not the system temp directory. gettempdir() on macOS
 # is a private per-user path that is cleaned periodically, so --report-only
 # would work or not depending on how long ago the run was. Gitignored.
