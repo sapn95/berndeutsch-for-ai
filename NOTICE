@@ -91,17 +91,18 @@ list that goes stale.
     illustrative words in rules/schrybwys-compact.md: 212
     also occurring in the PDF:                   59 (28%)
 
-    shared 2-word sequences: 5  (5 citation)
+    shared 2-word sequences: 5  (1 OTHER, 4 citation)
       citation  by nd
       citation  cc by
-      citation  nd wird
+      OTHER     nd wird
       citation  pinheiro weber
       citation  ursula pinheiro
     shared 3-word sequences: 2  (2 citation)
       citation  cc by nd
       citation  ursula pinheiro weber
 
-    every shared sequence is a citation or a pair of named letters
+    sequences that are neither a citation nor named letters: 1
+      nd wird
 
     illustrative words in hooks/berndeutsch_gate.py (embedded CHECKLIST): 101
     also occurring in the PDF:                   26 (26%)
@@ -123,8 +124,12 @@ discuss spelling and the word splitter drops the punctuation between them:
 "b d" comes from "a soft `b`, `d` or `g`", "n i" from "Wo-n-i", "u l" from
 "u + l". The script then counts what is left over and prints that count.
 
-Across all three files, one sequence is left over: "wi ne", the linking-n
-construction the rule teaches rather than an example anyone chose.
+Across all three files, two sequences are left over. "wi ne" is the linking-n
+construction the rule teaches rather than an example anyone chose. "nd wird" is
+the German statement of the rule itself: both texts write that `nd` wird `ng`,
+and there is no other way to say it in German. The classifier called that one a
+citation for a round, because `wird` had been listed as a citation word; it is
+an ordinary German auxiliary and does not belong in that list.
 
 This paragraph used to state that partition by hand, and got it wrong. It said
 sixteen of the seventeen were citations and named "wi ne" as the only

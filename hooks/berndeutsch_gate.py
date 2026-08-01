@@ -57,14 +57,16 @@ redsch chouffsch heissisch wosch chunsch meinsch gasch gahsch
 chömet chöit gö dihr
 öppis öpper öppe mängisch itz sött söu söue wöu gäud niemer
 chli chunt chunnt chume chumme chöme chömme chöi göh göi
+müesse müesset chönne
 nüme nümme müed gärn üs üsi üse
 zyt schrybe schrybt blybe blybt zäme wyt myni gsäh wotsch
 gseht gschribe ggange verstande chönnt chönnte tuet gnoh gläse
 machemer gömer simer gmacht gseit gwüss mitenand sälber eifach gäbig
 öbe äbe grüessech vilmal gäng äuä äuwä nüt nüüt geits geit gaht gahts goht gohts
-znüni zmorge zobe zvieri zäme meitschi meiteli gieu hegu bueb
+zäme meiteli gieu hegu
 aues viu viumau viumou schnäu chüngu wüescht gnue luschtig
 ahnig louf louft chlepfe chlepft poschte poschtet guete
+lueg luegit schryb schrybit säg sägit öb mues muess guet churz
 """.split())
 
 # SUPPORTING: genuinely Bernese, but each one collides with a real word or a
@@ -116,7 +118,8 @@ ahnig louf louft chlepfe chlepft poschte poschtet guete
 SUPPORTING = frozenset("""
 nid nit gsi gha kei chum witt geng gits hämmer gäu aut modi ching gange
 het mys gly heit
-hei cha wott mues gah luege scho guet öi nöime hüt churz dänk söll
+hei cha wott gah luege scho öi nöime hüt dänk söll nei
+znüni zmorge zobe zvieri meitschi bueb
 """.split())
 
 # A subset of SUPPORTING, and the reason two markers were not enough.
@@ -311,13 +314,34 @@ def is_dialect(text):
     return len(matched) >= need, False
 
 
+def expand(path):
+    """Path(path).expanduser(), without letting it take the hook down.
+
+    expanduser() does not raise OSError when it cannot resolve a "~user"
+    prefix, it raises RuntimeError, which is not caught by any guard written
+    around filesystem errors. A single environment variable set to "~someone"
+    therefore escaped every try block and killed the hook for the whole
+    session, silently, on a machine where that user does not exist. The
+    unexpanded path is a better answer than no hook at all.
+    """
+    try:
+        return Path(path).expanduser()
+    except (OSError, RuntimeError, ValueError):
+        return Path(path)
+
+
 def config_dir():
     explicit = os.environ.get("CLAUDE_CONFIG_DIR")
     if explicit:
         # expanduser: an unexpanded "~" would create a literal ~ directory
         # wherever the hook happens to be running from.
-        return Path(explicit).expanduser()
-    home = os.environ.get("HOME") or os.path.expanduser("~")
+        return expand(explicit)
+    home = os.environ.get("HOME")
+    if not home:
+        try:
+            home = os.path.expanduser("~")
+        except (OSError, RuntimeError, ValueError):
+            home = "."
     return Path(home) / ".claude"
 
 
@@ -339,7 +363,7 @@ def rulebooks(here):
     def add(path):
         if not path:
             return
-        p = Path(path).expanduser()
+        p = expand(path)
         try:
             if not p.is_file():
                 return

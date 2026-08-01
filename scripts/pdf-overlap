@@ -132,7 +132,7 @@ CITATION_WORDS = frozenset("""
 marti werner bietenhard ruth greyerz otto von pinheiro weber ursula zingg hans
 jürg dieth eugen francke cosmos bern auflage berndeutsches wörterbuch
 bärndütschi schrybwys bärndütsch schrybe schriftsprach nach usschpraach naach
-uussprach grammatik cc by nd sa spdx license identifier wird
+uussprach grammatik cc by nd sa spdx license identifier
 """.split())
 
 

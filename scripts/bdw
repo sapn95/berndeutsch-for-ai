@@ -50,6 +50,7 @@ MAX_PAGES = 15
 # become an exact head, or "sech" matches eight unrelated reflexive verbs.
 NOT_A_FORM = frozenset("""
 sech sich se es er si mir dir ir eim eim öpper öppis
+etc usw uä ua bzw resp vgl
 """.split())
 # Bare, unbracketed qualifiers the site prefixes to a spelling variant.
 QUALIFIERS = frozenset("""
@@ -57,6 +58,10 @@ oberland emmental seeland oberaargau stadt auch selten veraltet alt neu
 landschaftlich mundartlich früher heute meist
 dim pl sg m f n adj adv subst verb pp part präs prät
 """.split())
+# The same, for the END of a variant. A leading qualifier says which dialect or
+# register a spelling belongs to; a trailing one is usually an abbreviation
+# saying the list goes on. Both leave the actual word unmatchable if kept.
+TRAILING = QUALIFIERS | frozenset("etc usw uä ua bzw resp vgl s. z".split())
 UA = "bdw/1.0 (+https://github.com/sapn95/berndeutsch-for-ai) courtesy lookup client"
 
 # One search hit: <h3><a href=".../words/44197?q=..">suber</a> <small>[Adj.]</small></h3>
@@ -130,6 +135,13 @@ def spellings(alt):
         words = part.split()
         while len(words) > 1 and words[0].lower().strip(".,:") in QUALIFIERS:
             words = words[1:]
+            forms.append(" ".join(words).lower())
+        # And the same from the BACK. The stripping was one-sided, so a variant
+        # written "chüschele usw." or "loufe etc." kept the abbreviation glued
+        # to it and matched nothing, which is the same "no entry for a listed
+        # word" answer the leading pass exists to prevent, just mirrored.
+        while len(words) > 1 and words[-1].lower().strip(".,:") in TRAILING:
+            words = words[:-1]
             forms.append(" ".join(words).lower())
     return forms
 

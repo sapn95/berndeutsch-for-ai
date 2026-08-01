@@ -517,6 +517,28 @@ def citation_checks():
               not stray, f"{len(stray)} undoubled use(s)")
 
 
+def classifier_checks():
+    """The detector's measured recall and precision, not an opinion about it.
+
+    scripts/evaluate.py scores the hook against corpus/labelled.tsv. It is
+    invoked here so a change that quietly makes the classifier worse fails the
+    ordinary suite rather than being noticed three review rounds later, which
+    is exactly what happened: sixteen rounds of review chased false positives
+    until precision reached 100%, while recall sat at 82.7% and nobody had
+    measured it. Every miss is silent, so nothing was ever going to report it.
+    """
+    print("classifier: measured against the labelled set")
+    proc = subprocess.run([sys.executable, str(REPO / "scripts" / "evaluate.py"),
+                           "--gate"], capture_output=True, text=True,
+                          cwd=str(REPO), timeout=300)
+    for line in proc.stdout.splitlines():
+        if line.strip().startswith(("recall", "precision", "GATE FAILED")):
+            print("  " + line.strip())
+    check("the classifier meets its recorded floor", proc.returncode == 0,
+          proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else
+          proc.stderr.strip()[:120])
+
+
 def readme_number_checks():
     """Numbers the README states about files must be recomputed, not trusted.
 
@@ -553,6 +575,7 @@ def main():
     overlap_checks()
     citation_checks()
     readme_number_checks()
+    classifier_checks()
     if args.online:
         notice_online_checks()
         bdw_online_checks()

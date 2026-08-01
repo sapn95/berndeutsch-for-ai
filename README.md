@@ -41,6 +41,9 @@ claude:  answers in Bärndütsch, with nid instead of nöd
 | `corpus/sources.md` | Where to read real Bernese, with licences. |
 | `scripts/pdf-overlap` | Measures what the rulebook shares with the CC BY-ND source, so `NOTICE` quotes a number instead of a guess. |
 | `scripts/selftest.py` | The regression suite. Every check in it is a bug that shipped. |
+| `corpus/labelled.tsv` | The labelled evaluation set. The detector is a classifier, so it gets measured like one. |
+| `scripts/evaluate.py` | Precision, recall, metamorphic relations, threshold probes. |
+| `scripts/mutation.py` | Mutation score: whether the tests can fail at all. |
 | `NOTICE` | Who wrote what this repository summarises, and under which licence. |
 
 ## Use it with any AI
@@ -130,6 +133,39 @@ core Bernese words as nonexistent. The network checks are opt-in because a
 volunteer-run dictionary should not be hit by a test loop. A lookup that cannot
 reach the site is reported as skipped, never as failed: a network that is down
 must not look like a repository that is broken.
+
+### Measuring the detector instead of arguing about it
+
+The part that decides whether a prompt is Bernese is a **classifier**, and for
+a long time it was assessed the way one assesses a piece of logic: think of a
+sentence, run it, argue about the answer. That produces an endless supply of
+individually plausible objections and never a number.
+
+```sh
+./scripts/evaluate.py --errors   # confusion matrix, and every case it gets wrong
+./scripts/mutation.py            # whether the tests can fail at all
+```
+
+`evaluate.py` scores the detector against `corpus/labelled.tsv` and reports
+precision and recall with Wilson intervals, then runs metamorphic relations
+(appending an emoji must not change the verdict; adding dialect must not turn a
+positive negative), threshold probes, and window invariants. The two errors are
+not symmetric and are never averaged: a false positive is visible and bounded,
+a false negative leaves a Bernese turn ungoverned and is **silent**. Recall is
+the headline.
+
+The first run said what no amount of reviewing had: **precision 100%, recall
+82.7%**. Every round of review had hunted false positives, because those are the
+ones you can see. One Bernese sentence in six was being dropped in silence, and
+the whole class of imperatives was missing from the marker lists.
+
+`mutation.py` answers the other question, the one reviewers kept guessing at:
+can these tests fail? It uses [cosmic-ray](https://github.com/sixty-north/cosmic-ray)
+to change the code and check that something goes red. An assertion that cannot
+fail kills nothing, and the score says so without anybody's opinion in it. The
+detection core started at **19%**, with 75 of 75 mutations to the window
+function surviving. It is **75%** now. That is the only reason to believe the
+tests above are worth anything.
 
 ## Using it
 
@@ -223,13 +259,19 @@ Ordinary German words like `halt`, `grad`, `wäge` and `sowieso` are in neither
 tier. An earlier version had them, and `Das ist halt so, das dauert grad noch
 ein bisschen` fired the hook on a sentence with no dialect in it at all.
 
-**Letter runs glued to a digit or an underscore do not vote at all.** The
-tokeniser splits on both, so any hash or identifier is shredded into short
-letter runs, and short letter runs are what the decisive tier is made of:
-`api-gateway-7d4b9c8f5-itz9q` yields `itz`. Measured over random pastes this was
-the dominant false positive left, firing on 4.5% of base64 blobs and 1.35% of
-PEM certificates. Neither a digit nor an underscore ever separates two letters
-inside a word of running prose, so a run touching one is not a word.
+**Letter runs glued to a digit, an underscore, a slash or a plus do not vote at
+all.** The tokeniser splits on all four, so any hash, identifier, path or
+encoded blob is shredded into short letter runs, and short letter runs are what
+the decisive tier is made of: `api-gateway-7d4b9c8f5-itz9q` yields `itz`,
+`GET /api/het/modi` yields `het` and `modi`, and the base64 alphabet uses `/`
+and `+`. Measured over random pastes this was the dominant false positive left,
+firing on 4.5% of base64 blobs and 1.35% of PEM certificates.
+
+The digit and the underscore are there because neither ever separates two
+letters inside a word of running prose. The slash and the plus are a weaker
+argument and are included deliberately anyway: prose does write `and/or`, but
+neither half of that is a marker, and the cost of the occasional lost token is
+far below the cost of reading every URL path as dialect.
 
 A false positive is harmless by construction: the injected text says *if* this
 message is Bärndütsch, use these rules, so an English answer stays English.
