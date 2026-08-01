@@ -707,12 +707,19 @@ def packaging_checks():
     # Nothing outside the known top-level names. Two artefacts of the relative
     # CLAUDE_CONFIG_DIR bug were committed before it was fixed: relcfg/ and a
     # directory whose name is a single space.
-    tracked = subprocess.run(["git", "ls-files"], cwd=str(REPO),
-                             capture_output=True, text=True).stdout.split("\n")
-    allowed = {"hooks", "scripts", "rules", "corpus", ".claude-plugin",
-               "README.md", "NOTICE", "LICENSE", ".gitignore"}
-    stray = sorted({p.split("/")[0] for p in tracked if p.strip()} - allowed)
-    check("no tracked path outside the known set", not stray, str(stray))
+    listing = subprocess.run(["git", "ls-files"], cwd=str(REPO),
+                             capture_output=True, text=True)
+    tracked = [p for p in listing.stdout.split("\n") if p.strip()]
+    if listing.returncode != 0 or not tracked:
+        # Without this, an absent git leaves stdout empty, tracked is [""] and
+        # the check reports ok having verified nothing at all.
+        SKIPPED.append("tracked-path check: git ls-files gave nothing")
+        print("  skip  no tracked path outside the known set  (git unavailable)")
+    else:
+        allowed = {"hooks", "scripts", "rules", "corpus", ".claude-plugin",
+                   "README.md", "NOTICE", "LICENSE", ".gitignore"}
+        stray = sorted({p.split("/")[0] for p in tracked} - allowed)
+        check("no tracked path outside the known set", not stray, str(stray))
 
     plugin = json.loads((REPO / ".claude-plugin" / "plugin.json").read_text())
     market = json.loads((REPO / ".claude-plugin" / "marketplace.json").read_text())

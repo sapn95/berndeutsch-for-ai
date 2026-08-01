@@ -150,7 +150,15 @@ BOUNDARY = [
     # The lower-case rule: the same three, capitalised mid-sentence, must not.
     (False, "three weak markers, capitalised", "the GSI the GHA the NIT"),
     # Sentence-initial capital is orthography, not evidence.
-    (True, "weak marker capitalised at a sentence start", "Chum. Das isch nid."),
+    # No decisive marker in either half, or is_dialect returns on the decisive
+    # branch and the probe measures nothing. "Chum. Das isch nid." contained
+    # isch and stayed green however the case rule behaved.
+    # The pair has to TURN on the capitalised marker: with het and nid in the
+    # sentence it fires either way and the probe measures nothing. Here chum is
+    # the second marker, so rejecting it drops the count to one.
+    (True, "weak marker capitalised at a sentence start", "Chum, mir luege."),
+    (False, "the same weak marker capitalised mid-sentence", "mir luege dr Chum."),
+    (True, "weak marker capitalised after a line break", "Guete Tag\nChum, mir luege."),
     # One decisive marker is enough, and only one is needed.
     (True, "a single decisive marker", "Das isch so."),
     # A repeated marker is one marker, not two.

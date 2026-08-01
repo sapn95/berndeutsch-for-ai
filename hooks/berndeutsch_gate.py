@@ -166,11 +166,12 @@ znüni zmorge zobe zvieri meitschi bueb
 # mapping" and "im Gange" and "zwei Modi" and "Prime Minister Modi" are all
 # capitalised, and Bernese `nid`, `gange`, `modi` in running text are not.
 #
-# het and nid are deliberately NOT here. They are the auxiliary and the
-# negation, which is the commonest two-marker shape in the language, and
-# requiring a third silenced "Das het nid klappt" and "Er het nid welle". Their
-# own collisions are with a URL path segment and an uppercase identifier, and
-# GLUE and the lower-case rule cover both without costing the language anything.
+# nid is deliberately NOT here, and het is. They are the negation and the
+# auxiliary, the commonest two-marker shape in the language, and requiring a
+# third silenced "Das het nid klappt" and "Er het nid welle". Keeping nid out is
+# enough for the pair to reach two: het is weak, nid is not, so the match is
+# never all-weak. het itself has to be weak, because Dutch "Het ... de geit ..."
+# is otherwise two ordinary markers rather than two collision-prone ones.
 WEAK = frozenset("""
 nit gsi gha kei aut mys gly het geit hei nei verstande morn zäh zwo
 modi ching geng chum gits cha gange witt hämmer gäu heit
@@ -358,7 +359,14 @@ def looks_like_address(chunk):
 
 def strip_addresses(text):
     """Blank every chunk that is an address. Linear in the length of the text."""
-    return " ".join("" if looks_like_address(c) else c for c in text.split())
+    # Per line, not over the whole text. A bare split() collapses \n and \r
+    # into spaces, which silently killed both of them in SENTENCE_END: a weak
+    # marker capitalised at the start of a NEW LINE stopped counting, so
+    # "Hallo\nChum mer wei das luege." went quiet while the same sentence on
+    # its own fired.
+    return "\n".join(
+        " ".join("" if looks_like_address(c) else c for c in line.split())
+        for line in text.splitlines())
 
 
 def _is_word_char(ch):
@@ -472,6 +480,14 @@ def sentence_initial(text, start):
     """True when only whitespace and sentence-ending punctuation precede."""
     i = start - 1
     while i >= 0 and text[i].isspace():
+        # A line break IS the boundary, and skipping over it as ordinary
+        # whitespace meant the "\n" and "\r" entries in SENTENCE_END could
+        # never fire: the walk always landed on the last letter of the previous
+        # line instead. So a weak marker capitalised at the start of a new line
+        # stopped counting, and "Hallo\nChum mer wei das luege." went silent
+        # while the same sentence alone fired.
+        if text[i] in "\n\r":
+            return True
         i -= 1
     return i < 0 or text[i] in SENTENCE_END
 

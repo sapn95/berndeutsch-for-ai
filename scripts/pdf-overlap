@@ -169,6 +169,14 @@ def main():
                          "(the compact rulebook and the hook's embedded "
                          "checklist are copies of the same content and drift)")
     args = ap.parse_args()
+    # The comparison runs from --phrases up to 8. Anything outside that reports
+    # "no shared sequence" without having looked, which is the one answer this
+    # script must never give by accident, and anything below 1 slices backwards.
+    if not 1 <= args.phrases <= 8:
+        print(f"--phrases must be between 1 and 8, not {args.phrases}: outside "
+              f"that range nothing is compared and the output would say so.",
+              file=sys.stderr)
+        return 2
 
     cache = Path(args.cache).expanduser() if args.cache else Path(tempfile.gettempdir()) / "bd-pdf-cache"
     cache.mkdir(parents=True, exist_ok=True)
