@@ -221,6 +221,29 @@ def main():
     measured = SESSION / "tree" / TARGET
     source = (measured if measured.is_file() else REPO / TARGET).read_text(encoding="utf-8")
 
+    # Every name in DETECTION must exist in the source that was measured. The
+    # filter drops mutants whose function is not listed, so a rename silently
+    # removes that function from the score: renaming word_matches raised the
+    # reported figure from 83.1% to 84.4% by deleting the 25 mutants it was
+    # doing worst on. A scope that quietly shrinks is not a scope.
+    defined = set()
+
+    def names(body):
+        for node in body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                defined.add(node.name)
+            elif isinstance(node, ast.ClassDef):
+                names(node.body)
+
+    names(ast.parse(source).body)
+    missing = sorted(set(DETECTION) - defined)
+    if missing and not args.full:
+        print(f"\nDETECTION names no longer in {TARGET}: {', '.join(missing)}",
+              file=sys.stderr)
+        print("Renamed or deleted? Either way the score would silently exclude "
+              "them. Update DETECTION.", file=sys.stderr)
+        return 2
+
     finished, planned = completeness(db)
     if finished < planned:
         print(f"\nINCOMPLETE: {finished} of {planned} mutants ran. A partial "

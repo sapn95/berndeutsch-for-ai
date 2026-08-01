@@ -61,14 +61,15 @@ müesse müesset chönne
 nüme nümme müed gärn üs üsi üse
 zyt schrybe schrybt blybe blybt zäme wyt myni gsäh wotsch
 gseht gschribe ggange verstande chönnt chönnte tuet gnoh gläse
+verschobe gschaffet gschickt gwartet gluegt gsprunge dänkt gwüsst
 machemer gömer simer gmacht gseit gwüss mitenand sälber eifach gäbig
 öbe äbe grüessech vilmal gäng äuä äuwä nüt nüüt geits gaht gahts goht gohts
 meiteli gieu hegu
 aues viu viumau viumou schnäu chüngu wüescht gnue luschtig
 ahnig louf louft chlepfe chlepft poschte poschtet guete
 lueg luegit schryb schrybit säg sägit öb mues muess churz
-liebschte beschte schönschte gröschte schnäuschte deheime andersch
-wäri wärsch wärit wetti wettsch wettit gieng giengsch giengit
+liebschte beschte schönschte gröschte schnäuschte deheime
+wäri wärsch wärit wetti wettsch wettit giengsch giengit
 chiem chiemsch chiemti hätti hättsch hättit täti tätsch jä
 chönnti chönntsch müessti müesstisch chunnti
 """.split())
@@ -114,16 +115,18 @@ chönnti chönntsch müessti müesstisch chunnti
 # COLUMN HEADINGS in vmstat and top output, so pasting a performance dump into
 # an English debugging question cleared the bar on its own.
 #
-# Deliberately absent from both tiers: halt, grad, wäge, sowieso, merci, säge,
-# mer, hoi, and bare git. They are ordinary German or English words or, in
-# the case of mer and het, fall out of a URL path once tokens are split on
-# non-letters. Any two of them reached the bar on prompts with no dialect at
-# all, and git reached it twice in one shell command.
+# Deliberately absent from both tiers: halt, grad, wäge, sowieso, säge,
+# mer, hoi, and bare git. (merci WAS in this list and is now supporting and
+# weak; the sentence claiming otherwise outlived the change by two rounds.)
+# They are ordinary German or English words or, in the case of mer, fall out of
+# a URL path once tokens are split on non-letters. Any two of them reached the
+# bar on prompts with no dialect at all, and git reached it twice in one shell
+# command.
 SUPPORTING = frozenset("""
 nid nit gsi gha kei chum witt geng gits hämmer gäu aut modi ching gange
 het mys gly heit
-hei cha wott gah luege scho öi nöime hüt dänk söll nei guet geit merci
-wär hätt tät wett
+hei cha wott gah luege scho öi nöime hüt dänk söll nei guet merci
+wär hätt tät wett andersch gieng
 znüni zmorge zobe zvieri meitschi bueb
 """.split())
 
@@ -161,7 +164,7 @@ znüni zmorge zobe zvieri meitschi bueb
 WEAK = frozenset("""
 nit gsi gha kei aut mys gly
 modi ching geng chum gits cha gange witt hämmer gäu heit
-wär hätt tät wett
+wär hätt tät wett gieng merci guet
 """.split())
 
 # One decisive marker fires. Otherwise two DISTINCT supporting markers are
@@ -170,6 +173,53 @@ wär hätt tät wett
 # are required instead.
 MIN_SUPPORTING = 2
 MIN_WEAK_ONLY = 3
+
+# The rulebook's own rules, applied to the marker lists instead of being
+# hand-copied into them. Two whole categories of everyday Bernese were silently
+# undetected because the lists carried one spelling of a word the rules say has
+# two, and one shape of a verb the language uses constantly.
+
+# nd -> ng. rules/schrybwys.md prescribes the velarisation (Ching, angers,
+# mitenang, Hang), and both tiers carried only the nd spelling, so a writer
+# following this repository's own rulebook went undetected: "I ha das nid
+# verstange", "Sali mitenang", "Fingsch du das o". Derived rather than listed,
+# because a list needs every twin remembered and this cannot forget one.
+def velarised(markers):
+    return frozenset(m.replace("nd", "ng") for m in markers if "nd" in m)
+
+
+# Separable prefixes. The perfect is the only past tense the language has, and
+# a participle takes its prefix in front of the ge-: zuegmacht, ufgschribe,
+# dürgläse, usegange. Listing gmacht and gschribe therefore missed the perfect
+# in exactly the sentences where it does the work, seven of eight in the
+# labelled set. Matching a listed participle as a SUFFIX behind a known prefix
+# covers the paradigm without enumerating the cross product.
+PREFIXES = tuple("""
+uf zue ab dür use ine ache uehe abe vor no mit y a i um über under
+""".split())
+# Only participles, not every marker: "ufisch" is not a word, and allowing any
+# marker to be suffixed would let a prefix manufacture matches.
+PARTICIPLES = frozenset("""
+gmacht gschribe gläse ggange gseit gnoh gseh gsy gsii boue gschaffet gschickt
+gnu gwüsst gfunde gha gsprunge gschlafe gläbt gwartet gluegt bracht choufft
+verschobe verstande vergässe
+""".split())
+
+
+def prefixed(token):
+    """True when the token is a listed participle behind a separable prefix."""
+    for prefix in PREFIXES:
+        if token.startswith(prefix) and token[len(prefix):] in PARTICIPLES:
+            return True
+    return False
+
+
+# The derived twins join the tier their source came from, so a velarised
+# decisive marker stays decisive and a velarised supporting one stays
+# supporting. Computed at import: the lists above stay readable as the thing a
+# human maintains, and the rules stay in one place.
+DECISIVE |= velarised(DECISIVE)
+SUPPORTING |= velarised(SUPPORTING)
 
 # Markers that must be written in lower case to count, or capitalised only at
 # the start of a sentence. Every WEAK marker qualifies by construction, and a
@@ -324,7 +374,8 @@ def is_dialect(text):
         return (token == token.capitalize()
                 and sentence_initial(window, m.start()))
 
-    if any(m.group().lower() in DECISIVE and counts(m) for m in matches):
+    if any((m.group().lower() in DECISIVE or prefixed(m.group().lower()))
+           and counts(m) for m in matches):
         return True, True
     matched = {m.group().lower() for m in matches
                if m.group().lower() in SUPPORTING and counts(m)}

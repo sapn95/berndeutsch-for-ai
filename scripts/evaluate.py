@@ -47,8 +47,8 @@ LABELLED = REPO / "corpus" / "labelled.tsv"
 # The floor, not the target. Recorded so a change that quietly makes the
 # classifier worse fails instead of being noticed three rounds later. Raise it
 # when the measurement rises; never lower it to make a run pass.
-MIN_RECALL = 0.90
-MIN_PRECISION = 0.90
+MIN_RECALL = 0.95
+MIN_PRECISION = 0.97
 
 
 def load_hook():

@@ -180,7 +180,9 @@ a false negative leaves a Bernese turn ungoverned and is **silent**. Recall is
 the headline.
 
 The first run said what no amount of reviewing had: **precision 100%, recall
-82.7%**. Every round of review had hunted false positives, because those are the
+82.7%**. Point estimates are deliberately not repeated in the diagrams above,
+because they moved four times in three rounds and the README said 100% while
+the tool said 93%; run the script for the current pair. Every round of review had hunted false positives, because those are the
 ones you can see. One Bernese sentence in six was being dropped in silence, and
 the whole class of imperatives was missing from the marker lists.
 
@@ -195,7 +197,7 @@ flowchart TD
     CODE --> EV["scripts/evaluate.py<br/>is the answer right?"]
     CODE --> ST["scripts/selftest.py<br/>does anything still work?"]
     EV --> LAB["corpus/labelled.tsv<br/>the labelled prompts"]
-    LAB --> NUM["precision and recall<br/>100% and 100%"]
+    LAB --> NUM["precision and recall<br/>./scripts/evaluate.py"]
 
     EV --> MUT["scripts/mutation.py<br/>CAN these tests fail?"]
     ST --> MUT

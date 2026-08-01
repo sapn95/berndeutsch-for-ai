@@ -177,6 +177,17 @@ def hook_checks(tmp):
         dupes = sorted({w for w in listed if listed.count(w) > 1})
         check(f"no marker is listed twice in {name}", not dupes, str(dupes))
 
+    # The two derivations, checked as rules rather than as examples. A list of
+    # twins can forget one; these cannot, so what has to be checked is that the
+    # derivation is wired in at all.
+    check("velarised twins are derived, not listed",
+          "mitenang" in gate.DECISIVE and "mitenand" in gate.DECISIVE,
+          "nd -> ng, from the rulebook's own rule")
+    check("a participle behind a separable prefix is matched",
+          gate.prefixed("zuegmacht") and gate.prefixed("ufgschribe")
+          and not gate.prefixed("ufxyz"),
+          "the perfect is the only past tense the language has")
+
     print("hook: prompts that must load the rules")
     for i, (prompt, why) in enumerate(FIRES):
         ctx, err = run_hook(prompt, f"fire-{i}", tmp / f"fire{i}")
@@ -542,6 +553,15 @@ def mutation_order_checks():
     check("a nested closure is attributed to its enclosing function",
           owner(3) == "outer", f"line 3 -> {owner(3)}")
 
+    # Every name the score filters on must still exist in the hook. Renaming
+    # word_matches raised the reported figure from 83.1% to 84.4% by removing
+    # the 25 mutants that function was doing worst on.
+    gate_src = HOOK.read_text(encoding="utf-8")
+    defined = {n.name for n in ast.parse(gate_src).body
+               if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    absent = sorted(set(mutation.DETECTION) - defined)
+    check("every DETECTION name still exists in the hook", not absent, str(absent))
+
 
 def config_dir_checks():
     """An unresolvable ~user must yield nowhere, not a directory called "~user".
@@ -658,6 +678,18 @@ def readme_number_checks():
     stale = sorted({n for n in re.findall(r"\b(1[0-9]{3})[- ]char", readme)
                     if n != str(len(block))})
     check("no other character count is quoted for it", not stale, str(stale))
+
+    # The classifier's scores must not be stated as a current fact anywhere the
+    # tool is described, because they move on every corpus edit. The README
+    # published "100% and 100%" while evaluate.py printed 93.0% and 95.7%, and
+    # four independent reviewers reported it in one round. Historical figures
+    # are fine when they are marked as history; a bare percentage next to the
+    # word precision or recall is not.
+    for line_no, line in enumerate(readme.splitlines(), 1):
+        if "precision and recall" not in line.lower():
+            continue
+        check(f"README:{line_no} does not fix the score in the diagram",
+              not re.search(r"\d+(\.\d+)?%", line), line.strip()[:70])
 
 
 def main():

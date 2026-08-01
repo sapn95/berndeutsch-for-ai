@@ -48,6 +48,29 @@ bd	statement	Mir hei üs das aagluegt.
 bd	statement	Das isch scho gäng so gsy.
 bd	statement	Ds Modul isch fertig.
 bd	statement	I dänke das chunt guet.
+
+# The perfect is the only past tense the dialect has, so every past statement
+# is an auxiliary plus a participle. The auxiliaries het/hei/ha are supporting
+# markers, and the participle swallows its separable prefix, so the listed
+# gschribe/gmacht/gläse/gseh become ufgschribe/zuegmacht/dürgläse/aagseh and
+# match nothing. Added round 20; the class was never sampled before.
+bd	perfect	Är het ds Ticket zuegmacht.
+bd	perfect	Mir hei d Pipeline umboue.
+bd	perfect	I ha ds ganze Log dürgläse.
+bd	perfect	Mir hei d Version scho aagluegt.
+bd	perfect	Si hei ds Release verschobe.
+bd	perfect	Mir hei geschter no lang gschaffet.
+bd	perfect	Är het mer d Schritt ufgschribe.
+bd	perfect	I ha ds PR ufgmacht u ds alte zuegmacht.
+
+# rules/schrybwys.md sanctions the velarised variant (nd becomes ng: Ching,
+# mitenang, angers) as long as a text keeps it throughout. Both tiers carry
+# only the nd spellings of these words, so a consistently velarised writer
+# loses them. Added round 20.
+bd	velarised	I ha das nid verstange.
+bd	velarised	Sali mitenang!
+bd	velarised	Fingsch du das o?
+
 bd	imperative	Chum mer wei das luege.
 bd	imperative	Lue das no schnäu aa.
 # dropped: 'Mach das bitte fertig.' is identical in Standard German,
