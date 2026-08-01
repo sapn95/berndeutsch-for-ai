@@ -258,6 +258,71 @@ def hook_checks(tmp):
     # 471 ms on 6000 hyphens in round 24. Every one was found by a reviewer
     # thinking to time it, because nothing here ever did. These shapes are the
     # ones that broke it, kept so the next author does not have to guess them.
+    # looks_like_address and the window cut, checked directly rather than
+    # through the corpus. The mutation score said 40% and 54% for these two,
+    # the lowest in the file, and the reason is arithmetic: with 104 negative
+    # rows a single false positive leaves precision at 99.2%, comfortably above
+    # the 97% floor, so a broken address rule does not fail the gate. Precision
+    # over a corpus is the wrong instrument for one function.
+    print("hook: address detection")
+    addresses = [
+        # each of the three ways in, on its own, so "or" cannot become "and"
+        ("scheme only", "https://example", True),
+        ("at-sign only", "user@host", True),
+        ("dot between word characters", "viu.com", True),
+        ("hyphen then a digit", "itz-prod-01", True),
+        # and the near misses that must NOT be blanked
+        ("a hyphen with no digit", "Wo-n-i", False),
+        ("a hyphen with no digit, longer", "Änis-Chräbeli", False),
+        ("a digit before the hyphen only", "01-guet", False),
+        ("a trailing full stop", "guet.", False),
+        ("a leading full stop", ".guet", False),
+        ("a lone full stop", ".", False),
+        ("two full stops", "..", False),
+        ("an empty chunk", "", False),
+        ("one character", "a", False),
+        ("a decimal number", "3.5", True),
+        ("an ordinary word", "Bärndütsch", False),
+    ]
+    for name, chunk, want in addresses:
+        got = gate.looks_like_address(chunk)
+        check(f"address: {name}", got == want, f"{chunk!r} -> {got}, wanted {want}")
+
+    # And that stripping actually removes them from the window while leaving
+    # the sentence around them.
+    stripped = gate.strip_addresses("Chasch das aaluege? viu.com isch kaputt.")
+    check("an address is removed and its sentence is not",
+          "viu.com" not in stripped and "Chasch" in stripped and "kaputt" in stripped,
+          repr(stripped))
+
+    print("hook: window boundaries")
+    # The PRECUT threshold and the head/tail cut, at their exact edges. A
+    # marker is planted so a wrong offset is visible rather than merely
+    # plausible.
+    limit = gate.PRECUT * (gate.SCAN_HEAD + gate.SCAN_TAIL)
+    filler = "lorem ipsum dolor sit amet "
+    def pad(n):
+        return (filler * (n // len(filler) + 2))[:n]
+    just_under = pad(limit - 20) + " isch"
+    just_over = "isch " + pad(limit + 500)
+    check("a prompt at the pre-cut threshold keeps its tail",
+          "isch" in gate.word_tokens(gate.scan_window(just_under)),
+          f"{len(just_under):,} chars, limit {limit:,}")
+    check("a prompt over the threshold keeps its head",
+          "isch" in gate.word_tokens(gate.scan_window(just_over)),
+          f"{len(just_over):,} chars")
+    window = gate.scan_window(pad(200_000))
+    check("the window is bounded by head plus tail",
+          len(window) <= gate.SCAN_HEAD + gate.SCAN_TAIL + 1, f"{len(window)} chars")
+    marked = pad(100_000) + " Das isch guet."
+    check("a marker in the tail survives a large paste",
+          gate.is_dialect(marked)[0])
+    marked = "Das isch guet. " + pad(100_000)
+    check("a marker in the head survives a large paste",
+          gate.is_dialect(marked)[0])
+    check("a marker only in the discarded middle does not",
+          not gate.is_dialect(pad(100_000) + " Das isch guet. " + pad(100_000))[0])
+
     print("hook: cost")
     shapes = [
         ("6000 hyphens", "-" * 6000),
