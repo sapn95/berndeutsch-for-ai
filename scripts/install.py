@@ -31,7 +31,7 @@ def link(src, dst):
     # and bdw with self-referential symlinks: 32 KB of working code gone,
     # unreadable afterwards with ELOOP. An installer that can destroy what it
     # installs is worse than one that does nothing.
-    if dst.exists() and dst.resolve() == src.resolve():
+    if dst.exists() and os.path.samefile(dst, src):
         print(f"already in place: {dst}")
         return dst
     if dst.parent.exists() and not dst.parent.is_dir():

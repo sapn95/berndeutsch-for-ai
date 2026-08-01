@@ -254,3 +254,73 @@ xx	other	Der Termin am Mittwochmorgen passt mir gut.
 # scripts/selftest.py against /usr/share/dict/web2, which is English only.
 xx	german	Die Nachricht wurde gestern überbracht.
 xx	german	Der Bote hat das Schreiben überbracht und ist wieder gegangen.
+
+# Round-22. The negative half of this set was German and English only, while
+# the WEAK tier's own comments justify themselves against Dutch, French and
+# Italian. Those three languages had no rows at all, so a 100% precision
+# figure had never been asked about them. `nei` is the Bernese "no"; it is
+# also the 346th most frequent word in Italian ("nei modi", "nei tempi") and
+# it is the one SUPPORTING marker of that shape that is NOT in WEAK, so two
+# ordinary Italian words clear the bar between them. `nid` is French for nest
+# and pairs the same way with `merci`, which is French's 95th word.
+# The last two rows of each language are the control: whatever fixes this must
+# leave ordinary Italian and French silent, and must not silence Bernese `Nei`.
+xx	italian	Il refactoring va fatto nei modi previsti dalla documentazione.
+xx	italian	Ci sono differenze nei modi di configurare il cluster.
+xx	italian	Nei modi e nei tempi stabiliti dal contratto.
+xx	italian	Ho aggiornato i moduli e le dipendenze del progetto.
+xx	italian	Grazie mille, il deploy è andato bene.
+xx	french	Merci pour le nid d'oiseau que tu as trouvé.
+xx	french	Merci beaucoup, le nid est intact.
+xx	french	Merci de relire la documentation avant le déploiement.
+bd	short	Nei, das hani nid so gmeint.
+
+# Round-22. German -lich is Bernese -lech and German -ung is Bernese -ig, two
+# fully productive derivational classes that the rulebook itself writes
+# (`Härzlechi Grüess` in the Ä-inflation rule, `Sitzig` in the vowel table).
+# Neither tier contains a single member of either class except `ahnig`, so a
+# sentence whose dialect evidence IS the suffix has nothing to match. None of
+# these forms collides with a word in German, Dutch, French, Italian, English
+# or Spanish, so the class is decisive-grade evidence that is simply absent.
+bd	suffix-lech	Das wär natürlech möglech.
+bd	suffix-lech	Härzlechi Grüess und merci für dyni Rückmäudig.
+bd	suffix-lech	Fründlechi Grüess vom Sebastian.
+bd	suffix-lech	Hoffentlech chunt die Ändrig no hüt.
+bd	suffix-lech	Es isch wüklech nid nötig.
+bd	suffix-lech	Chasch mir das öffentlech zuegänglech mache?
+bd	suffix-lech	Ändlech louft d Pipeline wieder.
+bd	suffix-lech	Das isch eigetlech es schöns Byspiu.
+bd	suffix-ig	Mir bruuche no e chlyni Ändrig ir Konfiguration.
+bd	suffix-ig	D Sitzig isch uf morn verschobe.
+bd	suffix-ig	Nach der Sitzig schrybe mir d Zämefassig.
+bd	suffix-ig	I ha kei Ahnig, weles Modul das isch.
+bd	suffix-ig	D Verbindig zum Server isch abbroche.
+bd	suffix-ig	Hesch d Rächnig vom letschte Monet gseh?
+xx	german	Wir haben die Sitzung verschoben und die Rechnung schon bezahlt.
+xx	german	Herzliche Grüsse und vielen Dank für die Rückmeldung.
+
+# Round-22. GLUE holds the digit, the underscore, the slash and the plus, so a
+# URL PATH is covered ("GET /api/het/modi") and a scheme-prefixed host is too
+# ("https://itz.example.com", protected by the slash). A BARE host, a
+# hyphen-separated host label and an e-mail domain are not: the dot and the
+# hyphen are prose punctuation and cannot join GLUE, so the letter run votes.
+# When that run is a DECISIVE marker the cost is the full 9 KB rulebook plus
+# the session's single full injection. The labelled set had no URL, host or
+# address row at all, in either direction.
+xx	url	The host itz-prod-01 is unreachable from the bastion.
+xx	url	Mail from support@itz.example.com bounced with 550.
+xx	url	Why does viu.com return 403 for the German region?
+xx	url	Set the CNAME for zyt.example.org to the load balancer.
+xx	url	curl -I https://itz.example.com/status returns 502.
+xx	url	Open https://www.example.com/docs/api and read the pagination section.
+
+# Round-22. 'verstande' is DECISIVE and is also a Dutch headword: the dative
+# that survives in the fixed formal phrase 'met dien verstande dat', which is
+# ordinary Dutch contract and minute language. One occurrence injects the full
+# 9 KB rulebook AND spends the session's single full injection. It is a
+# HAND-LISTED marker, so neither GERMAN_INSEPARABLE nor the generated-marker
+# dictionary check in selftest.py can see it -- and that check is English-only,
+# which is the same blind spot that let 'überbracht' through in round 21.
+xx	dutch	Met dien verstande dat de levering pas volgende week plaatsvindt.
+xx	dutch	Ik ga akkoord, met dien verstande dat de kosten gedeeld worden.
+xx	dutch	De afspraak geldt, met dien verstande dat beide partijen tekenen.

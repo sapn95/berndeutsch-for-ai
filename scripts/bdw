@@ -267,12 +267,21 @@ def heads_of(entry):
             if len(words_) > 1 and all(w.endswith(".") for w in words_[:-1]):
                 derived.append(words_[-1])
 
-    primary += spellings(entry["alt"])
-
-    # tidy() on the way out as well as inside spellings(), so a stray mark on a
-    # composite HEADWORD is handled the same way as one on a spelling variant.
+    # THREE tiers, and the split is the whole point.
+    #
+    # The HEADWORD is never filtered. «öppis» and «öpper» are real entries that
+    # happen to look like grammatical markers, and filtering them made bdw
+    # report two core Bernese words as nonexistent, twice, in two different
+    # rounds. tidy() still runs, so a stray mark on a composite headword is
+    # cleaned the same way as one on a variant.
+    #
+    # The SPELLINGS and the DERIVED fragments are both splits of a
+    # hand-maintained list, so both can hand back something that is not a word:
+    # entry 41605 ends its Schreibweisen with "etc." and `bdw etc` answered
+    # EXACT. Certifying a punctuation mark as a Bernese word is the same
+    # failure as denying a real one, just pointing the other way.
     heads = {norm(tidy(f)) for f in primary if tidy(f)}
-    heads |= {norm(tidy(f)) for f in derived
+    heads |= {norm(tidy(f)) for f in spellings(entry["alt"]) + derived
               if tidy(f) and norm(tidy(f)) not in NOT_A_FORM}
     return heads
 

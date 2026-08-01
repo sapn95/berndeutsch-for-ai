@@ -303,7 +303,7 @@ verb: `isch`, `gsy`, `öppis`, `chli`, `itz`, `gäng`, `Meiteli`, the INFLECTED
 Konjunktiv II forms (`wäri`, `wettsch`, `giengsch`, `hätti`, `chiem`), and the
 l-vocalised spellings this repo's own rulebook prescribes (`aues`, `viu`,
 `schnäu`). The bare stems `wär`, `hätt`, `tät`, `wett` and `gieng` are deliberately NOT
-here: all four are ordinary written German, so they sit in the weak tier.
+here: all five are ordinary written German, so they sit in the weak tier.
 One is enough to fire. The verb forms alone were not enough: an imperative, a
 first-person statement or a bare greeting contains none of them.
 
@@ -323,9 +323,10 @@ So the collision-prone markers are named as a set of their own, and **two of
 them together decide nothing: three are needed.** A sentence with three separate
 collisions is no longer a coincidence, and real Bernese reaches three without
 effort. `gsi gha nit` is three of them and fires; `gsi gha` is two and does
-not. (`het` and `nid` are deliberately outside that set: auxiliary plus
-negation is the commonest pair in the language, and requiring a third silenced
-`Das het nid klappt` for a whole round.)
+not. (`nid` is deliberately outside that set: auxiliary plus negation is the
+commonest pair in the language, and requiring a third silenced `Das het nid
+klappt` for a whole round. `het` itself IS weak, which is what makes the Dutch
+`Het ... de geit ...` two weak markers rather than two ordinary ones.)
 
 Ordinary German words like `halt`, `grad`, `wäge` and `sowieso` are in neither
 tier. An earlier version had them, and `Das ist halt so, das dauert grad noch

@@ -238,6 +238,15 @@ def hook_checks(tmp):
         check(f"{generator} is inside the measured scope",
               generator in mutation_scope)
 
+    check("the -lech adjective class is derived",
+          gate.suffixed("möglech") and gate.suffixed("härzlechi")
+          and not gate.suffixed("lech") and not gate.suffixed("blech"),
+          "German spells it -lich, so the suffix decides on its own")
+    check("an address is removed, a linking hyphen is not",
+          not gate.is_dialect("The host itz-prod-01 is unreachable.")[0]
+          and gate.is_dialect("Wo-n-i das gseh ha bini erchlüpft.")[0],
+          "GLUE cannot do this: '.' would eat the marker before a full stop")
+
     print("hook: prompts that must load the rules")
     for i, (prompt, why) in enumerate(FIRES):
         ctx, err = run_hook(prompt, f"fire-{i}", tmp / f"fire{i}")
@@ -338,6 +347,14 @@ def bdw_offline_checks():
                           "url": ""})
     check("a stray mark at a fragment edge is removed", "verworgle" in heads,
           str(sorted(heads)))
+
+    # Both directions of the head split, in one place, because fixing either
+    # one alone has now broken the other twice.
+    stolz = {"word": "stolz", "alt": "Schreibweisen: stouz, schtouz, etc.",
+             "pos": "", "gloss": "", "url": ""}
+    heads = bdw.heads_of(stolz)
+    check("a bare abbreviation in a spelling list is not a headword",
+          "etc" not in heads and "stouz" in heads, str(sorted(heads)))
 
     # A Schreibweisen field that holds PROSE must yield no variants at all.
     # Entry 13962 fills it with a German sentence about compound spelling, and
@@ -654,6 +671,18 @@ def installer_checks():
         src.write_text("# content\n")
         before = src.read_text()
         install.link(src, src)
+        # And under a differently-cased path, because macOS is case-insensitive
+        # and the first version of the guard compared resolve() STRINGS: /x/Dir
+        # and /x/DIR are one file and two strings, so it destroyed the source
+        # exactly as before.
+        cased = Path(tmp) / "sub"
+        cased.mkdir()
+        real = cased / "thing.py"
+        real.write_text("# content\n")
+        install.link(real, Path(str(cased).replace("sub", "SUB")) / "thing.py")
+        check("linking through a differently-cased path leaves it intact",
+              real.is_file() and not real.is_symlink(),
+              "symlink" if real.is_symlink() else "ok")
         check("linking a file onto itself leaves it intact",
               src.is_file() and not src.is_symlink() and src.read_text() == before,
               "symlink" if src.is_symlink() else "ok")
