@@ -241,6 +241,13 @@ def lookup(word):
     `exhausted` is False when the cap stopped the walk early, so the caller can
     avoid asserting that a word does not exist when it simply was not reached.
     """
+    # Tidy the QUERY too, not only the candidate heads. Every head goes through
+    # tidy(), so a query typed or pasted with punctuation on it ("«suber»",
+    # "gäng,") could never equal one, and the answer was the flat "no entry"
+    # that this tool must not give about a word that is in the dictionary. Tidy
+    # before searching as well as before comparing, so the site is asked about
+    # the word rather than about the punctuation.
+    word = tidy(word) or word
     needle = norm(word)
     exact, related = [], []
     total, page = 1, 1

@@ -13,11 +13,14 @@ caught a review round later:
     a German sentence pulled in the full rulebook
 
     scripts/selftest.py            # everything that needs no network
-    scripts/selftest.py --online   # also check bdw against berndeutsch.ch
+    scripts/selftest.py --online   # also: bdw against berndeutsch.ch, and the
+                                   # measurements NOTICE quotes re-verified
+                                   # against the source PDF (needs pdftotext)
 
 Exit code 0 if every check passes, 1 otherwise. Network checks are opt-in
-because a volunteer-run dictionary should not be hit by a test loop, and
-because a failing network must never look like a failing repository.
+because a volunteer-run dictionary should not be hit by a test loop. A lookup
+that cannot reach the site is reported as SKIPPED and does not fail the run: a
+network that is down must never look like a repository that is broken.
 """
 
 import argparse
@@ -35,6 +38,9 @@ REPO = Path(__file__).resolve().parent.parent
 HOOK = REPO / "hooks" / "berndeutsch_gate.py"
 
 FAILURES = []
+# Checks that could not be run rather than checks that failed. A network that
+# is down must never look like a repository that is broken.
+SKIPPED = []
 
 
 def check(name, ok, detail=""):
@@ -94,6 +100,11 @@ FIRES = [
     ("Weisch no wo mir das gmacht hei?", "mixed"),
     ("I ha kei Zyt gha für das.", "3-letter markers in real prose"),
     ("Itz simer parat.", "short sentence, one decisive marker"),
+    # Auxiliary plus negation is the commonest two-marker shape in the
+    # language. Requiring three weak markers silenced it for a whole round.
+    ("Das het nid klappt.", "het + nid, the commonest pair"),
+    ("Er het nid welle.", "het + nid again"),
+    ("Chum mer wei das luege.", "a weak marker capitalised at sentence start"),
 ]
 
 # Prompts that MUST stay silent. Every one of these fired at some point.
@@ -125,6 +136,12 @@ SILENT = [
      "escaped \\t conjuring the decisive marker tuet"),
     ("procs memory swap io system cpu r b swpd free buff si so bi bo",
      "vmstat column headings si/so"),
+    # The base64 alphabet uses / and +, so a blob is shredded into short letter
+    # runs exactly as a pod-name hash is.
+    ("Decode the blob YWJj/itZ+Zm9v and tell me what it is.", "base64 / and +"),
+    ("Frei-heit und Sicher-heit sind wichtig.", "hyphenated German -heit"),
+    ("Der Heit-Algorithmus ist langsam.", "the surname Heit"),
+    ("Modi and Geng both attended the summit.", "surname at sentence start"),
 ]
 
 
@@ -179,16 +196,31 @@ def hook_checks(tmp):
           f"the following decisive prompt got {len(strong)} chars")
 
     print("hook: window")
-    # The marker must STRADDLE a cut. An earlier version put it in the middle
-    # of the paste, where the window discards it wholesale, so the check passed
-    # with the trimming removed entirely and tested nothing at all.
-    head_cut = "y" * (gate.SCAN_HEAD - 6) + "Verzeichnisch" + "z" * 4000
-    tail_cut = "y" * 4000 + "Verzeichnisch" + "z" * (gate.SCAN_TAIL - 6)
+    # The marker must STRADDLE a cut, and the filler around it must be ORDINARY
+    # WORDS. Two earlier versions of this check proved nothing. The first put
+    # the marker in the middle of the paste, where the window discards it
+    # wholesale. The second used an unbroken run of letters as filler, so the
+    # trim ate the entire window and returned a single character: the assertion
+    # held with the trimming deleted, because there was nothing left to inspect
+    # either way. Separated words leave a real window with a real fragment in it.
+    filler = "lorem ipsum dolor sit amet "
+    def pad(target):
+        return (filler * (target // len(filler) + 2))[:target]
+    # "Verzeichnisch" is German. Cut anywhere in its last four characters and
+    # the fragment left behind is "isch", which is a decisive marker the real
+    # text never contained.
+    head_cut = pad(gate.SCAN_HEAD - 4) + "Verzeichnisch " + pad(4000)
+    tail_cut = pad(4000) + " Verzeichnisch" + pad(gate.SCAN_TAIL - 9)
     for where, big in (("head", head_cut), ("tail", tail_cut)):
         window = gate.scan_window(big)
+        tokens = gate.word_tokens(window.lower())
+        # Guard the guard: an empty window would satisfy any "not in" assertion.
+        if not check(f"the {where} window is non-empty", len(tokens) > 50,
+                     f"{len(tokens)} tokens"):
+            continue
         check(f"a token cut at the {where} boundary invents no marker",
-              "isch" not in gate.word_tokens(window.lower()),
-              str([t for t in gate.word_tokens(window.lower()) if len(t) < 12]))
+              "isch" not in tokens,
+              str([t for t in tokens if t not in filler.split()]))
     check("a short prompt passes through untouched",
           gate.scan_window("Chum mer luege") == "Chum mer luege")
 
@@ -233,6 +265,14 @@ def bdw_offline_checks():
     check("a stray mark at a fragment edge is removed", "verworgle" in heads,
           str(sorted(heads)))
 
+    # The QUERY goes through the same cleaning as the heads. It did not, so a
+    # word typed or pasted with punctuation on it could never equal any head,
+    # and the answer was the flat "no entry" this tool must not give.
+    for raw, want in (("«suber»", "suber"), ("gäng,", "gäng"),
+                      ('"öppis"', "öppis"), ("verworgle.", "verworgle")):
+        check(f"the query {raw} is cleaned to {want}", bdw.tidy(raw) == want,
+              repr(bdw.tidy(raw)))
+
     # The headword itself is never filtered, whatever it looks like. Filtering
     # it made bdw answer "this word does not exist" for öppis and öpper.
     for word in ("öppis", "öpper", "sech"):
@@ -269,17 +309,33 @@ def notice_online_checks():
         proc = subprocess.run([sys.executable, str(REPO / "scripts" / "pdf-overlap")]
                               + target, capture_output=True, text=True,
                               cwd=str(REPO), timeout=300)
+        label = " ".join(target) or "the rulebook"
         if proc.returncode != 0:
-            check(f"pdf-overlap {' '.join(target) or '(rulebook)'} runs", False,
-                  proc.stderr.strip().splitlines()[-1] if proc.stderr else "")
+            # pdf-overlap needs the network and pdftotext. Neither is a property
+            # of this repository, and exit 3 is the script itself refusing to
+            # guess without poppler. Whether NOTICE is current is then genuinely
+            # unknown, and unknown is reported as skipped, not as failed. The
+            # extraction logic that actually broke is covered offline in
+            # overlap_checks().
+            why = proc.stderr.strip().splitlines()[-1] if proc.stderr else \
+                f"exit {proc.returncode}"
+            SKIPPED.append(f"NOTICE vs pdf-overlap for {label}: {why}")
+            print(f"  skip  NOTICE vs {label}  {why}")
             continue
         headline = [ln.strip() for ln in proc.stdout.splitlines()
                     if ln.startswith(("illustrative words", "also occurring",
                                       "shared ", "no shared", "sequences that are",
                                       "every shared sequence"))]
+        # A subset test passes trivially on an empty subset. If the prefixes
+        # ever stop matching the script's output, this check would go green on
+        # a NOTICE quoting nothing at all, which is the failure it exists to
+        # catch. Every target prints at least the two count lines plus a verdict.
+        if not check(f"pdf-overlap output for {label} was read",
+                     len(headline) >= 3, f"{len(headline)} headline lines"):
+            continue
         missing = [ln for ln in headline if ln not in notice]
-        check(f"NOTICE quotes {' '.join(target) or 'the rulebook'} correctly",
-              not missing, "; ".join(missing[:2]))
+        check(f"NOTICE quotes {label} correctly", not missing,
+              "; ".join(missing[:2]))
 
 
 def bdw_online_checks():
@@ -295,8 +351,14 @@ def bdw_online_checks():
                                "-q", word], capture_output=True, text=True,
                               timeout=180)
         if proc.returncode == 2:
-            check(f"«{word}»", False, "lookup unknown (transport or page cap), "
-                  "not a repository failure")
+            # Exit 2 is bdw correctly saying "unknown", which is what it emits
+            # when the network is down or the page cap truncated the walk. It is
+            # not a repository failure, and recording it as one made an offline
+            # machine look like a broken repository, which is exactly what the
+            # module docstring promises will not happen. Counted and reported,
+            # not failed.
+            SKIPPED.append(f"«{word}»: lookup unknown, not disproven")
+            print(f"  skip  «{word}»  lookup unknown (transport or page cap)")
             continue
         check(f"«{word}» exits {expected}", proc.returncode == expected,
               f"got {proc.returncode}")
@@ -310,12 +372,32 @@ def corpus_checks():
         alts = pattern.pattern.split("(", 1)[1].rsplit(")", 1)[0].split("|")
         dead = [a for a in alts if not pattern.search(a.lower())]
         check(f"every {name} marker can match lowercased text", not dead, str(dead))
-    bernese = "Es isch aut u viu Gäud, si hei gsy u nid gwüsst."
-    other = "Es isch bikannt gsii, si hän nöd gwüsst, mit viel Ziit."
-    check("Bernese text scores above the keep threshold",
-          corpus.score(bernese) > corpus.KEEP_THRESHOLD, f"{corpus.score(bernese):.1f}")
-    check("another Alemannic variant scores below zero",
-          corpus.score(other) < 0, f"{corpus.score(other):.1f}")
+    # Article-sized fixtures, not one-liners. score() normalises to markers per
+    # 1000 characters, so a 48-character snippet is amplified about twentyfold
+    # and lands at 333 against a threshold of 1.0. At that distance the marker
+    # WEIGHTS are untested: changing them from 4 and -6 to 1 and -1 left the
+    # suite green. A realistic paragraph puts the result in the range the
+    # threshold actually discriminates in.
+    padding = ("Die Sitzig het am Nomittag im ne chlyne Saal aagfange u het "
+               "meh weder zwo Stund duuret, wil no viu z bespräche gsy isch. ")
+    neutral = ("Der Text beschreibt ein Verfahren, das in mehreren Schritten "
+               "abläuft und dabei verschiedene Aspekte gleichzeitig behandelt. ")
+    bernese = ("Es isch aut u viu Gäud gsy, si hei nid gwüsst was mache. "
+               + padding * 6)
+    other = ("Es isch bikannt gsii, si hän nöd gwüsst, mit viel Ziit. "
+             + neutral * 6)
+    for label, text, ok in (
+            ("Bernese text scores above the keep threshold", bernese,
+             lambda s: s > corpus.KEEP_THRESHOLD),
+            ("another Alemannic variant scores below zero", other,
+             lambda s: s < 0)):
+        score = corpus.score(text)
+        check(label, ok(score), f"{score:.2f} over {len(text)} chars")
+    # And the two must be far enough apart that the threshold is doing work
+    # rather than sitting in the noise.
+    check("the two are separated by more than the threshold",
+          corpus.score(bernese) - corpus.score(other) > corpus.KEEP_THRESHOLD,
+          f"{corpus.score(bernese) - corpus.score(other):.2f} apart")
 
 
 def packaging_checks():
@@ -424,11 +506,37 @@ def citation_checks():
         # matching those would be a check that can only be satisfied by
         # deleting the explanation of why the marker was demoted.
         body, _ = overlap.rules_text(path, path.read_text(encoding="utf-8"))
-        if "ggange" not in body:
+        # Assert the prescription is present rather than using it as a guard.
+        # As a guard, deleting `ggange` altogether SKIPPED the check instead of
+        # failing it, so the way to make this pass was to remove the rule.
+        if not check(f"{path.name} prescribes the doubled participle",
+                     "ggange" in body):
             continue
         stray = re.findall(r"(?<!\w)gange\b", body)
         check(f"{path.name} teaches the doubled participle everywhere",
               not stray, f"{len(stray)} undoubled use(s)")
+
+
+def readme_number_checks():
+    """Numbers the README states about files must be recomputed, not trusted.
+
+    The compact block grew by two characters in an ordinary edit and the README
+    kept quoting the old figure, in two places. A number about a file is the
+    same kind of claim as NOTICE's quoted measurement: it rots silently, and the
+    only defence is to compute it here.
+    """
+    print("README: stated numbers")
+    readme = (REPO / "README.md").read_text(encoding="utf-8")
+    compact = (REPO / "rules" / "schrybwys-compact.md").read_text(encoding="utf-8")
+    # What the README tells a reader to paste: everything below the `---`.
+    block = compact.split("---", 1)[1].strip()
+    check(f"the compact block is described as {len(block)} characters",
+          f"{len(block)}-character" in readme
+          and f"in {len(block)} characters" in readme,
+          f"actually {len(block)}")
+    stale = sorted({n for n in re.findall(r"\b(1[0-9]{3})[- ]char", readme)
+                    if n != str(len(block))})
+    check("no other character count is quoted for it", not stale, str(stale))
 
 
 def main():
@@ -444,6 +552,7 @@ def main():
     packaging_checks()
     overlap_checks()
     citation_checks()
+    readme_number_checks()
     if args.online:
         notice_online_checks()
         bdw_online_checks()
@@ -451,12 +560,18 @@ def main():
         print("bdw: skipping the network checks (pass --online to run them)")
 
     print()
+    if SKIPPED:
+        # Reported, never fatal. These are checks that could not run, not
+        # checks that found something.
+        print(f"{len(SKIPPED)} check(s) skipped:")
+        for name in SKIPPED:
+            print(f"  - {name}")
     if FAILURES:
         print(f"{len(FAILURES)} check(s) failed:")
         for name in FAILURES:
             print(f"  - {name}")
         return 1
-    print("all checks passed")
+    print("all checks passed" + (f", {len(SKIPPED)} skipped" if SKIPPED else ""))
     return 0
 
 

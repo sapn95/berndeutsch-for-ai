@@ -14,7 +14,7 @@ they are absent, the model falls back on its generic Swiss German prior.
 
 **The rulebook works with any AI.** `rules/schrybwys.md` is a plain markdown file
 with no tool-specific syntax, and `rules/schrybwys-compact.md` holds the same
-rules in a 1787-character block for instruction boxes that impose a limit. Drop
+rules in a 1789-character block for instruction boxes that impose a limit. Drop
 either into a system prompt, custom instructions, `AGENTS.md`,
 `.github/copilot-instructions.md` or `.cursor/rules/` and you are done.
 
@@ -34,7 +34,7 @@ claude:  answers in Bärndütsch, with nid instead of nöd
 | | |
 |---|---|
 | `rules/schrybwys.md` | The rulebook. The codified *schriftsprach-nah* system after Marti and Bietenhard: vowels, consonants, `ds`/`z`, grammar, and what separates Bernese from its neighbours. Tool-agnostic. |
-| `rules/schrybwys-compact.md` | The same rules in 1787 characters, with attribution and licence inside the block. |
+| `rules/schrybwys-compact.md` | The same rules in 1789 characters, with attribution and licence inside the block. |
 | `hooks/berndeutsch_gate.py` | The detector and injector, for Claude Code. |
 | `scripts/bdw` | Dictionary lookup against berndeutsch.ch. Answers the question the model cannot answer honestly by itself: is this actually a word? |
 | `scripts/bd-corpus` | Fetches a small corpus of genuinely Bernese text, for feel rather than rules. |
@@ -110,22 +110,26 @@ Then open `/hooks` once in Claude Code, or restart it, so the new config is read
 
 The only requirement is `python3`. The hook, `bdw`, `bd-corpus`, `install.py`
 and `selftest.py` are standard library only, with no third-party packages and no
-shell. The remaining script, `pdf-overlap`, additionally needs `pdftotext`
-(poppler), and it is a maintenance tool that nobody has to run in order to use
-the rulebook.
+shell. `pdf-overlap` additionally needs `pdftotext` (poppler); it is a
+maintenance tool that nobody has to run in order to use the rulebook, though
+`selftest.py --online` calls it to re-verify the numbers `NOTICE` quotes.
 
 To check a change, run the suite:
 
 ```sh
 ./scripts/selftest.py            # everything that needs no network
-./scripts/selftest.py --online   # also check bdw against berndeutsch.ch
+./scripts/selftest.py --online   # also: bdw against berndeutsch.ch, and the
+                                 # NOTICE measurements re-verified against the
+                                 # source PDF (this part needs pdftotext)
 ```
 
 Every check in it is a bug that was shipped once, and most of them were shipped
 by a fix for something else: a filter that dropped bare grammatical markers
 also dropped the real headwords `öppis` and `öpper`, so the lookup reported two
 core Bernese words as nonexistent. The network checks are opt-in because a
-volunteer-run dictionary should not be hit by a test loop.
+volunteer-run dictionary should not be hit by a test loop. A lookup that cannot
+reach the site is reported as skipped, never as failed: a network that is down
+must not look like a repository that is broken.
 
 ## Using it
 

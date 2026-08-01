@@ -54,7 +54,7 @@ hesch heschs chasch machsch weisch bisch wottsch chunnsch gisch nimmsch
 seisch tuesch muesch gohsch blybsch luegsch sägsch findsch bruuchsch
 verstahsch chöisch dörfsch söttisch wirsch wohnsch schaffsch schrybsch
 redsch chouffsch heissisch wosch chunsch meinsch gasch gahsch
-heit chömet chöit gö dihr
+chömet chöit gö dihr
 öppis öpper öppe mängisch itz sött söu söue wöu gäud niemer
 chli chunt chunnt chume chumme chöme chömme chöi göh göi
 nüme nümme müed gärn üs üsi üse
@@ -115,7 +115,7 @@ ahnig louf louft chlepfe chlepft poschte poschtet guete
 # all, and git reached it twice in one shell command.
 SUPPORTING = frozenset("""
 nid nit gsi gha kei chum witt geng gits hämmer gäu aut modi ching gange
-het mys gly
+het mys gly heit
 hei cha wott mues gah luege scho guet öi nöime hüt churz dänk söll
 """.split())
 
@@ -136,11 +136,23 @@ hei cha wott mues gah luege scho guet öi nöime hüt churz dänk söll
 # only the acronyms and the German and URL cases walked straight through it.
 #
 # Two of these together therefore decide nothing. Three do, because a sentence
-# with three separate collisions in it is no longer a coincidence, and real
-# Bernese reaches three easily: "Er het das nid gha" is all weak and still fires.
+# with three separate collisions in it is no longer a coincidence.
+#
+# A WEAK marker also has to be written in lower case to count at all, which is
+# the evidence the earlier version threw away by lowercasing before matching.
+# The collision is nearly always with an ACRONYM or with a GERMAN NOUN, and both
+# of those are capitalised while the Bernese word is not: "the Lustre NID
+# mapping" and "im Gange" and "zwei Modi" and "Prime Minister Modi" are all
+# capitalised, and Bernese `nid`, `gange`, `modi` in running text are not.
+#
+# het and nid are deliberately NOT here. They are the auxiliary and the
+# negation, which is the commonest two-marker shape in the language, and
+# requiring a third silenced "Das het nid klappt" and "Er het nid welle". Their
+# own collisions are with a URL path segment and an uppercase identifier, and
+# GLUE and the lower-case rule cover both without costing the language anything.
 WEAK = frozenset("""
-nid nit gsi gha kei aut mys gly
-het modi ching geng chum gits cha gange witt hämmer gäu
+nit gsi gha kei aut mys gly
+modi ching geng chum gits cha gange witt hämmer gäu heit
 """.split())
 
 # One decisive marker fires. Otherwise two DISTINCT supporting markers are
@@ -156,8 +168,12 @@ MIN_WEAK_ONLY = 3
 # assertions are stripped under python3 -O anyway.
 TOKEN_RE = re.compile(r"[^\W\d_]+", re.UNICODE)
 # Characters that split a token but never split a word in prose, so a letter run
-# touching one came out of an identifier rather than out of a sentence.
-GLUE = frozenset("0123456789_")
+# touching one came out of an identifier, a path or an encoded blob rather than
+# out of a sentence. The slash and the plus are here because a URL path segment
+# ("GET /api/het/modi") and the base64 alphabet produce exactly the same short
+# letter runs as a pod-name hash does. Prose uses "and/or", which costs nothing:
+# neither half is a marker.
+GLUE = frozenset("0123456789_/+")
 
 
 def _is_word_char(ch):
@@ -222,15 +238,38 @@ def word_tokens(text):
     4.5% of the time, a PEM certificate 1.35%, a `kubectl get pods` listing
     0.77%.
 
-    A digit or an underscore never separates two letters inside a word of
-    running prose, in any of the languages this has to survive. It only happens
-    inside an identifier, a hash or an encoded blob. So a letter run touching
+    A GLUE character never separates two letters inside a word of running
+    prose, in any of the languages this has to survive. It only happens inside
+    an identifier, a hash, a path or an encoded blob. So a letter run touching
     one on either side is not a word and does not vote. Ordinary punctuation is
     left alone, because prose does use it: "Wo-n-i" must still tokenise.
+
+    Case is preserved. The caller needs it: an all-caps NID is an acronym and a
+    lower-case nid is the Bernese negation, and lowercasing here threw away the
+    only evidence that tells them apart.
     """
-    return [m.group() for m in TOKEN_RE.finditer(text)
+    return [m.group() for m in word_matches(text)]
+
+
+# What can precede a word and still leave it sentence-initial. A capital there
+# is the orthography, not a signal, so a WEAK marker written "Chum" at the start
+# of a Bernese sentence has to keep counting.
+SENTENCE_END = frozenset(".!?:;\"»)]…\n\r")
+
+
+def word_matches(text):
+    """word_tokens, but as match objects, so the caller can see the position."""
+    return [m for m in TOKEN_RE.finditer(text)
             if not (m.start() and text[m.start() - 1] in GLUE)
             and not (m.end() < len(text) and text[m.end()] in GLUE)]
+
+
+def sentence_initial(text, start):
+    """True when only whitespace and sentence-ending punctuation precede."""
+    i = start - 1
+    while i >= 0 and text[i].isspace():
+        i -= 1
+    return i < 0 or text[i] in SENTENCE_END
 
 
 def is_dialect(text):
@@ -245,10 +284,25 @@ def is_dialect(text):
     modi list with Ching") is 1.4 KB, not 9 KB, and the next genuinely Bernese
     prompt in that session still gets the whole thing.
     """
-    tokens = word_tokens(scan_window(text).lower())
-    if any(t in DECISIVE for t in tokens):
+    window = scan_window(text)
+    matches = word_matches(window)
+    if any(m.group().lower() in DECISIVE for m in matches):
         return True, True
-    matched = {t for t in tokens if t in SUPPORTING}
+    # A WEAK marker only counts when it was actually written in lower case, or
+    # when its capital is just the start of a sentence. Its collision is with an
+    # acronym or a German noun, and both of those are capitalised mid-sentence:
+    # NID, GSI, GHA, MYS, Gly, "im Gange", "zwei Modi", "Minister Modi". The
+    # Bernese words are not.
+    matched = set()
+    for m in matches:
+        low = m.group().lower()
+        if low not in SUPPORTING:
+            continue
+        if low in WEAK and m.group() != low and not (
+                m.group() == m.group().capitalize()
+                and sentence_initial(window, m.start())):
+            continue
+        matched.add(low)
     # Two distinct markers, or three if every one of them also reads as
     # ordinary non-Bernese text. Both halves are needed: without the count, one
     # token decides a prompt; without the weak rule, "the GHA workflow and the
