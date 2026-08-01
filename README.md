@@ -108,7 +108,7 @@ cd berndeutsch-for-ai && ./scripts/install.py
 
 `install.py` symlinks the hook and `bdw` into your Claude config directory,
 self-tests both the firing and the silent case, prints the settings block to
-merge, and changes nothing else. It never writes `settings.json` for you: that
+merge, makes those two scripts executable, and changes nothing else. It never writes `settings.json` for you: that
 file is yours and usually already has hooks in it.
 
 The block it prints uses the exec form, so the hook is spawned directly and no
@@ -201,7 +201,7 @@ flowchart TD
 
     EV --> MUT["scripts/mutation.py<br/>CAN these tests fail?"]
     ST --> MUT
-    MUT --> SCORE["mutation score<br/>82% of changes get caught"]
+    MUT --> SCORE["mutation score<br/>./scripts/mutation.py"]
     SCORE -.->|"every surviving mutant<br/>is a missing test"| EV
 ```
 
@@ -210,7 +210,7 @@ can these tests fail? It uses [cosmic-ray](https://github.com/sixty-north/cosmic
 to change the code and check that something goes red. An assertion that cannot
 fail kills nothing, and the score says so without anybody's opinion in it. The
 detection core started at **19%**, with 75 of 75 mutations to the window
-function surviving. It is **82%** now. That is the only reason to believe the
+function surviving. Run `./scripts/mutation.py` for what it is now; the figure is deliberately not repeated here, because it was quoted as current for four commits after the hook had changed under it. That is the only reason to believe the
 tests above are worth anything.
 
 The surviving-mutant list is also the best source of test cases there is. Four
@@ -291,8 +291,10 @@ flowchart TD
 
 
 Marker matching over the first and last 3000 characters of the prompt, so that
-a large paste neither hides the question nor costs anything to scan. A 1.4 MB
-paste takes 0.15 s.
+a large paste neither hides the question nor costs anything to scan.
+`./scripts/selftest.py` asserts that cost rather than describing it: eight
+adversarial shapes, a 50 ms budget, and the measured milliseconds printed. The
+number is not repeated here because it has been wrong twice, once by 80x.
 
 Two tiers, and both of them decide something.
 

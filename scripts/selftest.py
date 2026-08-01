@@ -276,6 +276,32 @@ def hook_checks(tmp):
         check(f"is_dialect stays under 50 ms: {name}", spent < 50,
               f"{spent:.1f} ms over {len(blob):,} chars")
 
+    # Every rule that GENERATES markers must have a negative case in the
+    # labelled set. The dictionary sweep is English and every collision that
+    # has reached main was German: überbracht, zäh, zwo, meinige, Geflechte,
+    # grottenschlechte. No word list on this machine can see those, but the
+    # corpus can, and this makes adding the rule and adding its counter-example
+    # one action instead of two.
+    corpus = (REPO / "corpus" / "labelled.tsv").read_text(encoding="utf-8")
+    negatives = [ln.split("\t", 2)[2] for ln in corpus.splitlines()
+                 if ln.startswith("xx\t") and ln.count("\t") >= 2]
+    # The boundary, not the acceptance. A negative row that the rule ACCEPTS
+    # would be a live false positive; what pins a guard is a row whose token
+    # the rule's PATTERN matches and whose guard then rejects. That is the
+    # German word sitting one character away from a Bernese one.
+    near_miss = [t.lower() for line in negatives
+                 for t in gate.TOKEN_RE.findall(line)
+                 if gate.LECH_RE.match(t.lower())]
+    check("the corpus holds a non-Bernese word the -lech guard must reject",
+          bool(near_miss), str(sorted(set(near_miss))[:6]) or
+          "add one: a guard with no counter-example is a guard nobody checks")
+    check("and the guard does reject every one of them",
+          not any(gate.suffixed(t) for t in near_miss),
+          str(sorted({t for t in near_miss if gate.suffixed(t)})))
+    for rule, derived in (("velarised", gate.velarised(gate.DECISIVE | gate.SUPPORTING)),
+                          ("plural_ig", gate.plural_ig(gate.DECISIVE | gate.SUPPORTING))):
+        check(f"{rule}() produces something", bool(derived), "empty rule")
+
     print("hook: prompts that must load the rules")
     for i, (prompt, why) in enumerate(FIRES):
         ctx, err = run_hook(prompt, f"fire-{i}", tmp / f"fire{i}")
@@ -613,6 +639,16 @@ def packaging_checks():
               str(resolved))
         check("the script is executable", os.access(resolved, os.X_OK), str(resolved))
 
+    # Nothing outside the known top-level names. Two artefacts of the relative
+    # CLAUDE_CONFIG_DIR bug were committed before it was fixed: relcfg/ and a
+    # directory whose name is a single space.
+    tracked = subprocess.run(["git", "ls-files"], cwd=str(REPO),
+                             capture_output=True, text=True).stdout.split("\n")
+    allowed = {"hooks", "scripts", "rules", "corpus", ".claude-plugin",
+               "README.md", "NOTICE", "LICENSE", ".gitignore"}
+    stray = sorted({p.split("/")[0] for p in tracked if p.strip()} - allowed)
+    check("no tracked path outside the known set", not stray, str(stray))
+
     plugin = json.loads((REPO / ".claude-plugin" / "plugin.json").read_text())
     market = json.loads((REPO / ".claude-plugin" / "marketplace.json").read_text())
     names = [p.get("name") for p in market.get("plugins", [])]
@@ -681,10 +717,23 @@ def mutation_order_checks():
     # dropped from the score, so refactoring a branch into a helper RAISES the
     # number by deleting the mutants it was failing.
     mutation = load(REPO / "scripts" / "mutation.py")
-    sample = "def outer():\n    def inner():\n        return 1\n    return inner\n"
-    owner = mutation.owner_map(sample)
-    check("a nested closure is attributed to its enclosing function",
-          owner(3) == "outer", f"line 3 -> {owner(3)}")
+    # Against the real hook, not a toy. A two-line sample produces one span, so
+    # owner() went untested; and with ast.walk recording nested defs the
+    # sort-then-first-match still returned "outer", so collect() went untested
+    # too. Either half could be broken alone and this check stayed green. The
+    # hook has a genuine nested closure, counts() inside is_dialect, which is
+    # the exact case that once removed 18 mutants from the score.
+    gate_source = HOOK.read_text(encoding="utf-8")
+    owner = mutation.owner_map(gate_source)
+    inside = [n.lineno for n in ast.walk(ast.parse(gate_source))
+              if isinstance(n, ast.FunctionDef) and n.name == "counts"]
+    if check("the hook still has the nested closure this pins", bool(inside)):
+        check("a nested closure is attributed to its enclosing function",
+              owner(inside[0] + 1) == "is_dialect",
+              f"line {inside[0] + 1} -> {owner(inside[0] + 1)}")
+    total = len(gate_source.splitlines())
+    check("the closure is never an owner in its own right",
+          "counts" not in {owner(n) for n in range(1, total + 1)})
 
     # Every name the score filters on must still exist in the hook. Renaming
     # word_matches raised the reported figure from 83.1% to 84.4% by removing
@@ -863,6 +912,11 @@ def readme_number_checks():
         if "precision and recall" not in line.lower():
             continue
         check(f"README:{line_no} does not fix the score in the diagram",
+              not re.search(r"\d+(\.\d+)?%", line), line.strip()[:70])
+    for line_no, line in enumerate(readme.splitlines(), 1):
+        if "mutation score" not in line.lower():
+            continue
+        check(f"README:{line_no} does not fix the mutation score either",
               not re.search(r"\d+(\.\d+)?%", line), line.strip()[:70])
 
 

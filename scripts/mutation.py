@@ -29,6 +29,7 @@ the tests are concerned, not tested at all, whatever the line coverage says.
 import argparse
 import ast
 import collections
+import hashlib
 import json
 import shutil
 import sqlite3
@@ -225,7 +226,28 @@ def main():
     # working tree instead and every mutant is attributed to the wrong function
     # as soon as the file has been edited by as little as one inserted line.
     measured = SESSION / "tree" / TARGET
-    source = (measured if measured.is_file() else REPO / TARGET).read_text(encoding="utf-8")
+    if not measured.is_file():
+        print(f"\nNo measured copy at {measured}. A score computed against the "
+              f"working tree is a score of a file that was never mutated: the "
+              f"same session gave 82%, 72% and 52% that way, decided only by "
+              f"which file happened to be on disk. Re-run.", file=sys.stderr)
+        return 2
+    source = measured.read_text(encoding="utf-8")
+    digest = hashlib.sha256(source.encode("utf-8")).hexdigest()
+    stamp = SESSION / "source.sha256"
+    if not args.report_only:
+        stamp.write_text(digest)
+    elif stamp.is_file() and stamp.read_text().strip() != digest:
+        print("\nThe staged copy is not the one this session was recorded "
+              "against. Re-run.", file=sys.stderr)
+        return 2
+    live = (REPO / TARGET).read_text(encoding="utf-8")
+    if args.report_only and live != source:
+        print(f"\nMEASURED AGAINST A SOURCE THAT HAS SINCE CHANGED. "
+              f"{TARGET} has been edited since this session was recorded, so "
+              f"the score below describes the previous version. Re-run.",
+              file=sys.stderr)
+        return 2
 
     # Every name in DETECTION must exist in the source that was measured. The
     # filter drops mutants whose function is not listed, so a rename silently
@@ -241,7 +263,11 @@ def main():
             elif isinstance(node, ast.ClassDef):
                 names(node.body)
 
-    names(ast.parse(source).body)
+    # Against the LIVE file, which is what a maintainer would go and edit. The
+    # first version read the staged copy and named the live file, so it
+    # reported two functions as gone that were present, and advised deleting
+    # them from the scope: the exact silent shrink this guard exists to stop.
+    names(ast.parse(live).body)
     missing = sorted(set(DETECTION) - defined)
     if missing and not args.full:
         print(f"\nDETECTION names no longer in {TARGET}: {', '.join(missing)}",
