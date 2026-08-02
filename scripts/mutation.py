@@ -48,12 +48,15 @@ DETECTION = ("word_tokens", "word_matches", "scan_window", "is_dialect",
              # markers rather than list them, which makes them the most
              # consequential code in the file, and they sat outside the
              # measured scope for a round.
-             "velarised", "prefixed", "suffixed",
+             "velarised", "prefixed", "suffixed", "plural_ig",
              "looks_like_address", "strip_addresses")
-# Under the repository, not the system temp directory. gettempdir() on macOS
-# is a private per-user path that is cleaned periodically, so --report-only
-# would work or not depending on how long ago the run was. Gitignored.
-SESSION = REPO / ".mutation"
+# Beside the repository, not inside it. Inside, a local-directory plugin
+# install copies the working tree without consulting .gitignore, and this
+# directory was 68% of the shipped payload: a session database plus a complete
+# second copy of the repo, __pycache__ and all. Beside it, and named after the
+# repo so two clones do not share one session, it is stable across runs (which
+# the system temp directory is not, on macOS) and invisible to any install.
+SESSION = REPO.parent / f".{REPO.name}-mutation"
 # The floor, recorded from a real run so a change cannot quietly lower it.
 # 19% when this was first measured; the gap was almost entirely scan_window,
 # where 75 of 75 mutations survived, and is_dialect, where 35 of 42 did.

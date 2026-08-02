@@ -3,8 +3,10 @@ __pycache__/
 *.pyc
 .DS_Store
 
-# scripts/mutation.py working directory: a copy of the tree plus a cosmic-ray
-# session database. Regenerated on every run, never useful to commit.
+# scripts/mutation.py used to stage into .mutation/ here. It now stages beside
+# the repository instead, because a local-directory plugin install copies the
+# working tree without consulting this file and that directory was 68% of the
+# shipped payload. Kept for a while so an old clone does not commit one.
 .mutation/
 
 # A relative CLAUDE_CONFIG_DIR used to make the hook build its state tree in

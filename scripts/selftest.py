@@ -106,7 +106,8 @@ FIRES = [
     # language. Requiring three weak markers silenced it for a whole round.
     ("Das het nid klappt.", "het + nid, the commonest pair"),
     ("Er het nid welle.", "het + nid again"),
-    ("Chum mer wei das luege.", "a weak marker capitalised at sentence start"),
+    ("Hallo\nChum mer wei das luege.", "weak marker capitalised after a line "
+     "break, grounded by luege"),
 ]
 
 # Prompts that MUST stay silent. Every one of these fired at some point.
@@ -333,6 +334,10 @@ def hook_checks(tmp):
         ("1 MB of one umlaut", "ä" * 1_048_576),
         ("1 MB of combining marks", "a" + "\u0316" * 500_000 + "\u0334" * 500_000),
         ("2 MB of ordinary prose", "Please review the log. " * 91_000),
+        # NFC-expanding codepoints: U+1D161 decomposes recursively into three
+        # astral ones, two of them combining. This shape cost 70-79 ms when
+        # the window normalised a slice eight times its own size.
+        ("500k recursively-decomposing codepoints", "\U0001D161" * 500_000),
     ]
     for name, blob in shapes:
         start = time.perf_counter()
@@ -381,6 +386,11 @@ def hook_checks(tmp):
     cfg = tmp / "budget"
     first, _ = run_hook("Chasch mer das erkläre?", "budget-1", cfg)
     second, _ = run_hook("U chasch mer no säge werum?", "budget-1", cfg)
+    # `or ""` on every one of these: run_hook returns None when the hook exits
+    # non-zero, len(None) raises TypeError, and the whole suite then stopped
+    # before the packaging, citation and classifier checks ran. One crash hid
+    # every later result.
+    first, second = first or "", second or ""
     check("first decisive prompt gets the full rulebook", len(first) > 4000,
           f"{len(first)} chars")
     check("second gets the short checklist instead", 0 < len(second) < len(first),
@@ -393,6 +403,7 @@ def hook_checks(tmp):
     cfg2 = tmp / "budget2"
     weak, _ = run_hook("Er het das nid gha.", "budget-2", cfg2)
     strong, _ = run_hook("Chasch mer das erkläre?", "budget-2", cfg2)
+    weak, strong = weak or "", strong or ""
     check("a supporting-only match gets the checklist", 0 < len(weak) < 2500,
           f"{len(weak)} chars")
     check("and does not consume the full injection", len(strong) > 4000,
@@ -655,6 +666,14 @@ def corpus_checks():
     for name in ("L_VOC", "BERN", "OTHER"):
         pattern = getattr(corpus, name)
         alts = pattern.pattern.split("(", 1)[1].rsplit(")", 1)[0].split("|")
+        # On the SOURCE alternation, not through the compiled pattern. The
+        # patterns carry re.IGNORECASE, so searching them for a capitalised
+        # alternative always succeeds and the check could no longer see the
+        # regression it exists for: score() lowercases its input, and a marker
+        # written Wäut stopped counting while still looking present.
+        upper = sorted(a for a in alts if a != a.lower())
+        check(f"every {name} alternative is written lower case", not upper,
+              str(upper))
         dead = [a for a in alts if not pattern.search(a.lower())]
         check(f"every {name} marker can match lowercased text", not dead, str(dead))
     # Article-sized fixtures, not one-liners. score() normalises to markers per
@@ -736,7 +755,17 @@ def packaging_checks():
         allowed = {"hooks", "scripts", "rules", "corpus", ".claude-plugin",
                    ".github", "README.md", "NOTICE", "LICENSE", ".gitignore"}
         stray = sorted({p.split("/")[0] for p in tracked} - allowed)
-        check("no tracked path outside the known set", not stray, str(stray))
+        check("no tracked top-level name outside the known set", not stray,
+              str(stray))
+        # And every segment, not only the first. The guard inspected
+        # path.split("/")[0], so scripts/relcfg/... and hooks/ /... would both
+        # have passed: the two artefacts it was written for, moved one level
+        # down. A blank or whitespace segment is never intentional.
+        buried = sorted(p for p in tracked
+                        for seg in p.split("/")
+                        if not seg.strip() or seg == "relcfg")
+        check("no tracked path has a blank or stray segment", not buried,
+              str(buried))
 
     plugin = json.loads((REPO / ".claude-plugin" / "plugin.json").read_text())
     market = json.loads((REPO / ".claude-plugin" / "marketplace.json").read_text())

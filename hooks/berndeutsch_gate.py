@@ -402,12 +402,27 @@ def scan_window(text):
     fragment, and a fragment can be a marker that the real text never
     contained, e.g. German "Verzeichnisch..." cut after "...isch".
     """
-    # A generous pre-cut before any transform touches the text. The comment
-    # below says addresses are stripped after the window and never before; the
-    # three transforms above it were still running on the full prompt.
-    if len(text) > PRECUT * (SCAN_HEAD + SCAN_TAIL):
-        text = text[:PRECUT * SCAN_HEAD] + "\n" + text[-PRECUT * SCAN_TAIL:]
-    text = unicodedata.normalize("NFC", text)
+    # A pre-cut before any transform touches the text. The comment below says
+    # addresses are stripped after the window and never before; the three
+    # transforms above it were still running on the full prompt.
+    #
+    # Two-stage, because NFC is essentially the whole cost of this function and
+    # it is linear in how much is handed to it. A slice of PRECUT windows cost
+    # 70 ms on 500k codepoints that each decompose into three astral ones, over
+    # this suite's own 50 ms bar. Twice the window is enough for ordinary text;
+    # the wide slice exists only for transforms that SHRINK, and the worst of
+    # those is 3:1, so it is taken only when the narrow one really came back
+    # too short.
+    def precut(factor):
+        if len(text) <= factor * (SCAN_HEAD + SCAN_TAIL):
+            return text
+        return text[:factor * SCAN_HEAD] + "\n" + text[-factor * SCAN_TAIL:]
+
+    narrow = unicodedata.normalize("NFC", precut(2))
+    if len(narrow) >= SCAN_HEAD + SCAN_TAIL or len(text) <= 2 * (SCAN_HEAD + SCAN_TAIL):
+        text = narrow
+    else:
+        text = unicodedata.normalize("NFC", precut(PRECUT))
     # A pasted JSON log or an escaped error string contains literal \n, \r and
     # \t two-character sequences. The backslash is not a letter, so "...\nID"
     # tokenises to "nid" and "...\nIt" to "nit", conjuring supporting markers
@@ -742,6 +757,22 @@ CHECKLIST = """Quick checklist:
 - be CONSISTENT within one text, that is the golden rule"""
 
 
+def is_rulebook(body):
+    """Whether a file's contents can serve as a rulebook.
+
+    Not merely non-empty: DECODABLE. read_text(errors="replace") turns a PDF or
+    a .docx into U+FFFD, which is truthy, so a binary file passed the old test,
+    was injected as mojibake, and marked the session served. One replacement
+    character in twenty is the line between a file with an odd character in it
+    and a file that is not text at all.
+
+    One function, because the emit path and the fallback path each had their own
+    version of this test and they disagreed: the first rejected a binary
+    rulebook and the second still called it readable.
+    """
+    return bool(body.strip()) and body.count("\ufffd") * 20 < len(body)
+
+
 def build_context(here, first_time, served):
     out = [
         "<berndeutsch-schrybwys>",
@@ -762,7 +793,7 @@ def build_context(here, first_time, served):
             # An empty or unreadable rulebook is not a rulebook. Treating it as
             # one would mark the session served and leave the user with neither
             # the rules nor the checklist for the rest of it.
-            if body.strip():
+            if is_rulebook(body):
                 out.append(body)
                 emitted = True
         if emitted:
@@ -788,7 +819,8 @@ def build_context(here, first_time, served):
         readable = False
         if primary:
             try:
-                readable = bool(primary.read_text(encoding="utf-8", errors="replace").strip())
+                readable = is_rulebook(primary.read_text(encoding="utf-8",
+                                                         errors="replace"))
             except OSError:
                 readable = False
         # Same test as the emit path. An existing but empty or unreadable file
@@ -826,7 +858,9 @@ def session_marker(session_id):
     """Path of this session's state file, or None if state cannot be kept."""
     if not isinstance(session_id, str) or not session_id:
         return None
-    safe = re.sub(r"[^A-Za-z0-9_-]", "_", session_id)[:128]
+    # Truncate FIRST. Substituting over the whole value and then keeping 128
+    # characters cost 626 ms on a 10 MB session id, to produce the same 128.
+    safe = re.sub(r"[^A-Za-z0-9_-]", "_", session_id[:128])
     cfg = config_dir()
     if cfg is None:
         # Nowhere sensible to keep state. The turn still gets its rules; it just
