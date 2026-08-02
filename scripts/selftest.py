@@ -68,6 +68,13 @@ def fastest(fn, rounds=5):
     return best
 
 
+# A number followed by a percent sign. Possessive on purpose: the obvious
+# r"\d+(\.\d+)?%" backtracks over every digit of a long run that is not
+# followed by a sign, which is the quadratic-regex class this repository has
+# shipped three times in the hook itself. Requires python 3.11, which is
+# what CI pins and what the README states as the floor.
+PERCENTAGE = re.compile(r"\d[\d.]*+%")
+
 # What the calibration below measured when the per-shape costs were recorded.
 CALIBRATION_MS = 10.0
 
@@ -1216,7 +1223,7 @@ def readme_number_checks():
           f"{len(block)}-character" in readme
           and f"in {len(block)} characters" in readme,
           f"actually {len(block)}")
-    stale = sorted({n for n in re.findall(r"\b(1[0-9]{3})[- ]char", readme)
+    stale = sorted({n for n in re.findall(r"\b(1\d{3})[- ]char", readme)
                     if n != str(len(block))})
     check("no other character count is quoted for it", not stale, str(stale))
 
@@ -1254,15 +1261,31 @@ def readme_number_checks():
     # section exists to catch, so it is asserted rather than assumed.
     if check("the full injection really carries the rulebook", emitted
              and len(full) > 4000, f"{len(full):,} chars, emitted={emitted}"):
-        pairs = ((len(full), "about 9 KB"), (len(short), "about 1.5 KB"))
-        for size, quoted in pairs:
-            check(f"the README quotes {quoted} and it is {size / 1024:.1f} KB",
-                  quoted in readme
-                  and abs(size / 1024 - float(quoted.split()[1])) < 0.05,
-                  f"{size:,} chars")
-        cost = (f"costs {len(short) / 1024:.1f} KB rather than "
-                f"{len(full) / 1024:.0f} KB")
-        check("and the cost paragraph quotes the same pair", cost in readme, cost)
+        # A TOLERANCE, not an exact rounded figure. The injected text names bdw
+        # by absolute path, so the size depends on where the repository sits on
+        # disk: the same content measured 1,498 characters under the author's
+        # home and 1,480 under /tmp, which straddles the boundary between "1.4
+        # KB" and "1.5 KB". An assertion whose verdict turns on the length of a
+        # checkout path is the environment-dependent kind this file keeps
+        # removing. "about" is the README's own word, and 10% is what it can
+        # honestly mean; that still fails on a rulebook or checklist that has
+        # materially changed size, which is the drift being guarded against.
+        for size, quoted in ((len(full), "about 9 KB"),
+                             (len(short), "about 1.5 KB")):
+            want = float(quoted.split()[1])
+            check(f"the README says {quoted} and it is {size / 1024:.2f} KB",
+                  quoted in readme and abs(size / 1024 - want) <= want / 10,
+                  f"{size:,} chars, within 10% of {want} KB")
+        # The cost paragraph quotes the same pair to one and zero decimals.
+        # Both are read back out of the README and measured, rather than
+        # rebuilt as a string that has to match character for character.
+        stated = re.search(r"costs ([\d.]+) KB rather than (\d+) KB", readme)
+        if check("the cost paragraph quotes a pair of sizes", stated is not None):
+            for got, want in ((len(short), float(stated.group(1))),
+                              (len(full), float(stated.group(2)))):
+                check(f"and {want} KB is within 10% of the {got:,} it sends",
+                      abs(got / 1024 - want) <= want / 10,
+                      f"{got / 1024:.2f} KB measured")
     # And the window size, which the diagram states twice in words.
     check("the README states the window the hook actually uses",
           readme.count(f"first {gate.SCAN_HEAD} + last {gate.SCAN_TAIL}") == 1
@@ -1286,11 +1309,11 @@ def readme_number_checks():
         lines = [(n, ln) for n, ln in enumerate(readme.splitlines(), 1)
                  if phrase in ln.lower()]
         if not check(f"the README still describes {what}", bool(lines),
-                     f"no line says {phrase!r}"):
+                     f"{len(lines)} line(s) say {phrase!r}"):
             continue
         for line_no, line in lines:
             check(f"README:{line_no} does not fix {what}",
-                  not re.search(r"\d+(\.\d+)?%", line), line.strip()[:70])
+                  not re.search(PERCENTAGE, line), line.strip()[:70])
 
 
 def main():
