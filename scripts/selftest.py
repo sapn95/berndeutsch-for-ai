@@ -1098,8 +1098,18 @@ def packaging_checks():
         check("no tracked path has a blank or stray segment", not buried,
               str(buried))
 
-    plugin = json.loads((REPO / ".claude-plugin" / "plugin.json").read_text())
-    market = json.loads((REPO / ".claude-plugin" / "marketplace.json").read_text())
+    # Guarded the way hooks.json is, twenty lines up. Unguarded, a malformed
+    # manifest raised out of this function and the run stopped before the
+    # overlap, citation, installer, config-dir, mutation-order, README-number
+    # and classifier groups ran. A corrupt manifest is the exact defect this
+    # function exists to catch, so it has to be one failed check.
+    try:
+        plugin = json.loads((REPO / ".claude-plugin" / "plugin.json").read_text())
+        market = json.loads((REPO / ".claude-plugin" / "marketplace.json").read_text())
+    except Exception as exc:
+        check("both plugin manifests parse", False, f"{type(exc).__name__}: {exc}")
+        return
+    check("both plugin manifests parse", True)
     names = [p.get("name") for p in market.get("plugins", [])]
     check("the marketplace lists the plugin by its own name",
           plugin.get("name") in names, f"{plugin.get('name')} vs {names}")

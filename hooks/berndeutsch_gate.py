@@ -480,8 +480,8 @@ def word_tokens(text):
     `api-gateway-7d4b9c8f5-itz9q` yields `itz`, which alone injects the whole
     rulebook and spends the session's single full injection, so the genuinely
     Bernese question that follows gets only the checklist. Measured over random
-    pastes this was the dominant remaining false positive: a base64 blob fired
-    it was the dominant false positive left. The rates are not quoted: nothing
+    pastes, this was the dominant remaining false positive: a base64 blob fired
+    it. The rates are not quoted: nothing
     here reproduces them, they depend on a blob length nobody recorded, and
     three numbers in the README went stale in exactly that way.
 

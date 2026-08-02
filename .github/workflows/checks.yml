@@ -23,6 +23,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # actions/checkout writes the job's GITHUB_TOKEN into .git/config by
+          # default. This job then runs repository code, and `pull_request`
+          # accepts code from anyone. Nothing here pushes; selftest.py's only
+          # git call is `git ls-files`, which needs no token.
+          persist-credentials: false
 
       - uses: actions/setup-python@v5
         with:

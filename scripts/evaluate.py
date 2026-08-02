@@ -497,8 +497,10 @@ def main():
     if scores is None:
         return 2
     broken = metamorphic(gate, args.errors)
-    broken += boundary(gate, args.errors)
-    broken += window_properties(gate, args.errors)
+    # Counted apart from the metamorphic relations. They were added into the
+    # same total and printed as "metamorphic violation(s)", which sent a
+    # maintainer reading GATE FAILED to the wrong section of the output.
+    probes = boundary(gate, args.errors) + window_properties(gate, args.errors)
 
     if not args.gate:
         return 0
@@ -517,6 +519,8 @@ def main():
         failed.append(f"{scores['fn']} miss(es) > {MAX_FALSE_NEGATIVES}")
     if broken:
         failed.append(f"{broken} metamorphic violation(s)")
+    if probes:
+        failed.append(f"{probes} boundary or window-property failure(s)")
     if failed:
         print("GATE FAILED: " + "; ".join(failed))
         return 1
