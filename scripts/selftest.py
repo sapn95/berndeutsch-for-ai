@@ -426,6 +426,14 @@ def hook_checks(tmp):
         # `and` into an `or` was caught only by a metamorphic relation in
         # evaluate.py, which is the corpus instrument this block replaced.
         ("a dot before a closing quote", "guet.»", False),
+        # The other side of the same rule, from the surviving-mutant list:
+        # chunk[i - 1] -> chunk[i + 1] tests the right-hand character twice and
+        # every probe above stayed green.
+        ("a dot with punctuation before it", "a-.b", False),
+        # And the hyphen has to BE there. `hyphen != -1` -> `hyphen >= -1` is
+        # always true, chunk[0:] is then the whole chunk, and any word with a
+        # digit anywhere in it became an address.
+        ("digits but no hyphen at all", "abc123", False),
     ]
     for name, chunk, want in addresses:
         got = gate.looks_like_address(chunk)

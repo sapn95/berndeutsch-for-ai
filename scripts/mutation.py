@@ -63,7 +63,14 @@ SESSION = REPO.parent / f".{REPO.name}-mutation"
 # 19% when this was first measured; the gap was almost entirely scan_window,
 # where 75 of 75 mutations survived, and is_dialect, where 35 of 42 did.
 # Raise it when the measurement rises. Never lower it to make a run pass.
-MIN_SCORE = 80.0
+#
+# 87.6% on the last complete run, 490 mutants over the detection core. The 57%
+# reported before that was measured with an oracle that ran only evaluate.py:
+# the comment said "both commands" and the code used both only under --full, so
+# fifteen new address tests moved the score by 0.2 points because the oracle
+# never saw them. The floor is set below the measurement, not at it, because
+# which mutants come back INCOMPETENT varies a little between runs.
+MIN_SCORE = 85.0
 
 
 def stage():
