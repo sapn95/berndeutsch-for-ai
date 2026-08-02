@@ -76,7 +76,14 @@ def fastest(fn, rounds=5):
 PERCENTAGE = re.compile(r"\d[\d.]*+%")
 
 # What the calibration below measured when the per-shape costs were recorded.
-CALIBRATION_MS = 10.0
+# Both were taken in one pass on an idle machine, and both were READ OUT OF
+# THIS FILE rather than measured by a script beside it: the first attempt
+# recorded 2.9 ms for a reference the suite measures at 20.7, because the
+# recording script's umlaut literal was precomposed and this file's is not.
+# The set before that was taken while a mutation run held every core, so
+# every number came out about twice its real cost and the 4x budgets were
+# really 8x.
+CALIBRATION_MS = 20.7
 
 
 def calibrate():
@@ -87,9 +94,15 @@ def calibrate():
     move, the ratio would not, and the budgets would follow the defect upwards.
     NFC and a word split over a fixed blob use the same two library primitives
     the window does, and no repository code at all.
+
+    The blob is NON-ASCII on purpose. Over "a" * 400_000 CPython's NFC
+    short-circuits and hands back the same object in a tenth of a microsecond,
+    so the reference was 100% a regex measurement while the three most
+    expensive shapes are NFC-dominated. A decomposed umlaut gives NFC actual
+    work to do, which is the point of having it in the reference at all.
     """
     import unicodedata
-    blob = "a" * 400_000
+    blob = "a\u0308" * 200_000
 
     def work():
         unicodedata.normalize("NFC", blob)
@@ -300,28 +313,52 @@ def hook_checks(tmp):
     check("and every one of them is a function in the hook", not absent,
           str(absent))
     # And the tuple has to be COMPLETE, or it is the same hand-written list one
-    # file further along. Derived from the hook's syntax tree: a generator is a
-    # module-level function called either in a `SET |= f(SET)` at import or in
-    # the token test that decides whether a word is a marker at all.
+    # file further along. Derived from the hook's syntax tree, and the first
+    # version of this derivation was itself too narrow: it looked at `SET |=
+    # f(SET)` and at is_marker, which are two of the THREE places the hook
+    # already wires one. A predicate added inline to the `if any(...)` in
+    # is_dialect, in the same style as the two that are there, invented a
+    # marker for "Israeli" and pulled the full rulebook on an English sentence
+    # with every gate in this repository green.
+    #
+    # So it fails CLOSED. Every module-level function reachable from a marker
+    # set at import or from anywhere inside is_dialect must be classified,
+    # either as a generator in the hook's own tuple or as a helper named right
+    # here. A new function in that path is a failing check until someone says
+    # which it is, rather than a silent hole.
     tree = ast.parse(HOOK.read_text(encoding="utf-8"))
     defined = {n.name for n in tree.body if isinstance(n, ast.FunctionDef)}
+    marker_sets = {"DECISIVE", "SUPPORTING", "WEAK", "CASED"}
+
+    def calls_in(node):
+        return {c.func.id for c in ast.walk(node)
+                if isinstance(c, ast.Call) and isinstance(c.func, ast.Name)
+                and c.func.id in defined}
+
     derived = set()
     for node in tree.body:
-        if isinstance(node, ast.AugAssign) and isinstance(node.op, ast.BitOr):
-            derived |= {c.func.id for c in ast.walk(node.value)
-                        if isinstance(c, ast.Call) and isinstance(c.func, ast.Name)
-                        and c.func.id in defined}
-    for node in ast.walk(tree):
-        if isinstance(node, ast.FunctionDef) and node.name == "is_marker":
-            derived |= {c.func.id for c in ast.walk(node)
-                        if isinstance(c, ast.Call) and isinstance(c.func, ast.Name)
-                        and c.func.id in defined}
+        # `SET |= f(SET)` and `SET = SET | f(SET)` alike: the augmented form was
+        # all the first version looked for, and the plain one slipped 120
+        # invented decisive markers past both suites.
+        if isinstance(node, (ast.Assign, ast.AugAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            if any(isinstance(t, ast.Name) and t.id in marker_sets for t in targets):
+                derived |= calls_in(node.value)
+        if isinstance(node, ast.FunctionDef) and node.name == "is_dialect":
+            derived |= calls_in(node)
+    # Functions in that path that decide nothing about markerhood. Naming them
+    # here is the deliberate act the check exists to force.
+    helpers = {"scan_window", "sentence_initial", "word_matches", "word_tokens",
+               "strip_addresses", "looks_like_address"}
     # Guard the guard: an empty derivation would satisfy any subset test.
-    if check("the hook's syntax tree yields its generators", len(derived) >= 4,
-             str(sorted(derived))):
-        check("the hook's GENERATORS tuple names exactly them",
-              derived == set(generators),
-              f"tree {sorted(derived)} vs tuple {generators}")
+    if check("the hook's syntax tree yields the marker-decision path",
+             len(derived) >= 4, str(sorted(derived))):
+        unclassified = sorted(derived - set(generators) - helpers)
+        check("every function in that path is a generator or a named helper",
+              not unclassified, f"unclassified: {unclassified}")
+        check("and the hook's GENERATORS tuple names no more than are there",
+              set(generators) <= derived,
+              f"listed but not wired: {sorted(set(generators) - derived)}")
 
     check("the -lech adjective class is derived",
           gate.suffixed("möglech") and gate.suffixed("härzlechi")
@@ -415,18 +452,38 @@ def hook_checks(tmp):
               "isch" in gate.word_tokens(gate.scan_window(pad(size) + " isch")))
         check(f"a marker at the very start of a {size:,}-character paste is seen",
               "isch" in gate.word_tokens(gate.scan_window("isch " + pad(size))))
-    # And the pre-cut must actually cut, or strip_addresses and NFC see the
-    # whole paste. Asserted on what the pre-cut DOES rather than on a constant.
-    check("a 1 MB paste is reduced before the window is built",
-          len(gate.scan_window(pad(1_000_000))) <= gate.SCAN_HEAD + gate.SCAN_TAIL + 1,
-          f"{len(gate.scan_window(pad(1_000_000))):,} chars out")
+    # And the pre-cut must actually cut. Asserted on what NFC is HANDED, not on
+    # the length of the window: the final return bounds the window to head plus
+    # tail whatever the pre-cut did, so the earlier version of this check passed
+    # with the pre-cut replaced by `return text` and was a duplicate of "the
+    # window is bounded by head plus tail" two lines below. The whole point of
+    # the pre-cut is that a megabyte never reaches NFC or strip_addresses.
+    seen = []
+    real_normalize = gate.unicodedata.normalize
+
+    class Recorder:
+        def normalize(self, form, text):
+            seen.append(len(text))
+            return real_normalize(form, text)
+
+    gate.unicodedata = Recorder()
+    try:
+        gate.scan_window(pad(1_000_000))
+    finally:
+        gate.unicodedata = importlib.import_module("unicodedata")
+    ceiling = gate.PRECUT * (gate.SCAN_HEAD + gate.SCAN_TAIL) + 1
+    check("a 1 MB paste never reaches NFC whole",
+          seen and max(seen) <= ceiling,
+          f"largest slice normalised: {max(seen) if seen else 0:,} of 1,000,000, "
+          f"ceiling {ceiling:,}")
     # The pre-cut is two-stage: a narrow slice for ordinary text, and a wide
     # one taken only when the narrow slice came back short because NFC SHRANK
     # it. Nine mutants survived on the line that chooses between them, because
     # nothing in the suite fed it text that shrinks. Decomposed Hangul is the
     # worst case at 3:1, and with the marker at raw offset 8001 the narrow
     # slice cannot reach it: forcing that branch makes this prompt silent.
-    shrinking = "각" * 2667 + " isch " + "각" * 40000
+    shrinking = ("\u1100\u1161\u11a8" * 2667 + " isch "
+                 + "\u1100\u1161\u11a8" * 40000)
     check("a marker survives text that NFC shrinks 3:1",
           gate.is_dialect(shrinking)[0],
           f"{len(shrinking):,} raw chars, window "
@@ -450,47 +507,92 @@ def hook_checks(tmp):
         ("one 6000-character word", "a" * 6000),
         ("6000 escape sequences", "\\n" * 6000),
         ("2 MB of apostrophes", "a'b" * 700_000),
-        ("1 MB of one umlaut", "ä" * 1_048_576),
+        # ESCAPED, not typed. A literal umlaut in this file is whichever of
+        # the two forms an editor last wrote, and the precomposed one makes
+        # NFC short-circuit: the shape called "umlaut" was measuring nothing
+        # but a regex pass. Every non-ASCII fixture below is written as escapes
+        # for the same reason, and assert_shapes checks they still do what
+        # their names say.
+        ("1 MB of a decomposed umlaut", "a\u0308" * 524_288),
         ("1 MB of combining marks", "a" + "\u0316" * 500_000 + "\u0334" * 500_000),
         ("2 MB of ordinary prose", "Please review the log. " * 91_000),
         # NFC-expanding codepoints: U+1D161 decomposes recursively into three
         # astral ones, two of them combining. This shape cost 70-79 ms when
         # the window normalised a slice eight times its own size.
         ("500k recursively-decomposing codepoints", "\U0001D161" * 500_000),
+        # The only shape that reaches the WIDE pre-cut branch, which is taken
+        # only when NFC shrinks the narrow slice more than 2:1. Without it,
+        # PRECUT = 8 -> 40 was still invisible to every check here after the
+        # per-shape budgets went in: nine times the text through NFC on the one
+        # branch that does the most of it, and all nine shapes stayed green.
+        ("1.2 MB of decomposed Hangul", "\u1100\u1161\u11a8" * 400_000),
     ]
     # Each shape is held to what it actually costs, not to one flat ceiling.
-    # A single 50 ms budget over shapes ranging from 0.4 ms to 12 ms gave the
-    # cheapest of them 130x of headroom, and a budget a change has to be 130x
-    # worse to trip is not a budget: PRECUT = 8 -> 40 passed it untouched. At
-    # that distance the verdict also started depending on what else was
-    # running, 31 ms idle against 57 ms with eleven cosmic-ray workers busy.
-    # These are milliseconds measured on this repository, re-scaled at run time
-    # by calibrate() so a slower or busier machine does not fail on speed alone.
+    # A single 50 ms budget over shapes ranging from 0.3 ms to 7 ms gave the
+    # cheapest of them 170x of headroom, and at that distance the verdict had
+    # started depending on what else was running: 31 ms idle against 57 ms with
+    # eleven cosmic-ray workers busy. These are milliseconds measured on this
+    # repository, re-scaled at run time by calibrate() so a slower or busier
+    # machine does not fail on speed alone.
+    #
+    # What this DOES catch: the catastrophic class, which is the only one that
+    # has ever shipped here. 54 seconds on a 280 KB paste, a hang on 60 KB,
+    # 471 ms on 6000 hyphens; and replacing the pre-cut with `return text`
+    # costs 280 ms on the recursively-decomposing shape against a 27 ms budget.
+    #
+    # What it does NOT catch, stated rather than implied: a constant-factor
+    # regression of about 2x. Measured, PRECUT 8 -> 40 -> 200 on the Hangul
+    # shape, which is the only one that reaches the wide branch at all:
+    #
+    #     PRECUT=8   1.77 ms      PRECUT=40   3.72 ms      PRECUT=200  13.33 ms
+    #
+    # 3x of headroom sees the last of those and not the middle one. Closing
+    # that would mean a budget under 2x, which is inside the spread this
+    # measurement has between an idle machine and a busy one, and a check that
+    # fails once in twenty runs teaches people to re-run the suite. 3.7 ms on a
+    # 1.2 MB paste is also not a defect a user could notice. So the line is
+    # drawn here deliberately, and written down so nobody has to re-derive it.
     recorded = {
-        "6000 hyphens": 0.6,
-        "alternating dot and dash": 1.2,
-        "one 6000-character word": 0.6,
-        "6000 escape sequences": 0.7,
-        "2 MB of apostrophes": 3.1,
-        "1 MB of one umlaut": 2.3,
-        "1 MB of combining marks": 0.5,
-        "2 MB of ordinary prose": 3.4,
-        "500k recursively-decomposing codepoints": 11.9,
+        "6000 hyphens": 0.29,
+        "alternating dot and dash": 0.55,
+        "one 6000-character word": 0.26,
+        "6000 escape sequences": 0.34,
+        "2 MB of apostrophes": 1.62,
+        "1 MB of a decomposed umlaut": 1.36,
+        "1 MB of combining marks": 0.28,
+        "2 MB of ordinary prose": 1.89,
+        "500k recursively-decomposing codepoints": 6.63,
+        "1.2 MB of decomposed Hangul": 1.76,
     }
     # A shape with no recorded cost would silently fall back to the floor, so
     # the two lists are held to each other rather than zipped and hoped for.
     check("every cost shape has a recorded cost",
           sorted(recorded) == sorted(n for n, _ in shapes),
           str(set(recorded) ^ {n for n, _ in shapes}))
+    # And a shape that names a Unicode property must have it. Both non-ASCII
+    # shapes were typed rather than escaped and both were PRECOMPOSED: the
+    # "umlaut" one short-circuited NFC entirely, and the one called "decomposed
+    # Hangul" did not decompose, so the wide pre-cut branch it was added to
+    # cover was still reached by nothing. A name is not a property.
+    for name, blob in shapes:
+        if "decompos" not in name and "Hangul" not in name:
+            continue
+        after = len(gate.unicodedata.normalize("NFC", blob))
+        if "Hangul" in name:
+            check(f"{name} really shrinks under NFC, which is what it is for",
+                  after * 2 <= len(blob), f"{len(blob):,} -> {after:,}")
+        else:
+            check(f"{name} really costs NFC something",
+                  after != len(blob), f"{len(blob):,} -> {after:,}")
     speed = calibrate()
     for name, blob in shapes:
         spent = fastest(lambda b=blob: gate.is_dialect(b))
-        # 4x the recorded cost, never below 1.5 ms, which is where timing noise
+        # 3x the recorded cost, never below 1.5 ms, which is where timing noise
         # stops being smaller than the measurement. The 50 ms line stays as the
         # promise made to a reader: a prompt hook runs before every message,
         # and a tenth of a second of it would be felt. It is scaled too, so a
         # slow runner fails on a regression and not on being a slow runner.
-        budget = max(1.5, 4 * recorded.get(name, 0) * speed)
+        budget = max(1.5, 3 * recorded.get(name, 0) * speed)
         check(f"is_dialect stays near its recorded cost: {name}",
               spent < budget and spent < 50 * speed,
               f"{spent:.2f} ms over {len(blob):,} chars, "
@@ -506,10 +608,22 @@ def hook_checks(tmp):
     for name, unit in (("hyphens", "-" * 100_000),
                        ("apostrophes", "a'b" * 200_000),
                        ("prose", "Please review the log. " * 30_000)):
-        small = fastest(lambda u=unit: gate.is_dialect(u))
-        large = fastest(lambda u=unit: gate.is_dialect(u * 4))
+        # INTERLEAVED, and the small side measured on both sides of the large
+        # one. Timing them in two separate blocks let a sustained deschedule
+        # land entirely on the large measurement, past all five of its rounds,
+        # and this failed once in twenty-five iterations under contention:
+        # small=2.00 large=6.15 on a relation whose true ratio is 1.03. A
+        # measurement that reports a defect once in twenty-five runs teaches
+        # people to re-run the suite, which is worse than not measuring.
+        big = unit * 4
+        small, large = float("inf"), float("inf")
+        for _ in range(5):
+            small = min(small, fastest(lambda u=unit: gate.is_dialect(u), rounds=1))
+            large = min(large, fastest(lambda u=big: gate.is_dialect(u), rounds=1))
+            small = min(small, fastest(lambda u=unit: gate.is_dialect(u), rounds=1))
         check(f"quadrupling the input does not quadruple the cost: {name}",
-              large < max(1.5, 2.5 * small), f"{small:.2f} ms -> {large:.2f} ms")
+              large < max(2.0, 3 * small),
+              f"{small:.2f} ms -> {large:.2f} ms, ratio {large / small:.2f}")
 
     # Every rule that GENERATES markers must have a negative case in the
     # labelled set. The dictionary sweep is English and every collision that
