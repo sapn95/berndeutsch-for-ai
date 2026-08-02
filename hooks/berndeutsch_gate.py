@@ -318,6 +318,17 @@ DECISIVE |= plural_ig(DECISIVE)
 DECISIVE |= velarised(DECISIVE)
 SUPPORTING |= velarised(SUPPORTING)
 
+# Every rule that DERIVES markers instead of listing them, named in one place.
+# Two of them expand a set at import and two decide a single token at match
+# time, so until now nothing in the file mentioned all four, and the one that
+# was forgotten was forgotten in exactly that gap: plural_ig shipped outside
+# the mutation-testing scope, which meant the most consequential kind of code
+# here -- code that invents markers nobody wrote down -- was measured by
+# nothing. selftest.py checks this tuple against the hook's own syntax tree, so
+# adding a fifth rule and not listing it here is a failing check rather than a
+# silent hole.
+GENERATORS = ("plural_ig", "velarised", "prefixed", "suffixed")
+
 # Markers that must be written in lower case to count, or capitalised only at
 # the start of a sentence. Every WEAK marker qualifies by construction, and a
 # few DECISIVE ones do too: ITZ is a German IT department, and one occurrence

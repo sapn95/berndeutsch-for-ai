@@ -290,7 +290,6 @@ flowchart TD
     S -->|no| N["inject nothing"]
 ```
 
-
 Marker matching over the first and last 3000 characters of the prompt, so that
 a large paste neither hides the question nor costs anything to scan.
 `./scripts/selftest.py` asserts that cost rather than describing it: eight
@@ -341,15 +340,16 @@ tier. An earlier version had them, and `Das ist halt so, das dauert grad noch
 ein bisschen` fired the hook on a sentence with no dialect in it at all.
 
 **Letter runs glued to a digit, an underscore, a slash or a plus do not vote at
-all.** The tokeniser splits on all four, so any hash, identifier, path or
-encoded blob is shredded into short letter runs, and short letter runs are what
-the decisive tier is made of: `api-gateway-7d4b9c8f5-itz9q` yields `itz`,
-`GET /api/het/modi` yields `het` and `modi`, and the base64 alphabet uses `/`
-and `+`. Measured over random pastes this was the dominant false positive left,
-and it was the dominant false positive left at the time. The rate is not
-quoted, because nothing in the repository reproduces it and it depends on a
-blob length nobody recorded: three of the numbers in this file went stale
-exactly that way.
+all.** The word splitter breaks on all four, so any hash, identifier, path or
+encoded blob falls apart into short letter runs, and short letter runs are what
+the decisive tier is made of. Without the rule, `api-gateway-7d4b9c8f5-itz9q`
+offers up `itz`, `GET /api/het/modi` offers `het` and `modi`, and the base64
+alphabet hands over whatever `/` and `+` happen to fence in. With it, those
+runs are produced and then discarded before anything is counted: only `GET`
+survives the second example. This was the dominant false positive left at the
+time. The rate is not quoted, because nothing in the repository reproduces it
+and it depends on a blob length nobody recorded: three of the numbers in this
+file went stale exactly that way.
 
 The digit and the underscore are there because neither ever separates two
 letters inside a word of running prose. The slash and the plus are a weaker

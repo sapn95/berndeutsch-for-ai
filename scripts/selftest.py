@@ -281,9 +281,40 @@ def hook_checks(tmp):
     # Every function that GENERATES markers must be inside the mutation scope,
     # or the most consequential code in the file is measured by nothing.
     mutation_scope = load(REPO / "scripts" / "mutation.py").DETECTION
-    for generator in ("velarised", "prefixed"):
-        check(f"{generator} is inside the measured scope",
-              generator in mutation_scope)
+    # The list here said ("velarised", "prefixed") and stayed green when
+    # plural_ig was added to the hook and left out of DETECTION. A hand-written
+    # list of what must be covered is one more thing to forget, so the hook now
+    # names its own generators and this reads that tuple.
+    generators = sorted(gate.GENERATORS)
+    missing = [g for g in generators if g not in mutation_scope]
+    check("every marker generator is inside the measured scope", not missing,
+          f"{len(generators)} generators, missing {missing}")
+    absent = [g for g in generators if not callable(getattr(gate, g, None))]
+    check("and every one of them is a function in the hook", not absent,
+          str(absent))
+    # And the tuple has to be COMPLETE, or it is the same hand-written list one
+    # file further along. Derived from the hook's syntax tree: a generator is a
+    # module-level function called either in a `SET |= f(SET)` at import or in
+    # the token test that decides whether a word is a marker at all.
+    tree = ast.parse(HOOK.read_text(encoding="utf-8"))
+    defined = {n.name for n in tree.body if isinstance(n, ast.FunctionDef)}
+    derived = set()
+    for node in tree.body:
+        if isinstance(node, ast.AugAssign) and isinstance(node.op, ast.BitOr):
+            derived |= {c.func.id for c in ast.walk(node.value)
+                        if isinstance(c, ast.Call) and isinstance(c.func, ast.Name)
+                        and c.func.id in defined}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == "is_marker":
+            derived |= {c.func.id for c in ast.walk(node)
+                        if isinstance(c, ast.Call) and isinstance(c.func, ast.Name)
+                        and c.func.id in defined}
+    # Guard the guard: an empty derivation would satisfy any subset test.
+    if check("the hook's syntax tree yields its generators", len(derived) >= 4,
+             str(sorted(derived))):
+        check("the hook's GENERATORS tuple names exactly them",
+              derived == set(generators),
+              f"tree {sorted(derived)} vs tuple {generators}")
 
     check("the -lech adjective class is derived",
           gate.suffixed("möglech") and gate.suffixed("härzlechi")
@@ -340,6 +371,17 @@ def hook_checks(tmp):
     for name, chunk, want in addresses:
         got = gate.looks_like_address(chunk)
         check(f"address: {name}", got == want, f"{chunk!r} -> {got}, wanted {want}")
+
+    # The three examples the README names, held to what the tokeniser really
+    # does. The README described them as if the glued runs survived, because
+    # the paragraph explains the problem and the rule in the same breath and
+    # nothing checked which of the two it was describing.
+    for chunk, want in (("api-gateway-7d4b9c8f5-itz9q", ["api", "gateway"]),
+                        ("GET /api/het/modi", ["GET"]),
+                        ("YWJj/itZ+Zm9v", [])):
+        got = gate.word_tokens(chunk)
+        check(f"the README's example survives as documented: {chunk}",
+              got == want, f"{got} wanted {want}")
 
     # And that stripping actually removes them from the window while leaving
     # the sentence around them.
@@ -489,12 +531,16 @@ def hook_checks(tmp):
 
     print("hook: session budget")
     cfg = tmp / "budget"
-    first, _ = run_hook("Chasch mer das erkläre?", "budget-1", cfg)
-    second, _ = run_hook("U chasch mer no säge werum?", "budget-1", cfg)
-    # `or ""` on every one of these: run_hook returns None when the hook exits
-    # non-zero, len(None) raises TypeError, and the whole suite then stopped
-    # before the packaging, citation and classifier checks ran. One crash hid
-    # every later result.
+    first, err_a = run_hook("Chasch mer das erkläre?", "budget-1", cfg)
+    second, err_b = run_hook("U chasch mer no säge werum?", "budget-1", cfg)
+    # run_hook returns None when the hook exits non-zero, len(None) raises
+    # TypeError, and the whole suite then stopped before the packaging,
+    # citation and classifier checks ran: one crash hid every later result.
+    # The stderr is carried into the detail rather than swallowed, so a hook
+    # that will not start says why instead of reporting a mysterious 0 chars.
+    if first is None or second is None:
+        check("the hook runs at all for the session-budget checks", False,
+              (err_a or err_b or "").strip().splitlines()[-1][:120])
     first, second = first or "", second or ""
     check("first decisive prompt gets the full rulebook", len(first) > 4000,
           f"{len(first)} chars")
@@ -506,8 +552,11 @@ def hook_checks(tmp):
     # longer than nothing, and a relative comparison can pass on both the
     # correct and the broken behaviour depending on which checklist is bigger.
     cfg2 = tmp / "budget2"
-    weak, _ = run_hook("Er het das nid gha.", "budget-2", cfg2)
-    strong, _ = run_hook("Chasch mer das erkläre?", "budget-2", cfg2)
+    weak, err_c = run_hook("Er het das nid gha.", "budget-2", cfg2)
+    strong, err_d = run_hook("Chasch mer das erkläre?", "budget-2", cfg2)
+    if weak is None or strong is None:
+        check("the hook runs at all for the injection-budget checks", False,
+              (err_c or err_d or "").strip().splitlines()[-1][:120])
     weak, strong = weak or "", strong or ""
     check("a supporting-only match gets the checklist", 0 < len(weak) < 2500,
           f"{len(weak)} chars")
