@@ -259,8 +259,22 @@ LECH_RE = re.compile(r"^\w{2,}lech(i|e|er|s|te|schte)?$")
 # Every stem that ends in -lech and is not Bernese. The last three came out of
 # the dictionary check the moment it was pointed at the suffix rule rather than
 # only at the two set-valued rules; adramelech is a demon in the Book of Kings.
-LECH_NOT = ("blech", "schlech", "flecht", "cromlech", "stilech",
-            "kreplech", "parfleche", "teiglech", "melech", "archlech")
+#
+# beslech and geslech are the DUTCH twins of schlech, and they are what a
+# dictionary check on this machine can never find: the word list is English.
+# Bare "slechte" is safe by accident, because LECH_RE wants two characters in
+# front of the -lech and it has one. Its prefixed forms are not: beslechte
+# (settled), geslechte (razed) and onbeslechte (unsettled) are ordinary Dutch,
+# they match, and the -lech rule is DECISIVE, so one of them injected the full
+# 9 KB rulebook and spent the session's single injection on a Dutch sentence.
+#
+# The two stems and not the bare "slech" they share. The s in a Bernese -lech
+# adjective usually belongs to the word in front of the suffix, so "slech"
+# blocks hüslech, grüslech, hässlech and schliesslech, four ordinary words, one
+# of them everyday. A guard against another language must not cost this one a
+# whole shape of adjective.
+LECH_NOT = ("blech", "schlech", "beslech", "geslech", "flecht", "cromlech",
+            "stilech", "kreplech", "parfleche", "teiglech", "melech", "archlech")
 
 
 def suffixed(token):
@@ -441,8 +455,9 @@ def word_tokens(text):
     rulebook and spends the session's single full injection, so the genuinely
     Bernese question that follows gets only the checklist. Measured over random
     pastes this was the dominant remaining false positive: a base64 blob fired
-    4.5% of the time, a PEM certificate 1.35%, a `kubectl get pods` listing
-    0.77%.
+    it was the dominant false positive left. The rates are not quoted: nothing
+    here reproduces them, they depend on a blob length nobody recorded, and
+    three numbers in the README went stale in exactly that way.
 
     A GLUE character never separates two letters inside a word of running
     prose, in any of the languages this has to survive. It only happens inside
@@ -467,6 +482,19 @@ def word_tokens(text):
 # the same sentence as a markdown bullet or a blockquote, which is how half the
 # prompts in a chat client are actually written.
 SENTENCE_END = frozenset(".!?:;\"'»«„“”‹›()[]…\n\r-*>•\u2013\u2014")
+# The "\n" and "\r" in that set are unreachable, deliberately and permanently:
+# the walk below consumes whitespace before it tests membership, so a break is
+# answered by the branch under it and never by the set. Do not "revive" them by
+# returning True on the first line break, which is what round 22 did; that made
+# every row of a pasted table sentence-initial. Removing them from the set
+# instead would be a lie about what ends a sentence, so they stay, documented.
+#
+# What sentence_initial answers when a line break, and nothing stronger, put
+# the token at the start of a line. Truthy, so it still reads as "yes, a
+# boundary"; distinguishable from True, so the one caller that must not trust a
+# bare line break can tell the two apart. A str rather than a bool subclass, so
+# that `is True` means exactly what it says.
+LINE = "line"
 
 
 def word_matches(text):
@@ -477,19 +505,32 @@ def word_matches(text):
 
 
 def sentence_initial(text, start):
-    """True when only whitespace and sentence-ending punctuation precede."""
+    """True, LINE, or False for what precedes a token.
+
+    True: nothing at all, or sentence-ending punctuation. A capital there is
+    orthography and nothing else, so the marker counts.
+
+    LINE: only a line break, with the previous line ending in an ordinary
+    character. That is a boundary in prose, which is why "Hallo\\nChum mer wei
+    das luege." has to fire. It is ALSO the first thing on every row of a
+    table, every entry of a list, every line of a log and every turn of a
+    pasted chat transcript, where the capital is a surname or a German noun and
+    not a sentence at all. Returning it separately lets the caller ask for
+    corroboration there and nowhere else; returning plain True fired the gate
+    on a pasted CSV of surnames (Cha, Modi, Witt).
+
+    The walk still consumes the break, so a line that follows a "?" or a ":"
+    answers True through SENTENCE_END as before: the sentence really did end.
+    """
     i = start - 1
+    line_break = False
     while i >= 0 and text[i].isspace():
-        # A line break IS the boundary, and skipping over it as ordinary
-        # whitespace meant the "\n" and "\r" entries in SENTENCE_END could
-        # never fire: the walk always landed on the last letter of the previous
-        # line instead. So a weak marker capitalised at the start of a new line
-        # stopped counting, and "Hallo\nChum mer wei das luege." went silent
-        # while the same sentence alone fired.
         if text[i] in "\n\r":
-            return True
+            line_break = True
         i -= 1
-    return i < 0 or text[i] in SENTENCE_END
+    if i < 0 or text[i] in SENTENCE_END:
+        return True
+    return LINE if line_break else False
 
 
 def is_dialect(text):
@@ -507,6 +548,15 @@ def is_dialect(text):
     window = scan_window(text)
     matches = word_matches(window)
 
+    def needs_no_excuse(m):
+        """True when the token is written the way the Bernese word is written.
+
+        Either it is not one of the case-sensitive markers at all, or it is and
+        it is in lower case. Nothing about its position is being appealed to.
+        """
+        token = m.group()
+        return token.lower() not in CASED or token == token.lower()
+
     def counts(m):
         """False when a case-sensitive marker was not written like the word.
 
@@ -514,19 +564,43 @@ def is_dialect(text):
         are capitalised where the Bernese word is not: NID, GSI, GHA, MYS,
         Gly, ITZ, "im Gange", "zwei Modi", "Minister Modi". A capital at the
         start of a sentence is orthography rather than evidence, so that one
-        still counts.
+        still counts. LINE rather than True when the only thing that made it
+        sentence-initial was a line break; see accepted().
         """
         token = m.group()
-        if token.lower() not in CASED or token == token.lower():
+        if needs_no_excuse(m):
             return True
-        return (token == token.capitalize()
-                and sentence_initial(window, m.start()))
+        if token != token.capitalize():
+            return False
+        return sentence_initial(window, m.start())
+
+    def is_marker(token):
+        return (token in DECISIVE or token in SUPPORTING
+                or prefixed(token) or suffixed(token))
+
+    # Corroboration for the line-break rescue, and for nothing else. A capital
+    # after a line break is a sentence boundary in prose, and it is ALSO the
+    # first thing on every row of a table, every entry of a list, every line of
+    # a log and every turn of a pasted chat transcript, where it is a surname
+    # or a German noun. What separates the two is that Bernese running on after
+    # a line break brings a marker that needs no excuse at all: "Hallo\nChum mer
+    # wei das luege." has luege, "Guete Tag\nChum, mir luege." has the same, and
+    # a CSV of the surnames Cha, Modi and Witt has nothing. So the line-break
+    # rescue is allowed only when the prompt already contains one lower-case
+    # marker. Without it that CSV fired the gate, and so did a Slack transcript,
+    # a timestamped log and a bare list of reviewer names.
+    grounded = any(needs_no_excuse(m) and is_marker(m.group().lower())
+                   for m in matches)
+
+    def accepted(m):
+        verdict = counts(m)
+        return verdict is True or (verdict == LINE and grounded)
 
     if any((m.group().lower() in DECISIVE or prefixed(m.group().lower())
-            or suffixed(m.group().lower())) and counts(m) for m in matches):
+            or suffixed(m.group().lower())) and accepted(m) for m in matches):
         return True, True
     matched = {m.group().lower() for m in matches
-               if m.group().lower() in SUPPORTING and counts(m)}
+               if m.group().lower() in SUPPORTING and accepted(m)}
     # Two distinct markers, or three if every one of them also reads as
     # ordinary non-Bernese text. Both halves are needed: without the count, one
     # token decides a prompt; without the weak rule, "the GHA workflow and the

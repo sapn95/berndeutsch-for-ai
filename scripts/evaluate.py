@@ -74,7 +74,16 @@ def cases():
         label, kind, text = parts[0].strip(), parts[1].strip(), parts[2]
         if label not in ("bd", "xx"):
             raise SystemExit(f"corpus/labelled.tsv: label is not bd or xx: {label!r}")
-        yield label, kind, text
+        # One row is one line, so a real newline needs an escape, and it has to
+        # be a DIFFERENT escape from the lower-case one: a row already in this
+        # set is a pasted JSON log whose text contains the two characters
+        # backslash-n literally, and the hook is supposed to treat those as
+        # whitespace rather than as a token boundary. \N (capital) is the real
+        # line break; \n stays exactly the two characters it is. Until this
+        # existed no row in the set could contain a line break at all, so the
+        # branch in sentence_initial that decides what a line break means was
+        # measured by nothing.
+        yield label, kind, text.replace("\\N", "\n")
 
 
 def wilson(hits, total, z=1.96):
@@ -141,9 +150,11 @@ def directionals():
 #
 # Each pair differs by exactly one marker across the threshold it probes.
 BOUNDARY = [
-    # MIN_SUPPORTING: two distinct non-weak markers fire, one does not.
-    (True, "two non-weak supporting markers", "Das het nid so."),
-    (False, "one non-weak supporting marker", "Das het so."),
+    # MIN_SUPPORTING: two distinct markers that are not BOTH weak fire, one does
+    # not. Both names said "non-weak" of het, which stopped being true when het
+    # moved into WEAK; nid is the non-weak half of the pair and always was.
+    (True, "two supporting markers, not both weak", "Das het nid so."),
+    (False, "one supporting marker", "Das het so."),
     # MIN_WEAK_ONLY: three lower-case weak markers fire, two do not.
     (True, "three weak markers", "gsi gha nit"),
     (False, "two weak markers", "gsi gha"),
@@ -158,7 +169,15 @@ BOUNDARY = [
     # the second marker, so rejecting it drops the count to one.
     (True, "weak marker capitalised at a sentence start", "Chum, mir luege."),
     (False, "the same weak marker capitalised mid-sentence", "mir luege dr Chum."),
-    (True, "weak marker capitalised after a line break", "Guete Tag\nChum, mir luege."),
+    # "Guete Tag" was the greeting here, and guete is DECISIVE, so is_dialect
+    # returned on the decisive branch and this row stayed green with the whole
+    # case rescue deleted. That is the failure the note nine lines above warns
+    # about, in the row added to demonstrate it. Hallo is a marker in no tier.
+    (True, "weak marker capitalised after a line break", "Hallo\nChum, mir luege."),
+    # And the other half of the same rule, which is what a line break means in a
+    # table, a list, a log or a pasted chat transcript rather than in prose:
+    # line-initial capitals with no lower-case marker anywhere near them.
+    (False, "Title-case weak markers alone on their own lines", "Cha\nModi\nWitt"),
     # One decisive marker is enough, and only one is needed.
     (True, "a single decisive marker", "Das isch so."),
     # A repeated marker is one marker, not two.

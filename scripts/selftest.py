@@ -533,6 +533,23 @@ def bdw_offline_checks():
           {"bröseli", "brösi"} <= heads, str(sorted(heads)))
     check("a grammar placeholder is not a head", "unverändert" not in heads)
 
+    # The grammar bracket. Reading it recovers the inflected forms the site
+    # lists nowhere else, and it brought the LABELS with it: Adj., Adv., m., f.
+    # and n. became heads of their own, so `bdw adj` answered EXACT for ten
+    # unrelated entries. Twenty-three of fifty-six real entries did it.
+    heads = bdw.heads_of({"word": "suber", "pos": "Adj./Adv.", "alt": "",
+                          "gloss": "", "url": ""})
+    check("a bare grammar label is not a headword", heads == {"suber"},
+          str(sorted(heads)))
+    heads = bdw.heads_of({"word": "Brosme", "alt": "",
+                          "pos": "m., Pl. unverändert, Dim. Brösmeli, Bröseli, "
+                                 "Brösi n.", "gloss": "", "url": ""})
+    check("the forms in the bracket are still harvested",
+          {"brösmeli", "bröseli", "brösi"} <= heads, str(sorted(heads)))
+    check("and no fragment carries a label with it",
+          not any("." in h or h.split()[-1] in bdw.QUALIFIERS for h in heads),
+          str(sorted(h for h in heads if " " in h or "." in h)))
+
     # The QUERY goes through the same cleaning as the heads. It did not, so a
     # word typed or pasted with punctuation on it could never equal any head,
     # and the answer was the flat "no entry" this tool must not give.

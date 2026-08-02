@@ -290,6 +290,14 @@ bd	suffix-lech	Es isch wüklech nid nötig.
 bd	suffix-lech	Chasch mir das öffentlech zuegänglech mache?
 bd	suffix-lech	Ändlech louft d Pipeline wieder.
 bd	suffix-lech	Das isch eigetlech es schöns Byspiu.
+# The -lech guard's OTHER direction. LECH_NOT is a list of stems that must be
+# rejected, and widening it is cheap and silent: adding the bare Dutch "slech"
+# to catch beslechte killed hüslech, grüslech, hässlech and schliesslech in one
+# stroke, because in Bernese the s in front of the suffix belongs to the word.
+# Neither row reaches the bar without the -lech word: het is one weak marker and
+# one is never enough, so the rule alone decides them.
+bd	suffix-lech	Schliesslech het das doch no klappt.
+bd	suffix-lech	Hässlech, aber es het funktioniert.
 bd	suffix-ig	Mir bruuche no e chlyni Ändrig ir Konfiguration.
 bd	suffix-ig	D Sitzig isch uf morn verschobe.
 bd	suffix-ig	Nach der Sitzig schrybe mir d Zämefassig.
@@ -432,3 +440,27 @@ xx	german	Der Teig ist zäh und lässt sich kaum ausrollen.
 xx	german	Die Verhandlungen mit dem Anbieter waren ausgesprochen zäh.
 xx	german	Diese Ansicht ist nicht die deinige, sondern die meinige.
 xx	german	Wiederhole die Nummer bitte: eins, zwo, drei, vier.
+
+# Multi-line pastes. Until scripts/evaluate.py learned the \N escape no row in
+# this file could contain a line break, so the rule that decides what a line
+# break MEANS was measured by nothing at all. These four are what a line break
+# actually looks like in a prompt: a table, a chat transcript, a log and a bare
+# list, none of them a sentence, every one of them with a Title-case surname or
+# noun as the first thing on the line.
+xx	paste-lines	Here is the on-call export from the HR system. Can you find the duplicates?\N\Nlast_name,first_name,team\NCha,Minjun,Platform\NModi,Anita,Data\NWitt,Lars,Network
+xx	paste-lines	Can you summarise this thread?\N\NCha: can you check the deploy?\NModi: yes, on it\NWitt: I will take the rollback
+xx	paste-lines	2026-08-01T09:12:03Z Cha connected\N2026-08-01T09:12:44Z Modi connected\N2026-08-01T09:13:02Z Witt connected
+xx	paste-lines	Reviewers for this PR:\NCha\NModi\NWitt
+
+# And the other direction, which is what the line-break rule was written for: a
+# greeting on its own line, then the sentence. The line before it ends in a
+# letter, so nothing but the break itself says a new sentence has started.
+bd	short	Hallo\NChum mer wei das luege.
+
+# Dutch -slechte. The -lech suffix rule is DECISIVE, so one of these injects the
+# full rulebook and spends the session's single injection. LECH_NOT carries the
+# German schlech and not the Dutch slech, and beslechte, geslechte and
+# onbeslechte are all ordinary Dutch with two or more characters in front of
+# the -lech, which is exactly what the guard needs to see.
+xx	dutch	De beslechte zaak staat nog open in het dossier.
+xx	dutch	De geslechte muren van de vesting zijn nooit herbouwd.

@@ -268,7 +268,8 @@ that hit the page cap.
 Two things make that answer trustworthy. The site's search also matches the
 German glosses, so querying `jetz` returns every entry whose translation
 contains "jetzt" and none of them is the word itself; `bdw` reports `EXACT`
-only for a real headword or a listed spelling variant. And results are
+only for a real headword, a listed spelling variant, or an inflected form the
+entry prints in its grammar bracket (`Tägli` appears nowhere else on the page). And results are
 paginated ten to a page, with `gäng` sitting on page two of its own query, so
 `bdw` walks the pages instead of judging a word from the first ten hits. When
 the page cap stops the walk early it says so rather than claiming the word does
@@ -309,6 +310,11 @@ here: all five are ordinary written German, so they sit in the weak tier.
 One is enough to fire. The verb forms alone were not enough: an imperative, a
 first-person statement or a bare greeting contains none of them.
 
+One exception, and it is the lower-case rule below applied to a decisive
+marker: `itz` counts only when it is written lower case, or capitalised at the
+start of a sentence. ITZ is a German IT department, and one decisive marker
+costs the full rulebook.
+
 **Supporting markers** are genuinely Bernese but each collides with something
 else: `gsi` is a DynamoDB Global Secondary Index, `nit` is the English noun in
 "nit-picking", `chum` is an English word, `kei` is Dutch, `nid` is French for
@@ -340,7 +346,10 @@ encoded blob is shredded into short letter runs, and short letter runs are what
 the decisive tier is made of: `api-gateway-7d4b9c8f5-itz9q` yields `itz`,
 `GET /api/het/modi` yields `het` and `modi`, and the base64 alphabet uses `/`
 and `+`. Measured over random pastes this was the dominant false positive left,
-firing on 4.5% of base64 blobs and 1.35% of PEM certificates.
+and it was the dominant false positive left at the time. The rate is not
+quoted, because nothing in the repository reproduces it and it depends on a
+blob length nobody recorded: three of the numbers in this file went stale
+exactly that way.
 
 The digit and the underscore are there because neither ever separates two
 letters inside a word of running prose. The slash and the plus are a weaker

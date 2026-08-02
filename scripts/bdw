@@ -11,7 +11,8 @@ spellings AND the German glosses. Querying "jetz" therefore returns every
 entry whose translation contains "jetzt", none of which is the word itself.
 So this tool separates two very different answers:
 
-    EXACT     the query is a headword or a listed alternative spelling
+    EXACT     the query is a headword, a listed alternative spelling, or
+              an inflected form printed in the entry's grammar bracket
     verwandt  the query only appears inside other entries
 
     bdw suber              # look one word up
@@ -295,10 +296,38 @@ def heads_of(entry):
     # EXACT. Certifying a punctuation mark as a Bernese word is the same
     # failure as denying a real one, just pointing the other way.
     heads = {norm(tidy(f)) for f in primary if tidy(f)}
+    # QUALIFIERS as well as NOT_A_FORM, and the grammar bracket is why. Reading
+    # entry["pos"] recovered the inflected forms the site lists only there
+    # (Tägli, Bröseli), and brought the LABELS with them: Adj., Adv., m., f.,
+    # n. split out as heads of their own, so `bdw adj` answered EXACT for ten
+    # unrelated entries. Twenty-three of fifty-six real entries did it. That is
+    # the "etc" failure of a round ago, arriving from the new direction the
+    # moment a new source of fragments was added.
+    labels = NOT_A_FORM | QUALIFIERS
     heads |= {norm(tidy(f)) for f in spellings(entry["alt"])
               + spellings(": " + entry.get("pos", "")) + derived
-              if tidy(f) and norm(tidy(f)) not in NOT_A_FORM}
+              if usable(tidy(f), labels)}
     return heads
+
+
+def usable(form, labels):
+    """Whether a derived fragment can be looked up as a word.
+
+    Three ways it cannot. It is empty. It IS a grammar label, which is what
+    made `bdw adj` answer EXACT for ten unrelated entries once the grammar
+    bracket started being read. Or it still carries a label inside it, like
+    "Pl. Tage" or "Dim. Brösmeli n": a real Bernese word never has a full stop
+    in the middle of it, so the stop is always the abbreviation the qualifier
+    loop failed to strip, and the fragment is a note rather than a form.
+    """
+    if not form or norm(form) in labels:
+        return False
+    if "." in form:
+        return False
+    # "Tägli n", "Brösi n": the bare gender letter the site appends to a
+    # diminutive. The trailing loop already emits the clean form alongside, so
+    # dropping this one loses nothing and keeps a note out of the head set.
+    return not any(norm(w) in labels for w in form.split())
 
 
 def lookup(word):

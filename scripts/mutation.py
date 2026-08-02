@@ -169,6 +169,19 @@ def show(total, survived, label):
     return overall
 
 
+def reap():
+    """Kill oracle processes this run left behind.
+
+    A mutant can put the oracle into an infinite loop. cosmic-ray has its own
+    per-mutant timeout and it did not reap them: after a run was interrupted,
+    eleven evaluate.py workers stayed at 90% CPU for ninety minutes and took
+    the machine with them. Killing the parent is not enough, so the strays are
+    named and killed explicitly.
+    """
+    for pattern in ("scripts/evaluate.py --gate", "scripts/mutation_runner.py"):
+        subprocess.run(["pkill", "-f", pattern], capture_output=True)
+
+
 def main():
     ap = argparse.ArgumentParser(prog="mutation", description=__doc__.splitlines()[0])
     ap.add_argument("--full", action="store_true",
@@ -189,17 +202,23 @@ def main():
     if not args.report_only:
         SESSION.mkdir(parents=True, exist_ok=True)
         work = stage()
-        # Both commands, so a mutation is only "caught" if something actually
-        # noticed. evaluate.py is 70 ms and pins the classifier against the
-        # labelled set; selftest.py is slower and pins everything else.
-        command = "python3 scripts/evaluate.py --gate"
-        if args.full:
-            command = "python3 scripts/mutation_runner.py"
-            (work / "scripts" / "mutation_runner.py").write_text(
-                "import subprocess, sys\n"
-                "for c in (['scripts/evaluate.py', '--gate'], ['scripts/selftest.py']):\n"
-                "    if subprocess.run([sys.executable] + c, capture_output=True).returncode:\n"
-                "        sys.exit(1)\n", encoding="utf-8")
+        # BOTH suites, always. The comment here used to say both and the code
+        # used both only under --full, so every check in selftest.py was
+        # invisible to the reported score: fifteen direct tests of
+        # looks_like_address moved it from 57.0% to 57.2%, because the oracle
+        # never ran them. A measurement that quietly measures less than it says
+        # is the failure this whole script exists to catch, and it was in the
+        # script itself.
+        #
+        # The cost is real and worth it: evaluate.py is 0.2 s and selftest.py is
+        # 1.9 s, so a full sweep goes from minutes to tens of minutes. A score
+        # you can trust once an hour beats one you cannot trust in two minutes.
+        command = "python3 scripts/mutation_runner.py"
+        (work / "scripts" / "mutation_runner.py").write_text(
+            "import subprocess, sys\n"
+            "for c in (['scripts/evaluate.py', '--gate'], ['scripts/selftest.py']):\n"
+            "    if subprocess.run([sys.executable] + c, capture_output=True).returncode:\n"
+            "        sys.exit(1)\n", encoding="utf-8")
         (work / "cr.toml").write_text(
             f'[cosmic-ray]\nmodule-path = "{TARGET}"\n'
             f'timeout = {args.timeout}\ntest-command = "{command}"\n\n'
@@ -216,7 +235,11 @@ def main():
             db.unlink()
         subprocess.run(["cosmic-ray", "init", "cr.toml", str(db)], cwd=work, check=True)
         print("running mutants, this takes a few minutes", flush=True)
-        subprocess.run(["cosmic-ray", "exec", "cr.toml", str(db)], cwd=work, check=True)
+        try:
+            subprocess.run(["cosmic-ray", "exec", "cr.toml", str(db)], cwd=work,
+                           check=True)
+        finally:
+            reap()
 
     if not db.exists():
         print("no previous session to report", file=sys.stderr)
