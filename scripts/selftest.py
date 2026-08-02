@@ -734,7 +734,7 @@ def packaging_checks():
         print("  skip  no tracked path outside the known set  (git unavailable)")
     else:
         allowed = {"hooks", "scripts", "rules", "corpus", ".claude-plugin",
-                   "README.md", "NOTICE", "LICENSE", ".gitignore"}
+                   ".github", "README.md", "NOTICE", "LICENSE", ".gitignore"}
         stray = sorted({p.split("/")[0] for p in tracked} - allowed)
         check("no tracked path outside the known set", not stray, str(stray))
 

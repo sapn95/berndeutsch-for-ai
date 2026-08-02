@@ -1,0 +1,65 @@
+# The gates, run on every push and pull request.
+#
+# These are the same four commands the repository has been run against by hand
+# for twenty-five review rounds. Putting them here means a change that breaks
+# one of them says so before it is merged rather than a round later, which is
+# how most of the defects in the history were actually found.
+#
+# The network is deliberately not used. bdw talks to berndeutsch.ch, which is
+# free and run by one volunteer, and a CI job that hits it on every push would
+# be rude. `selftest.py --online` exists for that and is a local command.
+name: checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # The hook, bdw, bd-corpus, install.py and selftest.py are standard
+          # library only, so there is nothing to install. The version is pinned
+          # to the oldest one the repository claims to support rather than to
+          # the newest, since "requires python3" is a claim like any other.
+          python-version: "3.11"
+
+      - name: the regression suite
+        run: python3 scripts/selftest.py
+
+      - name: the classifier against its floor
+        run: python3 scripts/evaluate.py --gate
+
+      - name: the installer, into a throwaway config directory
+        env:
+          CLAUDE_CONFIG_DIR: ${{ runner.temp }}/claude-config
+        run: python3 scripts/install.py
+
+      - name: every script compiles
+        run: |
+          python3 -m py_compile hooks/berndeutsch_gate.py
+          python3 -m py_compile scripts/install.py scripts/selftest.py \
+                                scripts/evaluate.py scripts/mutation.py
+          python3 -m py_compile scripts/bdw scripts/bd-corpus scripts/pdf-overlap
+
+      - name: the manifests parse and agree
+        run: |
+          python3 - <<'PY'
+          import json, pathlib
+          plugin = json.loads(pathlib.Path(".claude-plugin/plugin.json").read_text())
+          market = json.loads(pathlib.Path(".claude-plugin/marketplace.json").read_text())
+          hooks = json.loads(pathlib.Path("hooks/hooks.json").read_text())
+          listed = {p["name"]: p.get("version") for p in market["plugins"]}
+          assert plugin["name"] in listed, (plugin["name"], sorted(listed))
+          assert listed[plugin["name"]] == plugin["version"], (listed, plugin["version"])
+          assert "UserPromptSubmit" in hooks["hooks"], sorted(hooks["hooks"])
+          print(f"{plugin['name']} {plugin['version']}: manifests agree")
+          PY
