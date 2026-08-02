@@ -208,8 +208,14 @@ def reap():
     """
     work = (SESSION / "tree").resolve()
     mine = os.getpid()
-    listing = subprocess.run(["ps", "-eo", "pid=,command="],
-                             capture_output=True, text=True).stdout
+    try:
+        listing = subprocess.run(["ps", "-eo", "pid=,command="],
+                                 capture_output=True, text=True).stdout
+    except OSError:
+        # No ps on this machine. Killing nothing is the documented fallback,
+        # and this runs from a finally: a traceback here would replace the
+        # completed run's report with a stack trace about a missing binary.
+        return
     for line in listing.splitlines():
         pid, _, command = line.strip().partition(" ")
         # Only ever consider this repository's own oracle commands. Reading the
@@ -235,8 +241,11 @@ def cwd_of(pid):
         pass
     # macOS and the BSDs have no /proc. lsof is the documented way, and its
     # -F output is one field per line: n<path> for the name of the cwd entry.
-    out = subprocess.run(["lsof", "-a", "-d", "cwd", "-Fn", "-p", str(pid)],
-                         capture_output=True, text=True)
+    try:
+        out = subprocess.run(["lsof", "-a", "-d", "cwd", "-Fn", "-p", str(pid)],
+                             capture_output=True, text=True)
+    except OSError:
+        return None
     for entry in out.stdout.splitlines():
         if entry.startswith("n"):
             return Path(entry[1:])

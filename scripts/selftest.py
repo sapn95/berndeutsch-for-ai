@@ -113,6 +113,21 @@ def calibrate():
     return max(1.0, fastest(work) / CALIBRATION_MS)
 
 
+def listed_markers(source, name):
+    """The words in the hook's NAME frozenset literal, read out of the source.
+
+    None if the literal is no longer written the way this expects, because
+    `source.split(prefix, 1)[1]` raises IndexError the moment a marker set is
+    renamed or its literal reformatted, which aborts the whole group and every
+    group after it. Reading a claim out of a source file is a thing that can
+    fail, and it has to fail as one check.
+    """
+    parts = source.split(f'{name} = frozenset("""', 1)
+    if len(parts) < 2:
+        return None
+    return parts[1].split('"""')[0].split()
+
+
 def last_line(*streams):
     """The most useful line of whatever the hook said before it died.
 
@@ -251,7 +266,10 @@ def hook_checks(tmp):
     # `wei` came back after being removed for colliding with a name.
     source = HOOK.read_text(encoding="utf-8")
     for name in ("DECISIVE", "SUPPORTING", "WEAK"):
-        listed = source.split(f'{name} = frozenset("""', 1)[1].split('"""')[0].split()
+        listed = listed_markers(source, name)
+        if not check(f"{name} is still a readable frozenset literal",
+                     listed is not None):
+            continue
         dupes = sorted({w for w in listed if listed.count(w) > 1})
         check(f"no marker is listed twice in {name}", not dupes, str(dupes))
 
@@ -275,8 +293,10 @@ def hook_checks(tmp):
     listed = set()
     source = HOOK.read_text(encoding="utf-8")
     for name in ("DECISIVE", "SUPPORTING"):
-        listed |= set(source.split(f'{name} = frozenset("""', 1)[1]
-                      .split('"""')[0].split())
+        words = listed_markers(source, name)
+        if not check(f"{name} can still be read out of the source", words is not None):
+            return
+        listed |= set(words)
     generated |= (gate.DECISIVE | gate.SUPPORTING) - listed
     dictionaries = [Path(d) for d in ("/usr/share/dict/words", "/usr/share/dict/web2")
                     if Path(d).exists()]

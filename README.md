@@ -14,7 +14,7 @@ they are absent, the model falls back on its generic Swiss German prior.
 
 **The rulebook works with any AI.** `rules/schrybwys.md` is a plain markdown file
 with no tool-specific syntax, and `rules/schrybwys-compact.md` holds the same
-rules in a 1789-character block for instruction boxes that impose a limit. Drop
+rules in a 1790-character block for instruction boxes that impose a limit. Drop
 either into a system prompt, custom instructions, `AGENTS.md`,
 `.github/copilot-instructions.md` or `.cursor/rules/` and you are done.
 
@@ -34,7 +34,7 @@ claude:  answers in Bärndütsch, with nid instead of nöd
 | | |
 |---|---|
 | `rules/schrybwys.md` | The rulebook. The codified *schriftsprach-nah* system after Marti and Bietenhard: vowels, consonants, `ds`/`z`, grammar, and what separates Bernese from its neighbours. Tool-agnostic. |
-| `rules/schrybwys-compact.md` | The same rules in 1789 characters, with attribution and licence inside the block. |
+| `rules/schrybwys-compact.md` | The same rules in 1790 characters, with attribution and licence inside the block. |
 | `hooks/berndeutsch_gate.py` | The detector and injector, for Claude Code. |
 | `scripts/bdw` | Dictionary lookup against berndeutsch.ch. Answers the question the model cannot answer honestly by itself: is this actually a word? |
 | `scripts/bd-corpus` | Fetches a small corpus of genuinely Bernese text, for feel rather than rules. |
@@ -54,7 +54,7 @@ a model at the right moment.
 ```mermaid
 flowchart LR
     RB["rules/schrybwys.md<br/>the rulebook"]
-    CB["rules/schrybwys-compact.md<br/>the same rules, 1789 characters"]
+    CB["rules/schrybwys-compact.md<br/>the same rules, 1790 characters"]
 
     RB --> ANY["any AI<br/>paste into a system prompt,<br/>AGENTS.md, .cursor/rules"]
     CB --> BOX["instruction boxes with a limit<br/>ChatGPT custom instructions"]
