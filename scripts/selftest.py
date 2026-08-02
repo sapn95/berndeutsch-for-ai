@@ -656,8 +656,12 @@ def hook_checks(tmp):
     near_miss = [t.lower() for line in negatives
                  for t in gate.TOKEN_RE.findall(line)
                  if gate.LECH_RE.match(t.lower())]
+    # `str([]) or "advice"` never reaches the advice, because "[]" is truthy.
+    # So the one case that needs the hint -- the corpus having no counter-example
+    # left -- printed an empty list and no hint.
     check("the corpus holds a non-Bernese word the -lech guard must reject",
-          bool(near_miss), str(sorted(set(near_miss))[:6]) or
+          bool(near_miss),
+          str(sorted(set(near_miss))[:6]) if near_miss else
           "add one: a guard with no counter-example is a guard nobody checks")
     check("and the guard does reject every one of them",
           not any(gate.suffixed(t) for t in near_miss),
@@ -917,8 +921,10 @@ def notice_online_checks():
             # unknown, and unknown is reported as skipped, not as failed. The
             # extraction logic that actually broke is covered offline in
             # overlap_checks().
-            why = proc.stderr.strip().splitlines()[-1] if proc.stderr else \
-                f"exit {proc.returncode}"
+            # Through last_line(), which is where this same shape was fixed
+            # twice already: a stderr holding nothing but whitespace is truthy,
+            # its splitlines() is empty, and [-1] then aborted the --online run.
+            why = last_line(proc.stderr, f"exit {proc.returncode}")
             SKIPPED.append(f"NOTICE vs pdf-overlap for {label}: {why}")
             print(f"  skip  NOTICE vs {label}  {why}")
             continue
