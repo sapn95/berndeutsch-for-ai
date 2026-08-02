@@ -363,7 +363,7 @@ message is Bärndütsch, use these rules, so an English answer stays English.
 It is also cheap by construction. The **full rulebook is sent only on a
 decisive marker**. A match carried by supporting markers alone gets the short
 checklist and does not consume the session's one full injection, so a residual
-collision costs 1.4 KB rather than 9 KB and the next genuinely Bernese prompt
+collision costs 1.5 KB rather than 9 KB and the next genuinely Bernese prompt
 in that session still gets the whole rulebook. That cap is deliberate: no
 word list is ever going to be perfect, so the design limits what being wrong
 can cost instead of pretending the list is finished.

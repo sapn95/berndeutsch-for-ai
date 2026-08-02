@@ -1220,6 +1220,55 @@ def readme_number_checks():
                     if n != str(len(block))})
     check("no other character count is quoted for it", not stale, str(stale))
 
+    # The two injection sizes the diagram and the cost paragraph quote. These
+    # are what a reader is deciding on, and they move whenever the rulebook or
+    # the preamble is edited: the compact block already drifted by two
+    # characters and was quoted stale in two places. Measured through
+    # build_context, so what is checked is what is actually sent.
+    gate = load(HOOK)
+    # In an empty config directory, or the machine's own overlays join in: this
+    # measured 12,165 characters on the author's laptop against the 9,243 a
+    # fresh install sends, because build_context appends every personal
+    # berndeutsch-schrybwys.md it finds. The README documents what the package
+    # does, not what one machine does with it.
+    with tempfile.TemporaryDirectory(prefix="bd-sizes-") as empty:
+        saved = {k: os.environ.get(k) for k in
+                 ("CLAUDE_CONFIG_DIR", "BERNDEUTSCH_RULES", "BERNDEUTSCH_IDIOLECT")}
+        try:
+            os.environ["CLAUDE_CONFIG_DIR"] = empty
+            os.environ.pop("BERNDEUTSCH_RULES", None)
+            os.environ.pop("BERNDEUTSCH_IDIOLECT", None)
+            # HOOK.parent, which is what main() passes: the hook's DIRECTORY,
+            # not the file. Passing the file found the rulebook but not bdw,
+            # and quietly measured 311 characters short.
+            full, emitted = gate.build_context(HOOK.parent, True, None)
+            short, _ = gate.build_context(HOOK.parent, False, None)
+        finally:
+            for key, value in saved.items():
+                if value is None:
+                    os.environ.pop(key, None)
+                else:
+                    os.environ[key] = value
+    # build_context returns (text, emitted). Taking len() of the tuple gave a
+    # confident 2 characters for both, which is the shape of mistake this whole
+    # section exists to catch, so it is asserted rather than assumed.
+    if check("the full injection really carries the rulebook", emitted
+             and len(full) > 4000, f"{len(full):,} chars, emitted={emitted}"):
+        pairs = ((len(full), "about 9 KB"), (len(short), "about 1.5 KB"))
+        for size, quoted in pairs:
+            check(f"the README quotes {quoted} and it is {size / 1024:.1f} KB",
+                  quoted in readme
+                  and abs(size / 1024 - float(quoted.split()[1])) < 0.05,
+                  f"{size:,} chars")
+        cost = (f"costs {len(short) / 1024:.1f} KB rather than "
+                f"{len(full) / 1024:.0f} KB")
+        check("and the cost paragraph quotes the same pair", cost in readme, cost)
+    # And the window size, which the diagram states twice in words.
+    check("the README states the window the hook actually uses",
+          readme.count(f"first {gate.SCAN_HEAD} + last {gate.SCAN_TAIL}") == 1
+          and f"first and last {gate.SCAN_HEAD} characters" in readme,
+          f"{gate.SCAN_HEAD}/{gate.SCAN_TAIL}")
+
     # The classifier's scores must not be stated as a current fact anywhere the
     # tool is described, because they move on every corpus edit. The README
     # published "100% and 100%" while evaluate.py printed 93.0% and 95.7%, and
