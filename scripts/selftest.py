@@ -420,6 +420,17 @@ def hook_checks(tmp):
     check("a 1 MB paste is reduced before the window is built",
           len(gate.scan_window(pad(1_000_000))) <= gate.SCAN_HEAD + gate.SCAN_TAIL + 1,
           f"{len(gate.scan_window(pad(1_000_000))):,} chars out")
+    # The pre-cut is two-stage: a narrow slice for ordinary text, and a wide
+    # one taken only when the narrow slice came back short because NFC SHRANK
+    # it. Nine mutants survived on the line that chooses between them, because
+    # nothing in the suite fed it text that shrinks. Decomposed Hangul is the
+    # worst case at 3:1, and with the marker at raw offset 8001 the narrow
+    # slice cannot reach it: forcing that branch makes this prompt silent.
+    shrinking = "각" * 2667 + " isch " + "각" * 40000
+    check("a marker survives text that NFC shrinks 3:1",
+          gate.is_dialect(shrinking)[0],
+          f"{len(shrinking):,} raw chars, window "
+          f"{len(gate.scan_window(shrinking)):,}")
     window = gate.scan_window(pad(200_000))
     check("the window is bounded by head plus tail",
           len(window) <= gate.SCAN_HEAD + gate.SCAN_TAIL + 1, f"{len(window)} chars")
