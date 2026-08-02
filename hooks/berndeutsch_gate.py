@@ -303,6 +303,17 @@ def prefixed(token):
 # decisive marker stays decisive and a velarised supporting one stays
 # supporting. Computed at import: the lists above stay readable as the thing a
 # human maintains, and the rules stay in one place.
+#
+# WEAK is deliberately NOT propagated, and this has now been reported twice as
+# an inconsistency, so: collision-proneness is a property of the SPELLING, not
+# of the word, and velarisation is exactly what destroys the collision.
+# `verstande` is weak because German has `verstanden` and `Verstand` one
+# character away. Its twin `verstange` has no German or English reading at all
+# -- it is in neither /usr/share/dict/words nor web2 -- so requiring three of
+# it would cost recall to guard against nothing. Recall is the headline here
+# because a miss is silent, and `verstange` is the only word this affects.
+# selftest pins it, so a third reviewer gets a failing check rather than a
+# comment that disagrees with the code.
 # Whose plural is a German word: "die meinige", "das Meinige". The singular
 # meinig is only a rare surname and keeps its slot.
 IG_NOT = frozenset({"meinig"})

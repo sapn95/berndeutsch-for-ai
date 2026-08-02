@@ -113,6 +113,18 @@ def calibrate():
     return max(1.0, fastest(work) / CALIBRATION_MS)
 
 
+def _in_dictionaries(word):
+    """Whether a word appears in a system word list, when there is one."""
+    for path in (Path("/usr/share/dict/words"), Path("/usr/share/dict/web2")):
+        try:
+            body = path.read_text(encoding="utf-8", errors="replace").lower()
+        except OSError:
+            continue
+        if f"\n{word.lower()}\n" in body:
+            return True
+    return False
+
+
 def listed_markers(source, name):
     """The words in the hook's NAME frozenset literal, read out of the source.
 
@@ -276,6 +288,18 @@ def hook_checks(tmp):
     # The two derivations, checked as rules rather than as examples. A list of
     # twins can forget one; these cannot, so what has to be checked is that the
     # derivation is wired in at all.
+    # WEAK is not propagated through velarised(), and that is the decision
+    # rather than an oversight: velarisation destroys the German collision that
+    # made the source collision-prone in the first place. Pinned, because two
+    # reviewers in a row have read the comment above the derivation and filed
+    # the asymmetry as a defect.
+    escaped = sorted(gate.velarised(gate.WEAK) - gate.WEAK)
+    check("a velarised twin does not inherit collision-proneness", escaped,
+          f"{escaped} are supporting but not collision-prone")
+    for twin in escaped:
+        check(f"and {twin!r} has no German or English reading to collide with",
+              not _in_dictionaries(twin), "checked against the system word lists")
+
     check("velarised twins are derived, not listed",
           "mitenang" in gate.DECISIVE and "mitenand" in gate.DECISIVE,
           "nd -> ng, from the rulebook's own rule")
@@ -291,16 +315,22 @@ def hook_checks(tmp):
     generated = {p + w for p in gate.PREFIXES for w in gate.PARTICIPLES
                  if gate.prefixed(p + w)}
     listed = set()
-    source = HOOK.read_text(encoding="utf-8")
+    readable = True
     for name in ("DECISIVE", "SUPPORTING"):
         words = listed_markers(source, name)
         if not check(f"{name} can still be read out of the source", words is not None):
-            return
+            # continue, not return: the guard added an hour ago aborted the
+            # address, window, cost, prompt and session-budget groups below,
+            # which is the failure listed_markers() exists to stop. The sweep
+            # itself is skipped, because a short `listed` makes every listed
+            # marker look generated and turns one failure into a noisy second.
+            readable = False
+            continue
         listed |= set(words)
     generated |= (gate.DECISIVE | gate.SUPPORTING) - listed
     dictionaries = [Path(d) for d in ("/usr/share/dict/words", "/usr/share/dict/web2")
                     if Path(d).exists()]
-    if dictionaries:
+    if dictionaries and readable:
         english = set()
         for path in dictionaries:
             english |= {w.strip().lower()
