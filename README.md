@@ -5,6 +5,19 @@
 A rulebook that makes any AI write real Bernese German, instead of a generic
 Swiss German that drifts a little further toward Zurich every session.
 
+> **Work in progress.** This is a 0.x release and it is being actively worked
+> on. The rulebook itself is stable enough to use — it summarises a published
+> spelling system, and `NOTICE` says exactly whose. The detector around it is
+> not finished: the marker lists still move, the thresholds are still being
+> tuned, and a release can change how the hook decides. Expect breaking
+> changes between minor versions until 1.0.
+>
+> What that means in practice: pasting `rules/schrybwys.md` into any AI is safe
+> and does not depend on any of this. If you install the hook, pin a version
+> rather than tracking `main`, and re-read this file when you upgrade.
+>
+> Corrections to the Bernese itself are the most useful thing anyone can send.
+
 Write to an AI in Bärndütsch and it will answer in something dialect-shaped.
 Over a long conversation that something decays: `nöd` creeps in for `nid`, `ä`
 inflates everywhere (`Gipfäli`), and words get invented on the spot because they
