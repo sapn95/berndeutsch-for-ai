@@ -285,7 +285,7 @@ flowchart TD
     D -->|"yes: isch, chasch, itz, gsy"| B{"first dialect turn<br/>this session?"}
     B -->|yes| FULL["inject the FULL rulebook<br/>about 9 KB, once per session"]
     B -->|no| CL["inject the short checklist<br/>about 1.5 KB"]
-    D -->|no| S{"two supporting markers?<br/>three if all of them are weak"}
+    D -->|no| S{"two DIFFERENT supporting markers?<br/>three if all of them are weak"}
     S -->|"yes: het + nid"| CL
     S -->|no| N["inject nothing"]
 ```

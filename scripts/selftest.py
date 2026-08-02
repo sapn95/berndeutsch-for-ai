@@ -113,6 +113,21 @@ def calibrate():
     return max(1.0, fastest(work) / CALIBRATION_MS)
 
 
+def last_line(*streams):
+    """The most useful line of whatever the hook said before it died.
+
+    `.strip().splitlines()[-1]` raises IndexError on an empty string, and a
+    hook killed by a signal exits non-zero having written nothing at all. The
+    guard that reports the crash would then crash in the same way it was added
+    to prevent, aborting the suite and hiding every check after it.
+    """
+    for stream in streams:
+        lines = (stream or "").strip().splitlines()
+        if lines:
+            return lines[-1][:120]
+    return "non-zero exit, and nothing on stderr"
+
+
 def load(path):
     """Import a module from a path, extension or not.
 
@@ -672,7 +687,7 @@ def hook_checks(tmp):
     # that will not start says why instead of reporting a mysterious 0 chars.
     if first is None or second is None:
         check("the hook runs at all for the session-budget checks", False,
-              (err_a or err_b or "").strip().splitlines()[-1][:120])
+              last_line(err_a, err_b))
     first, second = first or "", second or ""
     check("first decisive prompt gets the full rulebook", len(first) > 4000,
           f"{len(first)} chars")
@@ -688,7 +703,7 @@ def hook_checks(tmp):
     strong, err_d = run_hook("Chasch mer das erkläre?", "budget-2", cfg2)
     if weak is None or strong is None:
         check("the hook runs at all for the injection-budget checks", False,
-              (err_c or err_d or "").strip().splitlines()[-1][:120])
+              last_line(err_c, err_d))
     weak, strong = weak or "", strong or ""
     check("a supporting-only match gets the checklist", 0 < len(weak) < 2500,
           f"{len(weak)} chars")
@@ -1508,6 +1523,28 @@ def readme_number_checks():
           readme.count(f"first {gate.SCAN_HEAD} + last {gate.SCAN_TAIL}") == 1
           and f"first and last {gate.SCAN_HEAD} characters" in readme,
           f"{gate.SCAN_HEAD}/{gate.SCAN_TAIL}")
+
+    # The diagram states the two thresholds in words, and words rot the same way
+    # numbers do. It said "two supporting markers", which reads as two
+    # OCCURRENCES; the hook counts distinct ones, and "the same supporting
+    # marker twice" is a probe in evaluate.py precisely because it must stay
+    # silent. Each threshold is spelled out here and matched against the
+    # constant, so changing MIN_SUPPORTING without changing the diagram fails.
+    numbers = {2: "two", 3: "three"}
+    supporting = numbers.get(gate.MIN_SUPPORTING, str(gate.MIN_SUPPORTING))
+    weak_only = numbers.get(gate.MIN_WEAK_ONLY, str(gate.MIN_WEAK_ONLY))
+    check("the diagram states the supporting threshold, and that it is distinct",
+          f"{supporting} DIFFERENT supporting markers" in readme,
+          f"MIN_SUPPORTING = {gate.MIN_SUPPORTING}")
+    check("and the all-weak threshold",
+          f"{weak_only} if all of them are weak" in readme,
+          f"MIN_WEAK_ONLY = {gate.MIN_WEAK_ONLY}")
+    # The prose names the tier the code names. "weak" is the hook's own word for
+    # it, and a marker the README calls weak has to be one: nid was reported as
+    # weak by a reviewer reading this section, and it is not.
+    for word in re.findall(r"`(\w+)` itself IS weak", readme):
+        check(f"the README calls {word!r} weak and the hook agrees",
+              word in gate.WEAK, f"WEAK={word in gate.WEAK}")
 
     # The classifier's scores must not be stated as a current fact anywhere the
     # tool is described, because they move on every corpus edit. The README
