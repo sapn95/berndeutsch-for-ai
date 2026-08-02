@@ -50,6 +50,16 @@ LABELLED = REPO / "corpus" / "labelled.tsv"
 MIN_RECALL = 0.95
 MIN_PRECISION = 0.97
 
+# And the same floors as counts, because a rate over 244 rows cannot see what
+# this repository actually cares about. At 130 true positives, precision stays
+# above 0.97 until the FIFTH false positive, so no single-row regression and no
+# two-, three- or four-row regression could fail the gate: moving bare `geit`
+# into DECISIVE made three Dutch sentences pull the whole rulebook and the gate
+# passed. These are the current measurement, not a margin. Raise them
+# deliberately when the corpus grows, the same way the rates are raised.
+MAX_FALSE_POSITIVES = 0
+MAX_FALSE_NEGATIVES = 4
+
 
 def load_hook():
     loader = importlib.machinery.SourceFileLoader("bd_gate", str(HOOK))
@@ -129,15 +139,71 @@ def invariances():
 # into a negative, and adding foreign text must never turn a negative positive.
 def directionals():
     return [
-        ("bd", "append more dialect", lambda t: t + " U das isch guet gsy.",
+        # The appended fragment must NOT fire on its own, or the relation is
+        # satisfied by the fragment rather than by the original text and holds
+        # for every row unconditionally: with " U das isch guet gsy." appended,
+        # deleting the entire tail half of the window still reported 134/134.
+        # " u de." is two weak markers, which is one short of the bar.
+        ("bd", "append more dialect", lambda t: t + " u de.",
          "adding Bernese cannot make a Bernese prompt less Bernese"),
-        ("bd", "prepend more dialect", lambda t: "Lueg mau. " + t, "same"),
+        # With a full stop. Prepending "u de " without one moved the row's own
+        # first word out of sentence-initial position, where a capitalised weak
+        # marker is allowed, and three rows went silent: the relation was
+        # measuring the case rule rather than the marker count.
+        ("bd", "prepend more dialect", lambda t: "u de. " + t, "same"),
         ("xx", "append neutral English", lambda t: t + " Thanks in advance.",
          "adding English cannot make a non-Bernese prompt Bernese"),
+        # The path needs marker-shaped components or it probes nothing: with an
+        # ordinary com/example path there was no letter run for either rule to
+        # have an opinion about, and removing / and + from GLUE reported a
+        # clean 104/104. This one is handled by strip_addresses, which sees the
+        # slashes and blanks the whole chunk before GLUE is ever consulted.
         ("xx", "append a file path",
-         lambda t: t + " See src/main/java/com/example/Service.java",
+         lambda t: t + " See src/main/java/ch/isch/gsi/Service.java",
          "a path is not dialect"),
+        # And GLUE itself, which needs something that is NOT an address: no
+        # dot, no slash, no at-sign, nothing for the address rule to catch. A
+        # pod name is the real case that fired -- itz9q read as itz.
+        ("xx", "append a pod name", lambda t: t + " Pod itz9q_gsi3 restarted.",
+         "letters glued to digits are an identifier, not a word"),
+        # These two are the only relations that reach the window: the longest
+        # corpus row is 4757 characters against a 6000-character window, so
+        # every other relation here is decided long before the cut. A marker in
+        # the head survives any paste after it, and one in the tail survives
+        # any paste before it, which is the entire point of keeping both ends.
+        ("bd", "followed by a 200 KB log",
+         lambda t: t + "\n" + LOG_LINE * 5000,
+         "a marker at the start of a huge paste is still in the head window",
+         fits_in_half),
+        ("bd", "preceded by a 200 KB log",
+         lambda t: LOG_LINE * 5000 + "\n" + t,
+         "a marker at the end of a huge paste is still in the tail window",
+         fits_in_half),
     ]
+
+
+LOG_LINE = "2026-08-01 INFO request handled in 4ms\n"
+
+
+def fits_in_half(text):
+    """Whether one half of the window can hold this row whole.
+
+    The two window relations are claimed only for rows this is true of. For a
+    longer row the classifier's own contract permits the flip -- a big enough
+    paste may push the evidence out -- and asserting otherwise would be
+    asserting something the hook never promised.
+    """
+    global _HALF
+    if _HALF is None:
+        gate = load_hook()
+        _HALF = min(gate.SCAN_HEAD, gate.SCAN_TAIL)
+    return len(text) <= _HALF
+
+
+# Read once. The predicate runs for every row of every relation, and re-execing
+# the hook module 134 times to read two constants took longer than the whole
+# rest of the evaluation.
+_HALF = None
 
 
 # Boundary probes: synthetic on purpose, and deliberately NOT part of the
@@ -154,7 +220,12 @@ BOUNDARY = [
     # not. Both names said "non-weak" of het, which stopped being true when het
     # moved into WEAK; nid is the non-weak half of the pair and always was.
     (True, "two supporting markers, not both weak", "Das het nid so."),
-    (False, "one supporting marker", "Das het so."),
+    # The negative half has to be NON-weak too, or it probes MIN_WEAK_ONLY
+    # instead and MIN_SUPPORTING has no negative case at all: `het` is weak, so
+    # "Das het so." needed three markers whatever MIN_SUPPORTING said, and
+    # 2 -> 1 left both halves of this pair green. `luege` is supporting and not
+    # weak, and it is the only marker in the sentence.
+    (False, "one supporting marker, not weak", "mir luege das."),
     # MIN_WEAK_ONLY: three lower-case weak markers fire, two do not.
     (True, "three weak markers", "gsi gha nit"),
     (False, "two weak markers", "gsi gha"),
@@ -382,8 +453,19 @@ def metamorphic(gate, show_errors):
                 print(f"          {detail}  |  {text[:60]}")
 
     print("metamorphic: directional (the verdict may only move one way)")
-    for want_label, name, transform, _why in directionals():
-        subset = [r for r in rows if r[0] == want_label]
+    for want_label, name, transform, _why, *rest in directionals():
+        # An optional predicate, for the two relations that are only claimed
+        # for rows the window can hold whole. Without it they would be claimed
+        # for a 4757-character log line too, where a 200 KB paste legitimately
+        # pushes the marker out of the window and the docstring above says so.
+        applies = rest[0] if rest else (lambda _t: True)
+        subset = [r for r in rows if r[0] == want_label and applies(r[2])]
+        # A filter that excludes everything would report a perfect 0/0. The
+        # relation has to be claimed for something.
+        if len(subset) < 20:
+            print(f"  FAIL  {name:24} in scope for only {len(subset)} row(s)")
+            broken += 1
+            continue
         wrong = []
         for label, kind, text in subset:
             before = classify(gate, text)
@@ -426,6 +508,13 @@ def main():
         failed.append(f"recall {scores['recall']:.1%} < {MIN_RECALL:.0%}")
     if scores["precision"] < MIN_PRECISION:
         failed.append(f"precision {scores['precision']:.1%} < {MIN_PRECISION:.0%}")
+    # The counts as well as the rates. See MAX_FALSE_POSITIVES: at this corpus
+    # size the rates alone hand out four free false fires and two free misses,
+    # which is most of the regressions this gate exists to stop.
+    if scores["fp"] > MAX_FALSE_POSITIVES:
+        failed.append(f"{scores['fp']} false positive(s) > {MAX_FALSE_POSITIVES}")
+    if scores["fn"] > MAX_FALSE_NEGATIVES:
+        failed.append(f"{scores['fn']} miss(es) > {MAX_FALSE_NEGATIVES}")
     if broken:
         failed.append(f"{broken} metamorphic violation(s)")
     if failed:

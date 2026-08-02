@@ -52,6 +52,47 @@ def check(name, ok, detail=""):
     return ok
 
 
+def fastest(fn, rounds=5):
+    """The cheapest of `rounds` runs, in milliseconds.
+
+    A single timing measures the machine's mood as much as the code. The
+    minimum is the only summary statistic here that is not inflated by another
+    process getting the core, which matters because these budgets were once
+    loose enough to be load-dependent and are no longer.
+    """
+    best = float("inf")
+    for _ in range(rounds):
+        start = time.perf_counter()
+        fn()
+        best = min(best, (time.perf_counter() - start) * 1000)
+    return best
+
+
+# What the calibration below measured when the per-shape costs were recorded.
+CALIBRATION_MS = 10.0
+
+
+def calibrate():
+    """How much slower this machine is than the one the costs were recorded on.
+
+    Deliberately NOT a call into the hook. A reference the hook can slow down
+    would absorb exactly the regression it is here to expose: every shape would
+    move, the ratio would not, and the budgets would follow the defect upwards.
+    NFC and a word split over a fixed blob use the same two library primitives
+    the window does, and no repository code at all.
+    """
+    import unicodedata
+    blob = "a" * 400_000
+
+    def work():
+        unicodedata.normalize("NFC", blob)
+        re.findall(r"[^\W\d_]+", blob)
+
+    # Never below 1.0: on a machine faster than the recording one the budgets
+    # stay as recorded rather than tightening into noise.
+    return max(1.0, fastest(work) / CALIBRATION_MS)
+
+
 def load(path):
     """Import a module from a path, extension or not.
 
@@ -248,9 +289,12 @@ def hook_checks(tmp):
           gate.suffixed("möglech") and gate.suffixed("härzlechi")
           and not gate.suffixed("lech") and not gate.suffixed("blech"),
           "German spells it -lich, so the suffix decides on its own")
+    # The second half used to be `is_dialect("Wo-n-i das gseh ha ...")`, which
+    # contains the decisive marker gseh and therefore fired however the hyphen
+    # rule behaved. Asserted on what strip_addresses actually leaves behind.
     check("an address is removed, a linking hyphen is not",
           not gate.is_dialect("The host itz-prod-01 is unreachable.")[0]
-          and gate.is_dialect("Wo-n-i das gseh ha bini erchlüpft.")[0],
+          and "Wo-n-i" in gate.strip_addresses("Wo-n-i das gseh ha bini erchlüpft."),
           "GLUE cannot do this: '.' would eat the marker before a full stop")
 
     # COST, asserted rather than hoped for. Three times now a change has made
@@ -284,6 +328,14 @@ def hook_checks(tmp):
         ("one character", "a", False),
         ("a decimal number", "3.5", True),
         ("an ordinary word", "Bärndütsch", False),
+        # The FIRST hyphen decides, not the last. `chunk.find("-")` ->
+        # `chunk.rfind("-")` left all fifteen probes above green while
+        # api-2-prod silently stopped being an address.
+        ("a digit after the first hyphen only", "api-2-prod", True),
+        # And the dot test needs a word character on BOTH sides. Turning its
+        # `and` into an `or` was caught only by a metamorphic relation in
+        # evaluate.py, which is the corpus instrument this block replaced.
+        ("a dot before a closing quote", "guet.»", False),
     ]
     for name, chunk, want in addresses:
         got = gate.looks_like_address(chunk)
@@ -300,18 +352,25 @@ def hook_checks(tmp):
     # The PRECUT threshold and the head/tail cut, at their exact edges. A
     # marker is planted so a wrong offset is visible rather than merely
     # plausible.
-    limit = gate.PRECUT * (gate.SCAN_HEAD + gate.SCAN_TAIL)
     filler = "lorem ipsum dolor sit amet "
     def pad(n):
         return (filler * (n // len(filler) + 2))[:n]
-    just_under = pad(limit - 20) + " isch"
-    just_over = "isch " + pad(limit + 500)
-    check("a prompt at the pre-cut threshold keeps its tail",
-          "isch" in gate.word_tokens(gate.scan_window(just_under)),
-          f"{len(just_under):,} chars, limit {limit:,}")
-    check("a prompt over the threshold keeps its head",
-          "isch" in gate.word_tokens(gate.scan_window(just_over)),
-          f"{len(just_over):,} chars")
+    # Absolute sizes, not gate.PRECUT * (SCAN_HEAD + SCAN_TAIL). Deriving the
+    # fixture from the constant made both of these move with any change to it:
+    # deleting the pre-cut entirely and setting PRECUT = 80 both left them
+    # green, because the prompt was under the threshold by construction either
+    # way. 200 KB is a real thing to paste into a prompt; the numbers below are
+    # what the hook has to cope with, whatever the constants say this week.
+    for size in (50_000, 200_000, 1_000_000):
+        check(f"a marker at the very end of a {size:,}-character paste is seen",
+              "isch" in gate.word_tokens(gate.scan_window(pad(size) + " isch")))
+        check(f"a marker at the very start of a {size:,}-character paste is seen",
+              "isch" in gate.word_tokens(gate.scan_window("isch " + pad(size))))
+    # And the pre-cut must actually cut, or strip_addresses and NFC see the
+    # whole paste. Asserted on what the pre-cut DOES rather than on a constant.
+    check("a 1 MB paste is reduced before the window is built",
+          len(gate.scan_window(pad(1_000_000))) <= gate.SCAN_HEAD + gate.SCAN_TAIL + 1,
+          f"{len(gate.scan_window(pad(1_000_000))):,} chars out")
     window = gate.scan_window(pad(200_000))
     check("the window is bounded by head plus tail",
           len(window) <= gate.SCAN_HEAD + gate.SCAN_TAIL + 1, f"{len(window)} chars")
@@ -339,12 +398,58 @@ def hook_checks(tmp):
         # the window normalised a slice eight times its own size.
         ("500k recursively-decomposing codepoints", "\U0001D161" * 500_000),
     ]
+    # Each shape is held to what it actually costs, not to one flat ceiling.
+    # A single 50 ms budget over shapes ranging from 0.4 ms to 12 ms gave the
+    # cheapest of them 130x of headroom, and a budget a change has to be 130x
+    # worse to trip is not a budget: PRECUT = 8 -> 40 passed it untouched. At
+    # that distance the verdict also started depending on what else was
+    # running, 31 ms idle against 57 ms with eleven cosmic-ray workers busy.
+    # These are milliseconds measured on this repository, re-scaled at run time
+    # by calibrate() so a slower or busier machine does not fail on speed alone.
+    recorded = {
+        "6000 hyphens": 0.6,
+        "alternating dot and dash": 1.2,
+        "one 6000-character word": 0.6,
+        "6000 escape sequences": 0.7,
+        "2 MB of apostrophes": 3.1,
+        "1 MB of one umlaut": 2.3,
+        "1 MB of combining marks": 0.5,
+        "2 MB of ordinary prose": 3.4,
+        "500k recursively-decomposing codepoints": 11.9,
+    }
+    # A shape with no recorded cost would silently fall back to the floor, so
+    # the two lists are held to each other rather than zipped and hoped for.
+    check("every cost shape has a recorded cost",
+          sorted(recorded) == sorted(n for n, _ in shapes),
+          str(set(recorded) ^ {n for n, _ in shapes}))
+    speed = calibrate()
     for name, blob in shapes:
-        start = time.perf_counter()
-        gate.is_dialect(blob)
-        spent = (time.perf_counter() - start) * 1000
-        check(f"is_dialect stays under 50 ms: {name}", spent < 50,
-              f"{spent:.1f} ms over {len(blob):,} chars")
+        spent = fastest(lambda b=blob: gate.is_dialect(b))
+        # 4x the recorded cost, never below 1.5 ms, which is where timing noise
+        # stops being smaller than the measurement. The 50 ms line stays as the
+        # promise made to a reader: a prompt hook runs before every message,
+        # and a tenth of a second of it would be felt. It is scaled too, so a
+        # slow runner fails on a regression and not on being a slow runner.
+        budget = max(1.5, 4 * recorded.get(name, 0) * speed)
+        check(f"is_dialect stays near its recorded cost: {name}",
+              spent < budget and spent < 50 * speed,
+              f"{spent:.2f} ms over {len(blob):,} chars, "
+              f"recorded {recorded.get(name)} ms x{speed:.2f} "
+              f"-> budget {budget:.2f} ms")
+
+    # And the shape of the curve, not only its height. All three cost defects
+    # in this history were superlinear: 54 s on a 280 KB paste, an outright
+    # hang on 60 KB, 471 ms on 6000 hyphens. Everything past the window is
+    # sliced away without being examined, so quadrupling the input must not
+    # cost four times as much. A ratio needs no recorded number and does not
+    # care how fast the machine is.
+    for name, unit in (("hyphens", "-" * 100_000),
+                       ("apostrophes", "a'b" * 200_000),
+                       ("prose", "Please review the log. " * 30_000)):
+        small = fastest(lambda u=unit: gate.is_dialect(u))
+        large = fastest(lambda u=unit: gate.is_dialect(u * 4))
+        check(f"quadrupling the input does not quadruple the cost: {name}",
+              large < max(1.5, 2.5 * small), f"{small:.2f} ms -> {large:.2f} ms")
 
     # Every rule that GENERATES markers must have a negative case in the
     # labelled set. The dictionary sweep is English and every collision that
@@ -420,10 +525,13 @@ def hook_checks(tmp):
     filler = "lorem ipsum dolor sit amet "
     def pad(target):
         return (filler * (target // len(filler) + 2))[:target]
-    # "Verzeichnisch" is German. Cut anywhere in its last four characters and
-    # the fragment left behind is "isch", which is a decisive marker the real
-    # text never contained.
-    head_cut = pad(gate.SCAN_HEAD - 4) + "Verzeichnisch " + pad(4000)
+    # Two German words, because the two cuts leave opposite halves behind. A
+    # head cut keeps a PREFIX, so "Verzeichnisch" cut there leaves "Verz" and
+    # never "isch": the head probe held by construction and stayed green with
+    # the head trim deleted, printing the invented token in its own detail
+    # field. "Ischiasnerv" begins with the marker, so a wrong head trim leaves
+    # exactly the fragment this is looking for.
+    head_cut = pad(gate.SCAN_HEAD - 5) + " Ischiasnerv " + pad(4000)
     tail_cut = pad(4000) + " Verzeichnisch" + pad(gate.SCAN_TAIL - 9)
     for where, big in (("head", head_cut), ("tail", tail_cut)):
         window = gate.scan_window(big)
@@ -703,6 +811,33 @@ def corpus_checks():
           corpus.score(bernese) - corpus.score(other) > corpus.KEEP_THRESHOLD,
           f"{corpus.score(bernese) - corpus.score(other):.2f} apart")
 
+    # The WEIGHTS themselves. The paragraphs above land about 47x above the
+    # threshold, so changing 4 and -6 to 1 and -1 left every check up to here
+    # green: the comment eight lines up claimed the article-sized fixture had
+    # fixed that and it had not. A ratio between three texts of the SAME length
+    # measures the weights and nothing else, and does not care how far from the
+    # threshold any of them sits.
+    pad = "und dann noch etwas Text zum Auffuellen der Zeile hier. " * 8
+    only_bern = ("isch nid het hei " + pad)[:300]
+    only_voc = ("viu wöu gäud schnäu " + pad)[:300]
+    only_other = ("nöd gsii deet hän " + pad)[:300]
+    # Same length and the same number of markers, or the ratio measures the
+    # fixture. The first version of this got the padding wrong, all three came
+    # out at a different length, and 4.0 arrived as 3.95.
+    counts = (len(corpus.BERN.findall(only_bern)),
+              len(corpus.L_VOC.findall(only_voc)),
+              len(corpus.OTHER.findall(only_other)))
+    if check("the three weight fixtures are comparable",
+             len({len(only_bern), len(only_voc), len(only_other)}) == 1
+             and len(set(counts)) == 1 and counts[0] == 4,
+             f"lengths {len(only_bern)}/{len(only_voc)}/{len(only_other)}, "
+             f"markers {counts}"):
+        b, v, o = (corpus.score(t) for t in (only_bern, only_voc, only_other))
+        check("a Lötschberg-vocabulary marker counts four times a common one",
+              abs(v - 4 * b) < 0.01, f"{v:.2f} against 4 x {b:.2f}")
+        check("a foreign-variant marker counts minus six",
+              abs(o + 6 * b) < 0.01, f"{o:.2f} against -6 x {b:.2f}")
+
 
 def packaging_checks():
     """Check the manifest that `claude plugin validate` does not look at.
@@ -798,7 +933,12 @@ def overlap_checks():
           "Quick checklist" in text and "def " not in text)
     book = REPO / "rules" / "schrybwys.md"
     text, embedded = overlap.rules_text(book, book.read_text(encoding="utf-8"))
-    check("a markdown target is measured whole", embedded is None)
+    # Both halves. `embedded is None` alone was satisfied by returning "" for
+    # every non-.py file, which would have measured the overlap of an empty
+    # rulebook against the PDF and reported a reassuring 0%.
+    check("a markdown target is measured whole",
+          embedded is None and text == book.read_text(encoding="utf-8"),
+          f"{embedded}, {len(text)} chars")
 
 
 def mutation_order_checks():
@@ -928,6 +1068,17 @@ def installer_checks():
         check("linking a file onto itself leaves it intact",
               src.is_file() and not src.is_symlink() and src.read_text() == before,
               "symlink" if src.is_symlink() else "ok")
+        # Both checks above assert that the SOURCE survived, which an installer
+        # that installs nothing satisfies perfectly: replacing link()'s body
+        # with `return dst` left this whole function green. The guard against
+        # eating the repository has to be paired with the thing it guards, or
+        # the safest possible installer is one that does not work.
+        target = Path(tmp) / "elsewhere" / "thing.py"
+        install.link(src, target)
+        check("linking to a distinct path creates the link",
+              target.is_symlink() and target.resolve() == src.resolve(),
+              f"symlink={target.is_symlink()}, "
+              f"{target.resolve() if target.exists() else 'missing'}")
 
 
 def citation_checks():
@@ -1026,16 +1177,22 @@ def readme_number_checks():
     # four independent reviewers reported it in one round. Historical figures
     # are fine when they are marked as history; a bare percentage next to the
     # word precision or recall is not.
-    for line_no, line in enumerate(readme.splitlines(), 1):
-        if "precision and recall" not in line.lower():
+    #
+    # Guard the guard, twice over. A loop over no matching lines checks nothing
+    # and says nothing: rewording the README to "recall and precision" and
+    # "mutation-testing score" made all four lines vanish from the output and
+    # let it publish an invented 100%. So the phrase has to be PRESENT, and
+    # then every line carrying it has to be clean.
+    for phrase, what in (("precision and recall", "the score in the diagram"),
+                         ("mutation score", "the mutation score")):
+        lines = [(n, ln) for n, ln in enumerate(readme.splitlines(), 1)
+                 if phrase in ln.lower()]
+        if not check(f"the README still describes {what}", bool(lines),
+                     f"no line says {phrase!r}"):
             continue
-        check(f"README:{line_no} does not fix the score in the diagram",
-              not re.search(r"\d+(\.\d+)?%", line), line.strip()[:70])
-    for line_no, line in enumerate(readme.splitlines(), 1):
-        if "mutation score" not in line.lower():
-            continue
-        check(f"README:{line_no} does not fix the mutation score either",
-              not re.search(r"\d+(\.\d+)?%", line), line.strip()[:70])
+        for line_no, line in lines:
+            check(f"README:{line_no} does not fix {what}",
+                  not re.search(r"\d+(\.\d+)?%", line), line.strip()[:70])
 
 
 def main():
