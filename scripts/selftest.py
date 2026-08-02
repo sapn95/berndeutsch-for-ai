@@ -1552,14 +1552,21 @@ def readme_number_checks():
     check("the diagram states the supporting threshold, and that it is distinct",
           f"{supporting} DIFFERENT supporting markers" in readme,
           f"MIN_SUPPORTING = {gate.MIN_SUPPORTING}")
-    check("and the all-weak threshold",
-          f"{weak_only} if all of them are weak" in readme,
+    check("and the collision-prone threshold",
+          f"{weak_only} if all are collision-prone" in readme,
           f"MIN_WEAK_ONLY = {gate.MIN_WEAK_ONLY}")
-    # The prose names the tier the code names. "weak" is the hook's own word for
-    # it, and a marker the README calls weak has to be one: nid was reported as
-    # weak by a reviewer reading this section, and it is not.
-    for word in re.findall(r"`(\w+)` itself IS weak", readme):
-        check(f"the README calls {word!r} weak and the hook agrees",
+    # ONE name for one set. The prose explained it as "collision-prone" and the
+    # diagram called it "weak", which is the hook's variable name; two reviewers
+    # in a row read that as two different sets and reported the diagram as
+    # wrong. The README uses the descriptive name throughout, and this check
+    # stops the code's name from leaking back into it.
+    stray = [n for n, line in enumerate(readme.splitlines(), 1)
+             if re.search(r"\bweak\b", line)]
+    check("the README does not also call that set weak", not stray,
+          f"lines {stray}")
+    # And a marker the README names as belonging to it has to belong to it.
+    for word in re.findall(r"`(\w+)` itself IS collision-prone", readme):
+        check(f"the README calls {word!r} collision-prone and the hook agrees",
               word in gate.WEAK, f"WEAK={word in gate.WEAK}")
 
     # The classifier's scores must not be stated as a current fact anywhere the

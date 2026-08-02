@@ -467,9 +467,17 @@ def metamorphic(gate, show_errors):
             broken += 1
             continue
         wrong = []
-        for label, kind, text in subset:
+        for _label, _kind, text in subset:
             before = classify(gate, text)
-            after = classify(gate, transform(text))
+            # Guarded the way the invariance loop above is. Unguarded, one row
+            # that raises propagated out of metamorphic() and main() never ran
+            # boundary() or window_properties(): one crash hid every remaining
+            # result, which is the failure the other loop already handles.
+            try:
+                after = classify(gate, transform(text))
+            except Exception as exc:              # a crash is a worse failure
+                wrong.append(f"{text[:40]} raised {type(exc).__name__}: {exc}")
+                continue
             # For bd: adding dialect must not turn a fire into silence.
             # For xx: adding foreign text must not turn silence into a fire.
             if want_label == "bd" and before and not after:

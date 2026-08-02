@@ -285,7 +285,7 @@ flowchart TD
     D -->|"yes: isch, chasch, itz, gsy"| B{"first dialect turn<br/>this session?"}
     B -->|yes| FULL["inject the FULL rulebook<br/>about 9 KB, once per session"]
     B -->|no| CL["inject the short checklist<br/>about 1.5 KB"]
-    D -->|no| S{"two DIFFERENT supporting markers?<br/>three if all of them are weak"}
+    D -->|no| S{"two DIFFERENT supporting markers?<br/>three if all are collision-prone"}
     S -->|"yes: het + nid"| CL
     S -->|no| N["inject nothing"]
 ```
@@ -305,7 +305,7 @@ verb: `isch`, `gsy`, `öppis`, `chli`, `itz`, `gäng`, `Meiteli`, the INFLECTED
 Konjunktiv II forms (`wäri`, `wettsch`, `giengsch`, `hätti`, `chiem`), and the
 l-vocalised spellings this repo's own rulebook prescribes (`aues`, `viu`,
 `schnäu`). The bare stems `wär`, `hätt`, `tät`, `wett` and `gieng` are deliberately NOT
-here: all five are ordinary written German, so they sit in the weak tier.
+here: all five are ordinary written German, so they are collision-prone.
 One is enough to fire. The verb forms alone were not enough: an imperative, a
 first-person statement or a bare greeting contains none of them.
 
@@ -332,8 +332,8 @@ collisions is no longer a coincidence, and real Bernese reaches three without
 effort. `gsi gha nit` is three of them and fires; `gsi gha` is two and does
 not. (`nid` is deliberately outside that set: auxiliary plus negation is the
 commonest pair in the language, and requiring a third silenced `Das het nid
-klappt` for a whole round. `het` itself IS weak, which is what makes the Dutch
-`Het ... de geit ...` two weak markers rather than two ordinary ones.)
+klappt` for a whole round. `het` itself IS collision-prone, which is what makes
+the Dutch `Het ... de geit ...` two of them rather than two ordinary markers.)
 
 Ordinary German words like `halt`, `grad`, `wäge` and `sowieso` are in neither
 tier. An earlier version had them, and `Das ist halt so, das dauert grad noch

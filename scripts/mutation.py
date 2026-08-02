@@ -31,7 +31,9 @@ import ast
 import collections
 import hashlib
 import json
+import os
 import shutil
+import signal
 import sqlite3
 import subprocess
 import sys
@@ -173,16 +175,29 @@ def show(total, survived, label):
 
 
 def reap():
-    """Kill oracle processes this run left behind.
+    """Kill oracle processes THIS run left behind, and nothing else.
 
     A mutant can put the oracle into an infinite loop. cosmic-ray has its own
     per-mutant timeout and it did not reap them: after a run was interrupted,
     eleven evaluate.py workers stayed at 90% CPU for ninety minutes and took
     the machine with them. Killing the parent is not enough, so the strays are
     named and killed explicitly.
+
+    Matched on the STAGED TREE, which is unique to this run. The pattern used
+    to be "scripts/evaluate.py --gate", which is every such process on the
+    machine: a maintainer running the gate in another terminal, or a second
+    mutation run in another clone, was killed by this. The staged path appears
+    in the command line of every worker this run started and in no other.
     """
-    for pattern in ("scripts/evaluate.py --gate", "scripts/mutation_runner.py"):
-        subprocess.run(["pkill", "-f", pattern], capture_output=True)
+    work = str(SESSION / "tree")
+    for line in subprocess.run(["ps", "-eo", "pid=,command="], capture_output=True,
+                               text=True).stdout.splitlines():
+        pid, _, command = line.strip().partition(" ")
+        if work in command and str(os.getpid()) != pid:
+            try:
+                os.kill(int(pid), signal.SIGKILL)
+            except (OSError, ValueError):
+                pass
 
 
 def main():
