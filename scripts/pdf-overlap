@@ -147,9 +147,9 @@ def classify(sequence):
 
     LETTERS catches the artefact that broke the claim. Both texts NAME single
     letters when they talk about spelling ("a soft `b`, `d` or `g`", "u + l"),
-    and the word splitter drops the punctuation between them and hands back a
-    pair. That is not shared phrasing, it is two texts discussing the same
-    alphabet.
+    and the word splitter drops the punctuation between them and hands back
+    one or more single-letter tokens. That is not shared phrasing, it is two
+    texts discussing the same alphabet.
     """
     parts = sequence.split()
     if all(len(p) == 1 for p in parts):
@@ -241,7 +241,7 @@ def main():
         for c in unexplained:
             print(f"  {c}")
     else:
-        print("every shared sequence is a citation or a pair of named letters")
+        print("every shared sequence is a citation or consists of named letters")
     print()
     print("Note: short function-word sequences will always collide between two")
     print("texts about the same subject. What matters is whether a distinctive")

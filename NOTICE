@@ -109,7 +109,7 @@ list that goes stale.
 
     no shared word sequence of length 2 or more
 
-    every shared sequence is a citation or a pair of named letters
+    every shared sequence is a citation or consists of named letters
 
 For the two copies the script says so itself on stderr: below twenty backticked
 words it measures EVERY word of the text instead, so "illustrative words: 212"

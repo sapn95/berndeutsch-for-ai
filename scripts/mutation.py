@@ -190,21 +190,72 @@ def reap():
     the machine with them. Killing the parent is not enough, so the strays are
     named and killed explicitly.
 
-    Matched on the STAGED TREE, which is unique to this run. The pattern used
-    to be "scripts/evaluate.py --gate", which is every such process on the
+    Matched on the WORKING DIRECTORY, which is what actually identifies this
+    run's workers.
+
+    Two wrong versions preceded this one. The first was
+    `pkill -f "scripts/evaluate.py --gate"`, which is every such process on the
     machine: a maintainer running the gate in another terminal, or a second
-    mutation run in another clone, was killed by this. The staged path appears
-    in the command line of every worker this run started and in no other.
+    mutation run in another clone. The second matched the staged path in the
+    command line, which sounds narrower and is in fact empty -- cosmic-ray runs
+    the test command with cwd set to the staged tree, so the workers'
+    argv is relative and the staged path appears in none of it. The eleven
+    strays that started all this showed up in ps as bare
+    `scripts/evaluate.py --gate`.
+
+    A cwd cannot be read portably, so it is read the two ways that exist and
+    the fallback is to kill nothing rather than to kill broadly.
     """
-    work = str(SESSION / "tree")
-    for line in subprocess.run(["ps", "-eo", "pid=,command="], capture_output=True,
-                               text=True).stdout.splitlines():
+    work = (SESSION / "tree").resolve()
+    mine = os.getpid()
+    listing = subprocess.run(["ps", "-eo", "pid=,command="],
+                             capture_output=True, text=True).stdout
+    for line in listing.splitlines():
         pid, _, command = line.strip().partition(" ")
-        if work in command and str(os.getpid()) != pid:
-            try:
-                os.kill(int(pid), signal.SIGKILL)
-            except (OSError, ValueError):
-                pass
+        # Only ever consider this repository's own oracle commands. Reading the
+        # cwd of every process on the machine is both slow and none of our
+        # business.
+        if not any(name in command for name in
+                   ("evaluate.py", "selftest.py", "mutation_runner.py")):
+            continue
+        try:
+            if int(pid) == mine or not inside(cwd_of(pid), work):
+                continue
+            os.kill(int(pid), signal.SIGKILL)
+        except (OSError, ValueError):
+            continue
+
+
+def cwd_of(pid):
+    """The working directory of a process, or None if it cannot be read."""
+    link = Path("/proc") / str(pid) / "cwd"
+    try:                                          # Linux
+        return Path(os.readlink(link))
+    except OSError:
+        pass
+    # macOS and the BSDs have no /proc. lsof is the documented way, and its
+    # -F output is one field per line: n<path> for the name of the cwd entry.
+    out = subprocess.run(["lsof", "-a", "-d", "cwd", "-Fn", "-p", str(pid)],
+                         capture_output=True, text=True)
+    for entry in out.stdout.splitlines():
+        if entry.startswith("n"):
+            return Path(entry[1:])
+    return None
+
+
+def inside(child, parent):
+    """Whether `child` is `parent` or below it, on a path-segment boundary.
+
+    A string prefix test would treat a sibling directory named tree-old as
+    being inside tree.
+    """
+    if child is None:
+        return False
+    try:
+        child.resolve().relative_to(parent)
+    except (OSError, ValueError):
+        return False
+    return True
 
 
 def main():
