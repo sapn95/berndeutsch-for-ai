@@ -1104,6 +1104,52 @@ def config_dir_checks():
         else:
             os.environ["CLAUDE_CONFIG_DIR"] = saved
 
+    # The OTHER way in. With CLAUDE_CONFIG_DIR unset the directory is derived
+    # from HOME, and that path had no test at all: three mutants survived on
+    # its `return None`. A relative HOME is the same defect as a relative
+    # CLAUDE_CONFIG_DIR, which is the one that littered this repository.
+    saved_cfg, saved_home = (os.environ.get("CLAUDE_CONFIG_DIR"),
+                             os.environ.get("HOME"))
+    try:
+        os.environ.pop("CLAUDE_CONFIG_DIR", None)
+        for bad in ("relhome", "~nosuchuser-xxxxxxxxxxxx", "."):
+            os.environ["HOME"] = bad
+            check(f"a HOME that is not an absolute path gives nowhere: {bad!r}",
+                  gate.config_dir() is None, str(gate.config_dir()))
+        os.environ["HOME"] = "/tmp/bd-home-check"
+        check("and an ordinary HOME gives its .claude",
+              gate.config_dir() == Path("/tmp/bd-home-check/.claude"),
+              str(gate.config_dir()))
+    finally:
+        for key, value in (("CLAUDE_CONFIG_DIR", saved_cfg), ("HOME", saved_home)):
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+    # sweep() deletes session markers older than a fortnight. Untested: three
+    # mutants survived in it, including one that deleted nothing and one that
+    # deleted everything. A hook that never sweeps grows a file per session
+    # forever; a hook that sweeps everything spends the full rulebook again on
+    # every prompt of the session it is in the middle of.
+    with tempfile.TemporaryDirectory(prefix="bd-sweep-") as tmp:
+        state = Path(tmp)
+        old, fresh = state / "old-session", state / "fresh-session"
+        old.write_text("x")
+        fresh.write_text("x")
+        long_ago = time.time() - 30 * 86400
+        os.utime(old, (long_ago, long_ago))
+        gate.sweep(state)
+        check("sweep removes a marker older than a fortnight", not old.exists())
+        check("and keeps one from this session", fresh.exists())
+        # And it must not raise on a directory that is not there, since it runs
+        # on every prompt and the state tree may never have been created.
+        try:
+            gate.sweep(state / "nosuchdir")
+            check("sweeping a missing directory is not an error", True)
+        except OSError as exc:
+            check("sweeping a missing directory is not an error", False, str(exc))
+
 
 def installer_checks():
     """The installer must never unlink its own source.
