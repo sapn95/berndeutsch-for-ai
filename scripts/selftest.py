@@ -1139,9 +1139,20 @@ def config_dir_checks():
         fresh.write_text("x")
         long_ago = time.time() - 30 * 86400
         os.utime(old, (long_ago, long_ago))
+        # And the threshold itself, one day either side of it. Without these a
+        # fortnight could become an hour or a year and nothing would notice:
+        # the pair above is 30 days against 0 and holds for any cutoff between.
+        just_under, just_over = state / "day-13", state / "day-15"
+        just_under.write_text("x")
+        just_over.write_text("x")
+        for path, age in ((just_under, 13), (just_over, 15)):
+            when = time.time() - age * 86400
+            os.utime(path, (when, when))
         gate.sweep(state)
         check("sweep removes a marker older than a fortnight", not old.exists())
         check("and keeps one from this session", fresh.exists())
+        check("a marker 13 days old is kept", just_under.exists())
+        check("a marker 15 days old is not", not just_over.exists())
         # And it must not raise on a directory that is not there, since it runs
         # on every prompt and the state tree may never have been created.
         try:
@@ -1149,6 +1160,41 @@ def config_dir_checks():
             check("sweeping a missing directory is not an error", True)
         except OSError as exc:
             check("sweeping a missing directory is not an error", False, str(exc))
+
+    # A rulebook that exists and cannot be read. build_context catches the
+    # OSError in two places, and neither was exercised: what must NOT happen is
+    # an injection that names a rulebook, contains no rules, and marks the
+    # session served, leaving the user with neither the rules nor the checklist
+    # for the rest of it.
+    with tempfile.TemporaryDirectory(prefix="bd-unreadable-") as tmp:
+        book = Path(tmp) / "schrybwys.md"
+        book.write_text("y y y\n" * 200, encoding="utf-8")
+        os.chmod(book, 0)
+        readable = True
+        try:
+            book.read_text(encoding="utf-8")
+        except OSError:
+            readable = False
+        if readable:
+            # Running as root, or on a filesystem that ignores the mode. The
+            # branch is then genuinely untestable here rather than passing.
+            SKIPPED.append("unreadable rulebook: this user can read mode 000")
+            print("  skip  an unreadable rulebook  this user can read mode 000")
+        else:
+            saved_rules = os.environ.get("BERNDEUTSCH_RULES")
+            try:
+                os.environ["BERNDEUTSCH_RULES"] = str(book)
+                text, emitted = gate.build_context(HOOK.parent, True, None)
+                check("an unreadable rulebook does not mark the session served",
+                      not emitted, f"emitted={emitted}")
+                check("and the user gets the checklist instead of nothing",
+                      "closed i -> y" in text, f"{len(text)} chars")
+            finally:
+                if saved_rules is None:
+                    os.environ.pop("BERNDEUTSCH_RULES", None)
+                else:
+                    os.environ["BERNDEUTSCH_RULES"] = saved_rules
+        os.chmod(book, 0o600)
 
 
 def installer_checks():
