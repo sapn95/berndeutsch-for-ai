@@ -87,6 +87,12 @@ mistakes happen. Three cases:
 
 1. A single `l` before a consonant or at the end of a word becomes `u`:
    `aut`, `Gäud`, `Chüngu`, `Löu`, `viu`, `schnäu`.
+
+   **Lexical exceptions exist and the rule does not overrule them.** `Regel`
+   gives `Reglä`, not `Regu`. There is no deriving that from the rule; it is
+   simply the word, and a speaker will tell you so. Where a word is known,
+   the word wins. Where it is not, do not manufacture one -- say the parts
+   separately, or use the loanword, which keeps its own spelling: `Rulebook`.
 2. A double `ll` becomes `u` as well, even between vowels: `wölle` gives
    `wöue`, and `alli` gives `aui`.
 3. A single `l` between two vowels stays an `l`: `hole`, `Zahle`, `male`.
@@ -150,6 +156,28 @@ usual: `gseht 'er`, `wüsst 'er`.
 
 **Apostrophes** are optional in a shortened «es»: `Wi hei mer's` or `Wi hei
 mers`. The article `d` never takes one: `d Lüt`, `d Wäut`.
+
+**«Zwöi» has three genders and they are not interchangeable.** The numeral
+agrees with its noun: `zwee Manne` (masculine), `zwo Fraue` (feminine), `zwöi
+Chind` (neuter). Using `zwöi` for all three is the commonest way the numeral
+gives a writer away, because standard German lost the distinction and Bernese
+did not. The University of Zurich's dialect syntax project quotes the Bernese
+paradigm in exactly that form: «Wo die Berner ‹zwee Manne›, ‹zwo Fraue›, ‹zwöi
+Chind› sagen». Other dialects have their own sets -- Thurgau says
+`zwee`/`zwoo`/`zwaa` -- so the forms are Bernese, not pan-Swiss.
+
+**The short verbs take an umlaut in the plural.** `goh` gives `mir göh`,
+`schtoh` gives `mir schtöh`, `tue` gives `mir tüe`, `cho` gives `mir chöme`.
+Writing `mir schtoh` or `mir goh` is the singular stem with a plural ending and
+is one of the most audible mistakes a non-native writer makes. The dictionary
+has no headword for `göh` or `schtöh`, so the rule is what decides them, not a
+lookup.
+
+**Possessives decline, and `mys` is not the dative.** After a preposition that
+takes the dative — `i`, `mit`, `vo`, `bi`, `uf`, `a` — the masculine and neuter
+form is `mim` and the feminine is `mire`: `i mim Gedächtnis`, `mit mire Frou`,
+`vo mim Bruef`. `mys` and `myni` are nominative and accusative only. This is a
+case error rather than a spelling one, so no spelling rule catches it.
 
 **High-German `ein` becomes `i`.** Both as a word and as a prefix, and this
 is a rule the rulebook was missing: `iheimisch` (einheimisch), `iichoufe`

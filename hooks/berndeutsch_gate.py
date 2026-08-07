@@ -76,7 +76,7 @@ ahnig louf louft chlepfe chlepft poschte poschtet guete
 lueg luegit schryb schrybit säg sägit öb mues muess churz
 mäntig zischtig mittwuch donnschtig fritig samschtig sunntig
 ändrig sitzig rächnig wohnig ladig bschtellig zahlig meinig ornig rüschtig
-zwöi drü füf sächs sibe nün euf zwöuf zwänzg drissg vierzg füfzg tuusig
+zwee zwöi drü füf sächs sibe nün euf zwöuf zwänzg drissg vierzg füfzg tuusig
 übermorn geschter vorgeschter aabe morge namittag nomittag
 liebschte beschte schönschte gröschte schnäuschte deheime
 wäri wärsch wärit wetti wettsch wettit giengsch giengit
@@ -769,16 +769,25 @@ CHECKLIST = """Quick checklist:
 - unstressed e stays e, no Ä-inflation (Gipfeli, Meiteli, Bibeli)
 - äu/eu becomes öi (Höi, tröime, nöi, Fröid)
 - High-German ein becomes i, word and prefix: iheimisch, iichoufe, iiladig, eis
+- the numeral TWO has three genders and they agree with the noun: zwee Manne
+  (m), zwo Fraue (f), zwöi Chind (n). Never zwöi for all three.
+- short verbs take an umlaut in the PLURAL: mir göh, mir schtöh, mir tüe, mir
+  chöme. Never mir goh or mir schtoh.
+- possessives decline: after a dative preposition (i, mit, vo, bi, uf, a) it is
+  mim (m/n) and mire (f) — i mim Gedächtnis, mit mire Frou. mys and myni are
+  nominative and accusative only.
 - ds = article "das" (ds Modul); z = preposition "zu" (z Bärn, z tüe)
 - l-vocalisation, three cases and the boundary is where mistakes happen:
   (1) a single l BEFORE A CONSONANT or AT THE END OF A WORD becomes u: aut,
-  Gäud, viu, schnäu, Chüngu, Regel gives Regu; (2) a double ll becomes u even
+  Gäud, viu, schnäu, Chüngu; (2) a double ll becomes u even
   between vowels: wölle gives wöue, alli gives aui; (3) a single l BETWEEN TWO
   VOWELS stays l: hole, Zahle, male. In a compound the parts keep their own
   answer: Check-lischte keeps the l because it starts the second part.
   Where u + l would give a double u, keep the l.
-- do NOT invent a compound. If you have not seen the whole word, say the parts
-  separately or use the High German word. Regubuech, not Ruelbuech.
+- LEXICAL EXCEPTIONS BEAT THE RULES. Regel gives Reglä, NOT Regu. There is no
+  deriving that; it is the word. Where a word is known, the word wins.
+- do NOT invent a compound or a form. If you have not seen the whole word, say
+  the parts separately, or use the loanword with its own spelling: Rulebook.
 - sp/st in Anlaut stay sp/st (starch, Stei, verstecke); inside a word scht/schp
   (luschtig, Wäschpi, Poscht)
 - LOANWORDS KEEP THEIR ORIGINAL SPELLING and none of the sound rules above run

@@ -425,6 +425,13 @@ def hook_checks(tmp):
               set(generators) <= derived,
               f"listed but not wired: {sorted(set(generators) - derived)}")
 
+    # All three genders of the numeral, or the list carries a paradigm with a
+    # hole in it: zwo and zwöi were markers and zwee was in neither tier.
+    tiers = {w: (w in gate.DECISIVE or w in gate.SUPPORTING)
+             for w in ("zwee", "zwo", "zwöi")}
+    check("every gender of the numeral two is a marker", all(tiers.values()),
+          str(tiers))
+
     check("the -lech adjective class is derived",
           gate.suffixed("möglech") and gate.suffixed("härzlechi")
           and not gate.suffixed("lech") and not gate.suffixed("blech"),
@@ -767,8 +774,10 @@ def hook_checks(tmp):
         check("the hook runs at all for the injection-budget checks", False,
               last_line(err_c, err_d))
     weak, strong = weak or "", strong or ""
-    check("a supporting-only match gets the checklist", 0 < len(weak) < 2500,
-          f"{len(weak)} chars")
+    # Relative to the full injection for the same reason as in the lifetime
+    # group: 2500 was a number to maintain, not a property.
+    check("a supporting-only match gets the checklist",
+          0 < len(weak) < len(strong) / 2, f"{len(weak)} chars")
     check("and does not consume the full injection", len(strong) > 4000,
           f"the following decisive prompt got {len(strong)} chars")
 
@@ -1544,6 +1553,9 @@ def checklist_fidelity_checks():
           "end of a word" in lowered and "before a consonant" in lowered)
     check("and tells the model not to invent a compound",
           "invent" in lowered and "compound" in lowered)
+    check("and that a known word beats the rule that predicts otherwise",
+          "reglä" in lowered and "not regu" in lowered,
+          "Regel gives Reglä; Regu was shipped as the flagship example")
     # The rulebook calls this one "a principle of the system" in its own words,
     # and the checklist carried nothing about it at all, which is why it never
     # reached the model: Session came back as Sässion and Test as Tescht for a
@@ -1555,8 +1567,19 @@ def checklist_fidelity_checks():
         check("the checklist keeps the loanword principle",
               "loanword" in lowered and "test not tescht" in lowered,
               "an English word is not respelled to match how it is said")
-    check("and the ein -> i rule the rulebook was missing",
-          "iheimisch" in book and "iheimisch" in gate.CHECKLIST)
+    # Every rule added because a native speaker corrected the model. They are
+    # the class no automated check finds on its own, so once found they get
+    # pinned in both texts rather than in one.
+    for rule, word in (("ein -> i", "iheimisch"),
+                       ("the plural umlaut on short verbs", "schtöh"),
+                       ("the dative possessive", "mim"),
+                       # The rule predicted Regu and the word is Reglä. It had
+                       # been written into BOTH texts as the flagship example
+                       # of l-vocalisation before a speaker said otherwise.
+                       ("the lexical exception Reglä", "Reglä"),
+                       ("the three genders of the numeral two", "zwee Manne")):
+        check(f"the rulebook and the checklist both carry {rule}",
+              word in book and word in gate.CHECKLIST, f"«{word}»")
 
 
 def citation_checks():
