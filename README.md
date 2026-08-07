@@ -27,7 +27,7 @@ they are absent, the model falls back on its generic Swiss German prior.
 
 **The rulebook works with any AI.** `rules/schrybwys.md` is a plain markdown file
 with no tool-specific syntax, and `rules/schrybwys-compact.md` holds the same
-rules in a 1790-character block for instruction boxes that impose a limit. Drop
+rules in a 2270-character block for instruction boxes that impose a limit. Drop
 either into a system prompt, custom instructions, `AGENTS.md`,
 `.github/copilot-instructions.md` or `.cursor/rules/` and you are done.
 
@@ -47,7 +47,7 @@ claude:  answers in Bärndütsch, with nid instead of nöd
 | | |
 |---|---|
 | `rules/schrybwys.md` | The rulebook. The codified *schriftsprach-nah* system after Marti and Bietenhard: vowels, consonants, `ds`/`z`, grammar, and what separates Bernese from its neighbours. Tool-agnostic. |
-| `rules/schrybwys-compact.md` | The same rules in 1790 characters, with attribution and licence inside the block. |
+| `rules/schrybwys-compact.md` | The same rules in 2270 characters, with attribution and licence inside the block. |
 | `hooks/berndeutsch_gate.py` | The detector and injector, for Claude Code. |
 | `scripts/bdw` | Dictionary lookup against berndeutsch.ch. Answers the question the model cannot answer honestly by itself: is this actually a word? |
 | `scripts/bd-corpus` | Fetches a small corpus of genuinely Bernese text, for feel rather than rules. |
@@ -67,7 +67,7 @@ a model at the right moment.
 ```mermaid
 flowchart LR
     RB["rules/schrybwys.md<br/>the rulebook"]
-    CB["rules/schrybwys-compact.md<br/>the same rules, 1790 characters"]
+    CB["rules/schrybwys-compact.md<br/>the same rules, 2270 characters"]
 
     RB --> ANY["any AI<br/>paste into a system prompt,<br/>AGENTS.md, .cursor/rules"]
     CB --> BOX["instruction boxes with a limit<br/>ChatGPT custom instructions"]
@@ -296,8 +296,8 @@ flowchart TD
     W --> T["split into words<br/>runs touching a digit, _, / or + are dropped"]
     T --> D{"a decisive<br/>marker?"}
     D -->|"yes: isch, chasch, itz, gsy"| B{"first dialect turn<br/>this session?"}
-    B -->|yes| FULL["inject the FULL rulebook<br/>about 11 KB, once per session"]
-    B -->|no| CL["inject the short checklist<br/>about 3 KB"]
+    B -->|yes| FULL["inject the FULL rulebook<br/>about 13 KB, once per session"]
+    B -->|no| CL["inject the short checklist<br/>about 3.5 KB"]
     D -->|no| S{"two DIFFERENT supporting markers?<br/>three if all are collision-prone"}
     S -->|"yes: het + nid"| CL
     S -->|no| N["inject nothing"]
@@ -376,7 +376,7 @@ message is Bärndütsch, use these rules, so an English answer stays English.
 It is also cheap by construction. The **full rulebook is sent only on a
 decisive marker**. A match carried by supporting markers alone gets the short
 checklist and does not consume the session's one full injection, so a residual
-collision costs 2.8 KB rather than 11 KB and the next genuinely Bernese prompt
+collision costs 3.5 KB rather than 13 KB and the next genuinely Bernese prompt
 in that session still gets the whole rulebook. That cap is deliberate: no
 word list is ever going to be perfect, so the design limits what being wrong
 can cost instead of pretending the list is finished.
@@ -393,7 +393,7 @@ The equally valid lautgetreu system after Dieth is documented in
 [Hans Jürg Zingg's *Bärndütsch schrybe: usschpraach-naach!*](https://www.berndeutsch.ch/doc/berndeutsch-schreiben-aussprach-nah-v1.pdf);
 point `BERNDEUTSCH_RULES` at your own file if that is your system.
 
-> Di wichtigschti Regu isch nid, weles System du nimmsch. Sondern das du bim
+> Di wichtigschti Reglä isch nid, weles System du nimmsch. Sondern das du bim
 > glyche blybsch.
 
 ## Credit where it is owed

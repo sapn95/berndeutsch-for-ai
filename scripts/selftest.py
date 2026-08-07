@@ -113,6 +113,12 @@ def calibrate():
     return max(1.0, fastest(work) / CALIBRATION_MS)
 
 
+def system_dictionaries():
+    """The system word lists that exist here, which on CI is none of them."""
+    return [p for p in (Path("/usr/share/dict/words"), Path("/usr/share/dict/web2"))
+            if p.exists()]
+
+
 def _in_dictionaries(word):
     """Whether a word appears in a system word list, when there is one."""
     for path in (Path("/usr/share/dict/words"), Path("/usr/share/dict/web2")):
@@ -297,6 +303,13 @@ def hook_checks(tmp):
     check("a velarised twin does not inherit collision-proneness", escaped,
           f"{escaped} are supporting but not collision-prone")
     for twin in escaped:
+        if not system_dictionaries():
+            # ubuntu-latest ships neither list, so this check passed for every
+            # word on CI: an absent word list looked exactly like an absent
+            # word. Unknown is reported as skipped, never as passed.
+            SKIPPED.append(f"«{twin}» against the system word lists: none present")
+            print(f"  skip  «{twin}» against the system word lists  none present")
+            continue
         check(f"and {twin!r} has no German or English reading to collide with",
               not _in_dictionaries(twin), "checked against the system word lists")
 
@@ -1477,7 +1490,11 @@ def session_lifetime_checks(tmp):
             return
         turns.append(len(ctx))
 
-    full = [i for i, n in enumerate(turns, 1) if n > 4000]
+    # Derived, not a cliff. The checklist roughly doubled today and 4000 now
+    # sits 899 characters above it; one more rule of comparable size would make
+    # every checklist turn count as "full" and quietly invert this whole group.
+    cutoff = (min(turns) + max(turns)) / 2
+    full = [i for i, n in enumerate(turns, 1) if n > cutoff]
     check("the first turn gets the full rulebook", full and full[0] == 1,
           f"full injections on turns {full}")
     # Relative to the full injection, not a magic constant: 2500 stood here
@@ -1492,8 +1509,23 @@ def session_lifetime_checks(tmp):
     check(f"the rulebook comes back within {gate.REFRESH_AFTER + 2} turns",
           len(full) >= 2, f"full injections on turns {full}")
     check("and the counter restarts after it does",
-          len(full) < 2 or full[1] - full[0] == gate.REFRESH_AFTER + 1,
+          len(full) >= 2 and full[1] - full[0] == gate.REFRESH_AFTER + 1,
           f"gap of {full[1] - full[0] if len(full) > 1 else 0} turns")
+    # The reset direction, which nothing looked at. Resetting only on the FIRST
+    # injection and never on a refresh left this group green while the hook
+    # sent 12 KB on every prompt from turn 27 to the end of the session: the
+    # check printed "full injections on turns [1, 27, 28]" and called it ok.
+    runs = [b for a, b in zip(full, full[1:]) if b - a == 1]
+    check("and never twice in a row", not runs, f"back-to-back at {runs}")
+    # Read back what is actually on disk, rather than inferring it.
+    state = next((f for f in (cfg / "cache" / "berndeutsch-gate").rglob("*")
+                  if f.is_file()), None)
+    if check("the count is on disk after a refresh", state is not None):
+        # Turns since the last full injection, derived. Hardcoding it wrong
+        # was the first thing this check did.
+        want = str(len(turns) - full[-1]) if full else "?"
+        check("and the refresh reset it", state.read_text().strip() == want,
+              f"marker holds {state.read_text().strip()!r}, expected {want}")
     # A turn that injects nothing must not age the session towards a refresh.
     cfg2 = tmp / "lifetime2"
     run_hook("Chasch mer das erkläre?", "lifetime-2", cfg2)
@@ -1528,7 +1560,13 @@ def checklist_fidelity_checks():
     """
     print("checklist: does not lose the rulebook's own examples")
     gate = load(HOOK)
-    book = (REPO / "rules" / "schrybwys.md").read_text(encoding="utf-8")
+    try:
+        book = (REPO / "rules" / "schrybwys.md").read_text(encoding="utf-8")
+    except OSError as exc:
+        # This group runs before ten others. An unreadable rulebook used to
+        # take all of them down with it, 43 checks earlier than the old suite.
+        check("the rulebook is readable", False, str(exc))
+        return
     section = book.split("**l-vocalisation**", 1)
     if not check("the rulebook still has an l-vocalisation section",
                  len(section) > 1):
@@ -1544,7 +1582,12 @@ def checklist_fidelity_checks():
         present = sorted(want & examples)
         if not check(f"the rulebook illustrates: {case}", present, str(present)):
             continue
-        missing = [w for w in present if w not in gate.CHECKLIST]
+        # On word boundaries. As a bare substring, `aut` was satisfied by
+        # "Anlaut" and `hole` by "the whole word", so deleting either from the
+        # l-vocalisation line left the check reporting "missing []".
+        missing = [w for w in present
+                   if not re.search(rf"(?<!\w){re.escape(w)}(?!\w)",
+                                    gate.CHECKLIST)]
         check(f"and the checklist keeps those examples: {case}", not missing,
               f"missing {missing}")
     # And the two things that went wrong in a real session.
@@ -1567,6 +1610,30 @@ def checklist_fidelity_checks():
         check("the checklist keeps the loanword principle",
               "loanword" in lowered and "test not tescht" in lowered,
               "an English word is not respelled to match how it is said")
+    # THREE copies, not two. The compact block is the artefact the README
+    # tells people to paste into ChatGPT, and it received none of today's
+    # rules while the README went on calling it "the same rules" -- the
+    # identical defect that caused the session these rules came out of,
+    # reproduced one file over, in the copy aimed at everyone who is not
+    # using Claude Code.
+    compact = (REPO / "rules" / "schrybwys-compact.md").read_text(encoding="utf-8")
+    for rule, word in (("loanwords keep their spelling", "Lehnwörter"),
+                       ("the ein- prefix", "iichoufe"),
+                       ("the plural umlaut", "mir stöh"),
+                       ("the dative possessive", "mim"),
+                       ("lexical exceptions", "Reglä"),
+                       ("velarisation", "Ching")):
+        check(f"the compact block carries {rule}", word in compact, f"«{word}»")
+    # And it must not still teach the form the rulebook now forbids.
+    # It may NAME the wrong form as wrong; it may not prescribe it. The first
+    # version of this check died on the «nid «Regu»» in the line that forbids
+    # it, which is the second time today a check tripped over its own
+    # counter-example.
+    prescribes = [ln for ln in compact.splitlines()
+                  if re.search(r"(?<!\w)Regu(?!\w)", ln) and "nid" not in ln]
+    check("and does not still prescribe Regu", not prescribes,
+          "; ".join(prescribes) or "only ever named as the wrong form")
+
     # Every rule added because a native speaker corrected the model. They are
     # the class no automated check finds on its own, so once found they get
     # pinned in both texts rather than in one.
@@ -1577,7 +1644,7 @@ def checklist_fidelity_checks():
                        # been written into BOTH texts as the flagship example
                        # of l-vocalisation before a speaker said otherwise.
                        ("the lexical exception Reglä", "Reglä"),
-                       ("the three genders of the numeral two", "zwee Manne")):
+                       ("the three genders of the numeral two", "zwe Manne")):
         check(f"the rulebook and the checklist both carry {rule}",
               word in book and word in gate.CHECKLIST, f"«{word}»")
 

@@ -14,7 +14,7 @@ Antwort uf Bärndütsch, schriftsprach-nah (System vo Marti/Bietenhard; öffentl
 Zämefassig vo Ursula Pinheiro-Weber uf berndeutsch.ch, CC BY-ND 4.0; Detail u
 Grammatik nach als.wikipedia.org/wiki/Berndeutsch, CC BY-SA 4.0. Dä Block:
 CC BY-SA 4.0, github.com/sapn95/berndeutsch-for-ai). Wichtigschti
-Regu: bis im ganze Text konsequent.
+Reglä: bis im ganze Text konsequent.
 
 - `y` = gschlossne Vokau (Zyt, gsy, schrybe, wyt); `i` = offne churz (Schritt,
   lige); `ii` = offne lang (viil, Riis)
@@ -38,5 +38,13 @@ Regu: bis im ganze Text konsequent.
 - Typisch bärndütsch: gäng, äuä, öppis, öpper, mängisch, chli, gäu, gsy, Modi,
   Gieu, Hegu, zwätschge
 
+- Lehnwörter bhaute iri Schrybwys, d Luutregle lüüfe NID drüber: Session (nid
+  «Sässion»), Test (nid «Tescht»), Update, Router, Software.
+- Vorsilbe `ein-` wird `ii-`: iichoufe, iiladig. Nume d Vorsilbe: der unbestimmt
+  Artiku isch `e`/`es`/`en`/`ne`, nie `i`.
+- Churzi Verbe mit Umluut im Plural: mir göh, mir stöh, mir tüe, mir chöme.
+- Possessiv im Dativ: mim (m/n), mire (f), myne (Pl.) — i mim Gedächtnis.
+
 Bi Zwyfu am Wort uf berndeutsch.ch nachelue statt e Form erfinde. Kes Treffer
-heisst: lieber es Hochdütsch-Lehnwort as e erfundeni Dialäktform.
+heisst: lieber es Hochdütsch-Lehnwort as e erfundeni Dialäktform. E bekannts
+Wort schlat d Regle: `Regel` git `Reglä`, nid «Regu».

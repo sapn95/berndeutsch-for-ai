@@ -158,8 +158,11 @@ usual: `gseht 'er`, `wüsst 'er`.
 mers`. The article `d` never takes one: `d Lüt`, `d Wäut`.
 
 **«Zwöi» has three genders and they are not interchangeable.** The numeral
-agrees with its noun: `zwee Manne` (masculine), `zwo Fraue` (feminine), `zwöi
-Chind` (neuter). Using `zwöi` for all three is the commonest way the numeral
+agrees with its noun: `zwe Manne` (masculine), `zwo Froue` (feminine), `zwöi
+Ching` (neuter). berndeutsch.ch gives the paradigm under `zwöi` as
+«Numeraladjektiv: zwe m., zwo f., zwöi n.» with `zwee` and `zwoo` as listed
+spellings, so `zwe` is the primary form and `zwee` a variant; both are
+detected, and this file uses `zwe` to agree with its own table above. Using `zwöi` for all three is the commonest way the numeral
 gives a writer away, because standard German lost the distinction and Bernese
 did not. The University of Zurich's dialect syntax project quotes the Bernese
 paradigm in exactly that form: «Wo die Berner ‹zwee Manne›, ‹zwo Fraue›, ‹zwöi
@@ -167,23 +170,38 @@ Chind› sagen». Other dialects have their own sets -- Thurgau says
 `zwee`/`zwoo`/`zwaa` -- so the forms are Bernese, not pan-Swiss.
 
 **The short verbs take an umlaut in the plural.** `goh` gives `mir göh`,
-`schtoh` gives `mir schtöh`, `tue` gives `mir tüe`, `cho` gives `mir chöme`.
-Writing `mir schtoh` or `mir goh` is the singular stem with a plural ending and
-is one of the most audible mistakes a non-native writer makes. The dictionary
-has no headword for `göh` or `schtöh`, so the rule is what decides them, not a
-lookup.
+`stoh` gives `mir stöh`, `tue` gives `mir tüe`, `cho` gives `mir chöme`.
+Writing `mir stoh` or `mir goh` is the singular stem with a plural ending and
+is one of the most audible mistakes a non-native writer makes.
 
-**Possessives decline, and `mys` is not the dative.** After a preposition that
-takes the dative — `i`, `mit`, `vo`, `bi`, `uf`, `a` — the masculine and neuter
-form is `mim` and the feminine is `mire`: `i mim Gedächtnis`, `mit mire Frou`,
-`vo mim Bruef`. `mys` and `myni` are nominative and accusative only. This is a
-case error rather than a spelling one, so no spelling rule catches it.
+Written `st`, not `scht`, because the `sp`/`st` rule above applies: word-initial
+`st` is spelled as in High German in this system. `schtöh` is the same word in
+the aussprach-nah system and is what a speaker will write to you. Both are
+detected; only one belongs in this file. berndeutsch.ch has the singular under
+`sta`, with `stah` and `schta` as listed spellings, and no headword for either
+plural, so the rule decides the plural and a lookup cannot.
 
-**High-German `ein` becomes `i`.** Both as a word and as a prefix, and this
-is a rule the rulebook was missing: `iheimisch` (einheimisch), `iichoufe`
-(einkaufen), `iiladig` (Einladung), `iine` (hinein), `eis` (eins). Writing
-`einheimisch` in a Bernese sentence is the same kind of mistake as writing
-`viel` for `viu`.
+**Possessives decline, and `mys` is not the dative.** The dative forms are `mim`
+(masculine and neuter), `mire` (feminine) and `myne` (plural): `i mim
+Gedächtnis`, `mit mire Frou`, `vo myne Chind`. `mys` and `myni` are nominative
+and accusative. This is a case error rather than a spelling one, so no spelling
+rule catches it.
+
+`mit`, `vo` and `bi` always take the dative. `i`, `uf` and `a` take the dative
+for a location and the accusative for a direction, exactly as in German: `i mim
+Gedächtnis` but `uf ds Bänkli sitze`. An earlier version of this rule listed all
+six as dative prepositions, which licenses `uf mim Tisch lege` for a movement.
+
+**The High-German prefix `ein-` becomes `ii-`.** `iichoufe` (einkaufen),
+`iiladig` (Einladung), `iiheimisch` (einheimisch). Writing `einheimisch` in a
+Bernese sentence is the same kind of mistake as writing `viel` for `viu`.
+
+The PREFIX only. The indefinite article is `e`, `es`, `en` or `ne` -- `e Ma`,
+`es Chind`, `wi ne Chüngu` -- and never `i`, which is the preposition «in».
+The numeral is `eis`. An earlier version of this rule said "both as a word and
+as a prefix" and offered `eis` as an example of it, which is the one form in
+the list that disproves it: a model following that literally writes `i Ma` for
+«ein Mann», and `i Ma` reads as «in Mann».
 
 **Loanwords keep their original spelling.** This is a principle of the system,
 not an oversight: `Handy`, `Router`, `Pandemie`.

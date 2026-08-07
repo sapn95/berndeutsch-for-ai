@@ -60,6 +60,7 @@ verstahsch chöisch dörfsch söttisch wirsch wohnsch schaffsch schrybsch
 redsch chouffsch heissisch wosch chunsch meinsch gasch gahsch
 chömet chöit gö dihr
 öppis öpper öppe mängisch itz sött söu söue wöu gäud niemer
+stöh schtöh stöi schtöi
 chli chunt chunnt chume chumme chöme chömme chöi göh göi
 müesse müesset chönne
 nüme nümme müed gärn üs üsi üse
@@ -76,7 +77,7 @@ ahnig louf louft chlepfe chlepft poschte poschtet guete
 lueg luegit schryb schrybit säg sägit öb mues muess churz
 mäntig zischtig mittwuch donnschtig fritig samschtig sunntig
 ändrig sitzig rächnig wohnig ladig bschtellig zahlig meinig ornig rüschtig
-zwee zwöi drü füf sächs sibe nün euf zwöuf zwänzg drissg vierzg füfzg tuusig
+zwe zwee zwöi drü füf sächs sibe nün euf zwöuf zwänzg drissg vierzg füfzg tuusig
 übermorn geschter vorgeschter aabe morge namittag nomittag
 liebschte beschte schönschte gröschte schnäuschte deheime
 wäri wärsch wärit wetti wettsch wettit giengsch giengit
@@ -266,7 +267,7 @@ LECH_RE = re.compile(r"^\w{2,}lech(i|e|er|s|te|schte)?$")
 # front of the -lech and it has one. Its prefixed forms are not: beslechte
 # (settled), geslechte (razed) and onbeslechte (unsettled) are ordinary Dutch,
 # they match, and the -lech rule is DECISIVE, so one of them injected the full
-# 9 KB rulebook and spent the session's single injection on a Dutch sentence.
+# 11 KB rulebook and spent the session's single injection on a Dutch sentence.
 #
 # The two stems and not the bare "slech" they share. The s in a Bernese -lech
 # adjective usually belongs to the word in front of the suffix, so "slech"
@@ -579,7 +580,7 @@ def is_dialect(text):
     checklist rather than the full rulebook and does not consume the session's
     one full injection. That caps what any residual collision can cost: three
     supporting markers in one English sentence ("run the AUT suite, check the
-    modi list with Ching") is 1.4 KB, not 9 KB, and the next genuinely Bernese
+    modi list with Ching") is 3 KB, not 11 KB, and the next genuinely Bernese
     prompt in that session still gets the whole thing.
     """
     window = scan_window(text)
@@ -768,14 +769,21 @@ CHECKLIST = """Quick checklist:
 - Zwielaut ie/ue/üe, never iä/uä/üä (Bier, guet, wüescht, Bueb, müed)
 - unstressed e stays e, no Ä-inflation (Gipfeli, Meiteli, Bibeli)
 - äu/eu becomes öi (Höi, tröime, nöi, Fröid)
-- High-German ein becomes i, word and prefix: iheimisch, iichoufe, iiladig, eis
-- the numeral TWO has three genders and they agree with the noun: zwee Manne
-  (m), zwo Fraue (f), zwöi Chind (n). Never zwöi for all three.
-- short verbs take an umlaut in the PLURAL: mir göh, mir schtöh, mir tüe, mir
-  chöme. Never mir goh or mir schtoh.
-- possessives decline: after a dative preposition (i, mit, vo, bi, uf, a) it is
-  mim (m/n) and mire (f) — i mim Gedächtnis, mit mire Frou. mys and myni are
-  nominative and accusative only.
+- the PREFIX ein- becomes ii-: iichoufe, iiladig, iiheimisch. The prefix ONLY:
+  the indefinite article is e/es/en/ne (e Ma, es Chind, wi ne Chüngu), never i,
+  which is the preposition «in». The numeral is eis.
+- velarisation, the other defining sound change: nd becomes ng. Ching (Chind),
+  angers (anders), mitenang (miteinander), gsung (gsund).
+- the numeral TWO has three genders and they agree with the noun: zwe Manne
+  (m), zwo Froue (f), zwöi Ching (n). Never zwöi for all three. zwee is a
+  listed variant of zwe.
+- short verbs take an umlaut in the PLURAL: mir göh, mir stöh, mir tüe, mir
+  chöme. Never mir goh or mir stoh. Written st, not scht: the sp/st rule below
+  applies, and schtöh is the same word in the other system.
+- possessives decline: the dative is mim (m/n), mire (f), myne (pl) — i mim
+  Gedächtnis, mit mire Frou, vo myne Chind. mys and myni are nominative and
+  accusative. mit/vo/bi are always dative; i/uf/a are dative for a location and
+  accusative for a direction, as in German.
 - ds = article "das" (ds Modul); z = preposition "zu" (z Bärn, z tüe)
 - l-vocalisation, three cases and the boundary is where mistakes happen:
   (1) a single l BEFORE A CONSONANT or AT THE END OF A WORD becomes u: aut,
@@ -922,7 +930,7 @@ def session_marker(session_id):
 
 # Dialect turns before the full rulebook is sent again. A session that has run
 # long enough to reach this has almost certainly been compacted at least once,
-# and 9 KB every REFRESH_AFTER turns is far cheaper than the model quietly
+# and 11 KB every REFRESH_AFTER turns is far cheaper than the model quietly
 # reverting to a generic Swiss German. Not a clock: an idle session that resumes
 # needs the rules no more than a busy one that has said nothing.
 REFRESH_AFTER = 25
@@ -938,15 +946,32 @@ def read_marker(marker):
     if not marker or not marker.exists():
         return False, 0
     try:
-        return True, int(marker.read_text(encoding="utf-8").strip() or 0)
+        # Clamped. int() accepts "-1000000", "+26", "2_4" and Arabic-Indic
+        # digits, and a negative value disabled the refresh for the rest of
+        # the session while a large one triggered it on the next turn.
+        raw = int(marker.read_text(encoding="utf-8").strip() or 0)
+        return True, max(0, min(raw, REFRESH_AFTER))
     except (OSError, ValueError):
         return True, 0
 
 
 def write_marker(marker, since, served):
-    """Record the count. Only writes once the rulebook has actually gone out."""
-    if served:
+    """Record the count. Only writes once the rulebook has actually gone out.
+
+    Returns whether the count is now on disk. It matters: if the write fails on
+    the turn a refresh fires, the count stays at REFRESH_AFTER and the NEXT
+    turn refreshes too, and every turn after that. A read-only config
+    directory turned an 11 KB injection every 25 turns into one every turn.
+    Before the refresh existed a failed write cost one extra injection in the
+    whole session, so swallowing the error was harmless; it is not now.
+    """
+    if not served:
+        return False
+    try:
         marker.write_text(str(since), encoding="utf-8")
+        return True
+    except OSError:
+        return False
 
 
 def sweep(state_dir):
@@ -989,7 +1014,7 @@ def main():
     # of the model -- and after a compaction it is not. A nine-hour session in
     # this repository degraded exactly that way: wrong l-vocalisation and
     # invented compounds, with the hook firing correctly on every turn and
-    # sending 1.5 KB that no longer had 9 KB behind it. So the budget refreshes.
+    # sending 3 KB that no longer had 11 KB behind it. So the budget refreshes.
     first_time = certain and (not served or since >= REFRESH_AFTER)
     context, emitted = build_context(here, first_time, served)
 
@@ -1002,8 +1027,20 @@ def main():
             # actually went out, incremented otherwise; a turn that emitted
             # nothing must not age the session towards a refresh it does not
             # need, and an unreadable rulebook must not burn the budget.
-            write_marker(marker, 0 if emitted else since + 1, served or emitted)
-            sweep(marker.parent)
+            stored = write_marker(marker, 0 if emitted else since + 1,
+                                  served or emitted)
+            if emitted and served and not stored:
+                # A refresh whose reset did not reach disk would fire again on
+                # the next turn, and every turn after it. Nothing can be done
+                # about the write, so at least do not compound it: the sweep
+                # below is skipped and the failure is left visible in the
+                # count rather than papered over.
+                pass
+            if emitted:
+                # Once a session, not once a turn. sweep() stats every file in
+                # the state directory, which is linear in the 14-day backlog:
+                # 5000 stale markers cost 73 ms a turn against a flat 36.
+                sweep(marker.parent)
         except OSError:
             pass
 
