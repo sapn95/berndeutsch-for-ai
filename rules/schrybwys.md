@@ -151,8 +151,25 @@ usual: `gseht 'er`, `wüsst 'er`.
 **Apostrophes** are optional in a shortened «es»: `Wi hei mer's` or `Wi hei
 mers`. The article `d` never takes one: `d Lüt`, `d Wäut`.
 
+**High-German `ein` becomes `i`.** Both as a word and as a prefix, and this
+is a rule the rulebook was missing: `iheimisch` (einheimisch), `iichoufe`
+(einkaufen), `iiladig` (Einladung), `iine` (hinein), `eis` (eins). Writing
+`einheimisch` in a Bernese sentence is the same kind of mistake as writing
+`viel` for `viu`.
+
 **Loanwords keep their original spelling.** This is a principle of the system,
 not an oversight: `Handy`, `Router`, `Pandemie`.
+
+The sound rules above do **not** run over them. A loanword is not respelled to
+match how it is said: `Test`, never `Tescht`; `Session`, never `Sässion`;
+`Update`, never `Updäjt`. The `st` inside `Test` stays `st`, the vowel in
+`Session` stays as written, and a loanword ending in `l` keeps it. This is
+where an unfamiliar writer, or a language model, does the most damage, because
+the sound rules are the memorable part of the system and applying them to an
+English technical word invents a spelling that exists nowhere.
+
+The test is origin, not familiarity. `Poscht` is a native word and follows the
+ear. `Post` in `Blog-Post` is English and does not.
 
 ---
 

@@ -1471,8 +1471,12 @@ def session_lifetime_checks(tmp):
     full = [i for i, n in enumerate(turns, 1) if n > 4000]
     check("the first turn gets the full rulebook", full and full[0] == 1,
           f"full injections on turns {full}")
+    # Relative to the full injection, not a magic constant: 2500 stood here
+    # and had to be edited every time the checklist gained a rule, which makes
+    # the check a thing to maintain rather than a thing that holds.
+    short = max(turns) / 2
     check("the turns in between get the checklist",
-          all(0 < n < 2500 for n in turns[1:gate.REFRESH_AFTER]),
+          all(0 < n < short for n in turns[1:gate.REFRESH_AFTER]),
           f"turns 2..{gate.REFRESH_AFTER}: {sorted(set(turns[1:gate.REFRESH_AFTER]))}")
     # The one that matters. Without a refresh this list is [1] and every later
     # turn in a nine-hour session is running on a checklist alone.
@@ -1488,7 +1492,7 @@ def session_lifetime_checks(tmp):
         run_hook("Please review the deployment log.", "lifetime-2", cfg2)
     after, _ = run_hook("Chasch mer no öppis säge?", "lifetime-2", cfg2)
     check("English turns in between do not age the session",
-          0 < len(after or "") < 2500, f"{len(after or '')} chars")
+          0 < len(after or "") < short, f"{len(after or '')} chars")
     # And an older session, whose marker is an empty file, keeps its budget
     # rather than being handed the rulebook twice in a row.
     cfg3 = tmp / "lifetime3"
@@ -1499,7 +1503,7 @@ def session_lifetime_checks(tmp):
         marker.write_text("")
         again, _ = run_hook("Chasch mer no öppis säge?", "lifetime-3", cfg3)
         check("a marker from an older version still counts as served",
-              0 < len(again or "") < 2500, f"{len(again or '')} chars")
+              0 < len(again or "") < short, f"{len(again or '')} chars")
 
 
 def checklist_fidelity_checks():
@@ -1540,6 +1544,19 @@ def checklist_fidelity_checks():
           "end of a word" in lowered and "before a consonant" in lowered)
     check("and tells the model not to invent a compound",
           "invent" in lowered and "compound" in lowered)
+    # The rulebook calls this one "a principle of the system" in its own words,
+    # and the checklist carried nothing about it at all, which is why it never
+    # reached the model: Session came back as Sässion and Test as Tescht for a
+    # whole session. Anything the rulebook calls a principle has to survive the
+    # compression.
+    principles = re.findall(r"\*\*([^*]+)\*\* This is a principle of the system",
+                            book.replace("\n", " "))
+    if check("the rulebook still names its principles", principles, str(principles)):
+        check("the checklist keeps the loanword principle",
+              "loanword" in lowered and "test not tescht" in lowered,
+              "an English word is not respelled to match how it is said")
+    check("and the ein -> i rule the rulebook was missing",
+          "iheimisch" in book and "iheimisch" in gate.CHECKLIST)
 
 
 def citation_checks():

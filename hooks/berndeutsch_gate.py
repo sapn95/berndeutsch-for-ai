@@ -768,6 +768,7 @@ CHECKLIST = """Quick checklist:
 - Zwielaut ie/ue/üe, never iä/uä/üä (Bier, guet, wüescht, Bueb, müed)
 - unstressed e stays e, no Ä-inflation (Gipfeli, Meiteli, Bibeli)
 - äu/eu becomes öi (Höi, tröime, nöi, Fröid)
+- High-German ein becomes i, word and prefix: iheimisch, iichoufe, iiladig, eis
 - ds = article "das" (ds Modul); z = preposition "zu" (z Bärn, z tüe)
 - l-vocalisation, three cases and the boundary is where mistakes happen:
   (1) a single l BEFORE A CONSONANT or AT THE END OF A WORD becomes u: aut,
@@ -780,6 +781,12 @@ CHECKLIST = """Quick checklist:
   separately or use the High German word. Regubuech, not Ruelbuech.
 - sp/st in Anlaut stay sp/st (starch, Stei, verstecke); inside a word scht/schp
   (luschtig, Wäschpi, Poscht)
+- LOANWORDS KEEP THEIR ORIGINAL SPELLING and none of the sound rules above run
+  over them: Test not Tescht, Session not Sässion, Update not Updäjt, Handy,
+  Router, Software, Commit, Release, Repository. Respelling an English word to
+  match how it is said invents a spelling that exists nowhere. The test is
+  origin, not familiarity: Poscht is native and follows the ear, Blog-Post is
+  not.
 - no preterite, use the perfect (mir sy ggange); pluperfect is a double perfect
 - negation nid/nit, NEVER nöd, and no other Zurich or Basel forms
 - itz (not jetz), louf (not Lauf), chlepfe (not chlöpfe), suber (not sufer)
