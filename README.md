@@ -297,7 +297,7 @@ flowchart TD
     T --> D{"a decisive<br/>marker?"}
     D -->|"yes: isch, chasch, itz, gsy"| B{"first dialect turn<br/>this session?"}
     B -->|yes| FULL["inject the FULL rulebook<br/>about 9 KB, once per session"]
-    B -->|no| CL["inject the short checklist<br/>about 1.5 KB"]
+    B -->|no| CL["inject the short checklist<br/>about 2 KB"]
     D -->|no| S{"two DIFFERENT supporting markers?<br/>three if all are collision-prone"}
     S -->|"yes: het + nid"| CL
     S -->|no| N["inject nothing"]
@@ -376,7 +376,7 @@ message is Bärndütsch, use these rules, so an English answer stays English.
 It is also cheap by construction. The **full rulebook is sent only on a
 decisive marker**. A match carried by supporting markers alone gets the short
 checklist and does not consume the session's one full injection, so a residual
-collision costs 1.5 KB rather than 9 KB and the next genuinely Bernese prompt
+collision costs 2.0 KB rather than 9 KB and the next genuinely Bernese prompt
 in that session still gets the whole rulebook. That cap is deliberate: no
 word list is ever going to be perfect, so the design limits what being wrong
 can cost instead of pretending the list is finished.

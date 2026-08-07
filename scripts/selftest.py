@@ -1443,6 +1443,105 @@ def installer_checks():
               f"{target.resolve() if target.exists() else 'missing'}")
 
 
+def session_lifetime_checks(tmp):
+    """A long session, end to end, through the real hook as a subprocess.
+
+    Everything else here checks one turn. This checks a SESSION, because the
+    defect it exists for only appears after dozens of turns: the full rulebook
+    went in once and the session was marked served for ever, which assumes the
+    first injection is still in front of the model. After a compaction it is
+    not. A nine-hour session in this repository degraded exactly that way --
+    wrong l-vocalisation, invented compounds -- with the hook firing correctly
+    on every single turn and sending 1.5 KB that no longer had 9 KB behind it.
+
+    No unit test was ever going to find that. It is not visible in one call.
+    """
+    print("hook: a long session, end to end")
+    gate = load(HOOK)
+    cfg = tmp / "lifetime"
+    turns = []
+    for i in range(gate.REFRESH_AFTER + 3):
+        ctx, err = run_hook("Chasch mer das erkläre?", "lifetime-1", cfg)
+        if ctx is None:
+            check(f"the hook runs on turn {i + 1}", False,
+                  (err or "").strip().splitlines()[-1][:120])
+            return
+        turns.append(len(ctx))
+
+    full = [i for i, n in enumerate(turns, 1) if n > 4000]
+    check("the first turn gets the full rulebook", full and full[0] == 1,
+          f"full injections on turns {full}")
+    check("the turns in between get the checklist",
+          all(0 < n < 2500 for n in turns[1:gate.REFRESH_AFTER]),
+          f"turns 2..{gate.REFRESH_AFTER}: {sorted(set(turns[1:gate.REFRESH_AFTER]))}")
+    # The one that matters. Without a refresh this list is [1] and every later
+    # turn in a nine-hour session is running on a checklist alone.
+    check(f"the rulebook comes back within {gate.REFRESH_AFTER + 2} turns",
+          len(full) >= 2, f"full injections on turns {full}")
+    check("and the counter restarts after it does",
+          len(full) < 2 or full[1] - full[0] == gate.REFRESH_AFTER + 1,
+          f"gap of {full[1] - full[0] if len(full) > 1 else 0} turns")
+    # A turn that injects nothing must not age the session towards a refresh.
+    cfg2 = tmp / "lifetime2"
+    run_hook("Chasch mer das erkläre?", "lifetime-2", cfg2)
+    for _ in range(gate.REFRESH_AFTER + 2):
+        run_hook("Please review the deployment log.", "lifetime-2", cfg2)
+    after, _ = run_hook("Chasch mer no öppis säge?", "lifetime-2", cfg2)
+    check("English turns in between do not age the session",
+          0 < len(after or "") < 2500, f"{len(after or '')} chars")
+    # And an older session, whose marker is an empty file, keeps its budget
+    # rather than being handed the rulebook twice in a row.
+    cfg3 = tmp / "lifetime3"
+    run_hook("Chasch mer das erkläre?", "lifetime-3", cfg3)
+    marker = next((p for p in (cfg3 / "cache" / "berndeutsch-gate").rglob("*")
+                   if p.is_file()), None)
+    if check("the session marker was written", marker is not None):
+        marker.write_text("")
+        again, _ = run_hook("Chasch mer no öppis säge?", "lifetime-3", cfg3)
+        check("a marker from an older version still counts as served",
+              0 < len(again or "") < 2500, f"{len(again or '')} chars")
+
+
+def checklist_fidelity_checks():
+    """The checklist must not lose a rule the rulebook calls decisive.
+
+    The checklist is a lossy compression of the rulebook and it is what is in
+    front of the model most of the time. Its l-vocalisation line carried one of
+    the three cases and dropped the words BEFORE A CONSONANT and AT THE END OF
+    A WORD, which is the half that decides Regel -> Regu. The rulebook says in
+    its own text that this boundary is where most mistakes happen, so the
+    example words are read out of the RULEBOOK and required in the checklist
+    rather than listed here, where they would be one more copy to drift.
+    """
+    print("checklist: does not lose the rulebook's own examples")
+    gate = load(HOOK)
+    book = (REPO / "rules" / "schrybwys.md").read_text(encoding="utf-8")
+    section = book.split("**l-vocalisation**", 1)
+    if not check("the rulebook still has an l-vocalisation section",
+                 len(section) > 1):
+        return
+    body = section[1].split("\n---", 1)[0]
+    examples = set(re.findall(r"`([^`]+)`", body))
+    # One from each of the three cases the rulebook numbers, so a checklist
+    # that keeps only the easy case fails.
+    for case, want in (("before a consonant or at the end of a word",
+                        {"aut", "Gäud", "viu"}),
+                       ("a double ll", {"wöue", "aui"}),
+                       ("a single l between vowels", {"hole", "Zahle", "male"})):
+        present = sorted(want & examples)
+        if not check(f"the rulebook illustrates: {case}", present, str(present)):
+            continue
+        missing = [w for w in present if w not in gate.CHECKLIST]
+        check(f"and the checklist keeps those examples: {case}", not missing,
+              f"missing {missing}")
+    # And the two things that went wrong in a real session.
+    lowered = gate.CHECKLIST.lower()
+    check("the checklist says an l before a consonant or at a word end vocalises",
+          "end of a word" in lowered and "before a consonant" in lowered)
+    check("and tells the model not to invent a compound",
+          "invent" in lowered and "compound" in lowered)
+
+
 def citation_checks():
     """The cited titles must agree with each other across files.
 
@@ -1576,12 +1675,24 @@ def readme_number_checks():
         # removing. "about" is the README's own word, and 10% is what it can
         # honestly mean; that still fails on a rulebook or checklist that has
         # materially changed size, which is the drift being guarded against.
-        for size, quoted in ((len(full), "about 9 KB"),
-                             (len(short), "about 1.5 KB")):
-            want = float(quoted.split()[1])
-            check(f"the README says {quoted} and it is {size / 1024:.2f} KB",
-                  quoted in readme and abs(size / 1024 - want) <= want / 10,
-                  f"{size:,} chars, within 10% of {want} KB")
+        # The figures are READ OUT of the diagram, not written here. They were
+        # hardcoded, so editing the README to "about 2 KB" left this asserting
+        # the old 1.5 and failing on the README's own new, correct number --
+        # a check that has to be edited in step with the thing it checks is a
+        # second copy of that thing.
+        for label, pattern in (
+                ("the full rulebook",
+                 r"inject the FULL rulebook<br/>about ([\d.]+) KB"),
+                ("the checklist",
+                 r"inject the short checklist<br/>about ([\d.]+) KB")):
+            size = len(full) if "FULL" in pattern else len(short)
+            found = re.search(pattern, readme)
+            if not check(f"the diagram states a size for {label}", found is not None):
+                continue
+            want = float(found.group(1))
+            check(f"and {want} KB is within 10% of the {size:,} it sends",
+                  abs(size / 1024 - want) <= want / 10,
+                  f"{size / 1024:.2f} KB measured")
         # The cost paragraph quotes the same pair to one and zero decimals.
         # Both are read back out of the README and measured, rather than
         # rebuilt as a string that has to match character for character.
@@ -1659,6 +1770,8 @@ def main():
 
     with tempfile.TemporaryDirectory(prefix="bd-selftest-") as tmp:
         hook_checks(Path(tmp))
+        session_lifetime_checks(Path(tmp))
+    checklist_fidelity_checks()
     bdw_offline_checks()
     corpus_checks()
     packaging_checks()

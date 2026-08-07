@@ -769,8 +769,15 @@ CHECKLIST = """Quick checklist:
 - unstressed e stays e, no Ä-inflation (Gipfeli, Meiteli, Bibeli)
 - äu/eu becomes öi (Höi, tröime, nöi, Fröid)
 - ds = article "das" (ds Modul); z = preposition "zu" (z Bärn, z tüe)
-- l-vocalisation: aut, viu, wöu, Gäud, schnäu. But a single l between vowels
-  stays: hole, Zahle, male. A double ll still vocalises: wölle gives wöue.
+- l-vocalisation, three cases and the boundary is where mistakes happen:
+  (1) a single l BEFORE A CONSONANT or AT THE END OF A WORD becomes u: aut,
+  Gäud, viu, schnäu, Chüngu, Regel gives Regu; (2) a double ll becomes u even
+  between vowels: wölle gives wöue, alli gives aui; (3) a single l BETWEEN TWO
+  VOWELS stays l: hole, Zahle, male. In a compound the parts keep their own
+  answer: Check-lischte keeps the l because it starts the second part.
+  Where u + l would give a double u, keep the l.
+- do NOT invent a compound. If you have not seen the whole word, say the parts
+  separately or use the High German word. Regubuech, not Ruelbuech.
 - sp/st in Anlaut stay sp/st (starch, Stei, verstecke); inside a word scht/schp
   (luschtig, Wäschpi, Poscht)
 - no preterite, use the perfect (mir sy ggange); pluperfect is a double perfect
@@ -897,6 +904,35 @@ def session_marker(session_id):
     return state_dir / safe
 
 
+# Dialect turns before the full rulebook is sent again. A session that has run
+# long enough to reach this has almost certainly been compacted at least once,
+# and 9 KB every REFRESH_AFTER turns is far cheaper than the model quietly
+# reverting to a generic Swiss German. Not a clock: an idle session that resumes
+# needs the rules no more than a busy one that has said nothing.
+REFRESH_AFTER = 25
+
+
+def read_marker(marker):
+    """(served, dialect turns since the full rulebook last went out).
+
+    The file used to be empty and its mere existence meant served. An empty or
+    unparseable one still does, so a session started under an older version
+    keeps its budget instead of getting the rulebook twice in a row.
+    """
+    if not marker or not marker.exists():
+        return False, 0
+    try:
+        return True, int(marker.read_text(encoding="utf-8").strip() or 0)
+    except (OSError, ValueError):
+        return True, 0
+
+
+def write_marker(marker, since, served):
+    """Record the count. Only writes once the rulebook has actually gone out."""
+    if served:
+        marker.write_text(str(since), encoding="utf-8")
+
+
 def sweep(state_dir):
     try:
         cutoff = time.time() - 14 * 86400
@@ -931,16 +967,26 @@ def main():
 
     here = Path(__file__).resolve().parent
     marker = session_marker(payload.get("session_id"))
-    served = bool(marker and marker.exists())
-    first_time = certain and not served
+    served, since = read_marker(marker)
+    # A session is not a context window. The full rulebook goes in once and the
+    # checklist afterwards, which assumes the first injection is still in front
+    # of the model -- and after a compaction it is not. A nine-hour session in
+    # this repository degraded exactly that way: wrong l-vocalisation and
+    # invented compounds, with the hook firing correctly on every turn and
+    # sending 1.5 KB that no longer had 9 KB behind it. So the budget refreshes.
+    first_time = certain and (not served or since >= REFRESH_AFTER)
     context, emitted = build_context(here, first_time, served)
 
     # Mark the session only once the rulebook has actually been emitted. An
     # unreadable rulebook would otherwise burn the one full injection and leave
     # every later prompt in the session with the short checklist alone.
-    if emitted and marker:
+    if marker:
         try:
-            marker.touch()
+            # The count is what the next turn reads. Reset when the rulebook
+            # actually went out, incremented otherwise; a turn that emitted
+            # nothing must not age the session towards a refresh it does not
+            # need, and an unreadable rulebook must not burn the budget.
+            write_marker(marker, 0 if emitted else since + 1, served or emitted)
             sweep(marker.parent)
         except OSError:
             pass
