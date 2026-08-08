@@ -45,7 +45,7 @@ spoken language, not a spelling nicety: Bernese contrasts `Rytter` on a horse
 with `Ritter` in armour, and `Bruuch` (a custom) with `Bruch` (a break).
 
 | sound | written | examples |
-|---|---|---|
+| --- | --- | --- |
 | closed, long | `y` | `schrybe`, `gsy`, `Zyt`, `mys` |
 | closed, short | `y` | `wyt`, `myni` |
 | open, long | `ii` | `viil`, `Riis` |
@@ -145,7 +145,7 @@ der Vatter (la) grüesse`, where the second `la` is optional.
 **Two and three decline:**
 
 | | masculine | feminine | neuter |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 2 | `zwe Here` | `zwo Froue` | `zwöi Ching` |
 | 3 | `drei Here` | `drei Froue` | `drü Ching` |
 

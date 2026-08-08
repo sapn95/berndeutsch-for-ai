@@ -8,21 +8,37 @@
 # The network is deliberately not used. bdw talks to berndeutsch.ch, which is
 # free and run by one volunteer, and a CI job that hits it on every push would
 # be rude. `selftest.py --online` exists for that and is a local command.
-name: checks
+#
+# Frame and conventions: https://github.com/sapn95/.github/blob/main/CI.md
+name: ci
 
 on:
+  pull_request:
   push:
     branches: [main]
-  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   gates:
+    name: gates
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        # The oldest interpreter this is meant to run on, and the current one.
+        # The README promises "the only requirement is python3", and nothing
+        # was checking the recent half of that claim.
+        python: ["3.11", "3.14"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # actions/checkout writes the job's GITHUB_TOKEN into .git/config by
           # default. This job then runs repository code, and `pull_request`
@@ -30,13 +46,11 @@ jobs:
           # git call is `git ls-files`, which needs no token.
           persist-credentials: false
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           # The hook, bdw, bd-corpus, install.py and selftest.py are standard
-          # library only, so there is nothing to install. The version is pinned
-          # to the oldest one the repository claims to support rather than to
-          # the newest, since "requires python3" is a claim like any other.
-          python-version: "3.11"
+          # library only, so there is nothing to install.
+          python-version: ${{ matrix.python }}
 
       - name: the regression suite
         run: python3 scripts/selftest.py
@@ -69,3 +83,37 @@ jobs:
           assert "UserPromptSubmit" in hooks["hooks"], sorted(hooks["hooks"])
           print(f"{plugin['name']} {plugin['version']}: manifests agree")
           PY
+
+  workflows:
+    name: lint workflows
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: actionlint
+        uses: raven-actions/actionlint@v2.2.0
+        env:
+          # shellcheck's info and style notes are advisory here; a warning or
+          # worse blocks.
+          SHELLCHECK_OPTS: --severity=warning
+      - name: yamllint
+        run: pipx run yamllint .
+      - name: markdownlint
+        uses: DavidAnson/markdownlint-cli2-action@v24
+
+  secrets:
+    name: secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # gitleaks reads the history, not just the tip.
+          fetch-depth: 0
+          persist-credentials: false
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
