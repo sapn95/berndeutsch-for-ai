@@ -1170,7 +1170,11 @@ def packaging_checks():
         print("  skip  no tracked path outside the known set  (git unavailable)")
     else:
         allowed = {"hooks", "scripts", "rules", "corpus", ".claude-plugin",
-                   ".github", "README.md", "NOTICE", "LICENSE", ".gitignore"}
+                   ".github", "README.md", "NOTICE", "LICENSE", ".gitignore",
+                   # Linter configuration, read by the workflow that lints the
+                   # workflows. Both belong at the root: that is where yamllint
+                   # and markdownlint-cli2 look, and neither takes a path to one.
+                   ".yamllint", ".markdownlint-cli2.jsonc"}
         stray = sorted({p.split("/")[0] for p in tracked} - allowed)
         check("no tracked top-level name outside the known set", not stray,
               str(stray))

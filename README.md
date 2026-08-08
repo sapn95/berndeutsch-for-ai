@@ -36,7 +36,7 @@ entirely. `UserPromptSubmit` checks each prompt for Bernese markers and, when it
 finds them, injects the rules into that turn. Deterministically, every time, and
 silently on prompts that are not in dialect.
 
-```
+```text
 you:     hesch mer chönne luege wies mitem Modul steit?
 hook:    [detects Bärndütsch] -> injects rules/schrybwys.md
 claude:  answers in Bärndütsch, with nid instead of nöd
@@ -45,7 +45,7 @@ claude:  answers in Bärndütsch, with nid instead of nöd
 ## What is in the box
 
 | | |
-|---|---|
+| --- | --- |
 | `rules/schrybwys.md` | The rulebook. The codified *schriftsprach-nah* system after Marti and Bietenhard: vowels, consonants, `ds`/`z`, grammar, and what separates Bernese from its neighbours. Tool-agnostic. |
 | `rules/schrybwys-compact.md` | The same rules in 2270 characters, with attribution and licence inside the block. |
 | `hooks/berndeutsch_gate.py` | The detector and injector, for Claude Code. |
@@ -90,7 +90,7 @@ The rulebook is the product; the hook is one delivery mechanism. Nothing in
 `rules/` is Claude-specific.
 
 | Where | What to do |
-|---|---|
+| --- | --- |
 | **ChatGPT** | Custom instructions, or a Project's instructions. Paste the block from `rules/schrybwys-compact.md`, i.e. everything below the `---`. |
 | **Any system prompt / API** | Paste `rules/schrybwys.md` verbatim. |
 | **GitHub Copilot** | `.github/copilot-instructions.md` |
@@ -105,9 +105,9 @@ else in the prompt. The hook injects them only on the turns that are in dialect.
 
 ## Install the Claude Code hook
 
-**As a plugin**
+### As a plugin
 
-```
+```text
 /plugin marketplace add sapn95/berndeutsch-for-ai
 /plugin install berndeutsch-for-ai
 ```
@@ -253,7 +253,7 @@ something else.
 
 Look a word up before you use it:
 
-```
+```console
 $ ~/.claude/scripts/bdw suber
 EXACT    suber  [Adj./Adv.]
       Schreibweisen: sufer (alt)
