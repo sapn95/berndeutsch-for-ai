@@ -1174,7 +1174,10 @@ def packaging_checks():
                    # Linter configuration, read by the workflow that lints the
                    # workflows. Both belong at the root: that is where yamllint
                    # and markdownlint-cli2 look, and neither takes a path to one.
-                   ".yamllint", ".markdownlint-cli2.jsonc"}
+                   ".yamllint", ".markdownlint-cli2.jsonc",
+                   # Renovate is switched off here in favour of Dependabot, and
+                   # the only place Renovate reads that from is the root.
+                   "renovate.json"}
         stray = sorted({p.split("/")[0] for p in tracked} - allowed)
         check("no tracked top-level name outside the known set", not stray,
               str(stray))
